@@ -4,6 +4,9 @@ type Request struct {
 	mthd       HttpMethod
 	url        string
 	pathParams pathParameters
+	headers    headers
+	// TODO: consider byte slice here
+	body string
 }
 
 func (req *Request) Method() HttpMethod {
@@ -37,3 +40,8 @@ func (req *Request) PathParam(param string) (string, bool) {
 }
 
 type pathParameters map[string]string
+
+func (req *Request) Header(key string) (string, bool) {
+	val, found := req.headers[key]
+	return val, found
+}

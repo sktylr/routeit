@@ -61,11 +61,13 @@ func (s *server) Start() error {
 }
 
 func handleConnection(conn net.Conn, handler HandlerFunc) {
+	// TODO: need to choose between strings and bytes here!
 	defer func() {
 		conn.Close()
 		fmt.Print("Response dispatched\n")
 	}()
 
+	// TODO: make this configurable
 	buf := make([]byte, 1024)
 	_, err := conn.Read(buf)
 	if err != nil {
@@ -78,19 +80,19 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 	lines := bytes.Split(buf, []byte("\n"))
 	ptcl := bytes.SplitN(bytes.TrimSpace(lines[0]), []byte(" "), 3)
 	if len(ptcl) != 3 {
-		fmt.Print("Unexpected HTTP protocol line!")
+		fmt.Print("Unexpected HTTP protocol line!\n")
 		return
 	}
 
 	ver := string(ptcl[2])
 	if ver != "HTTP/1.1" {
-		fmt.Print("Unsupported HTTP version!")
+		fmt.Print("Unsupported HTTP version!\n")
 		return
 	}
 
 	mthd, found := parseMethod(string(ptcl[0]))
 	if !found {
-		fmt.Print("Unsupported HTTP Method!")
+		fmt.Print("Unsupported HTTP Method!\n")
 		return
 	}
 
@@ -100,7 +102,7 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 	endpt := foo[0]
 	if len(foo) > 1 {
 		if len(foo) > 2 {
-			fmt.Print("Unexpected number of query options!")
+			fmt.Print("Unexpected number of query options!\n")
 			return
 		}
 
@@ -108,13 +110,41 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 		for _, query := range strings.Split(queries, "&") {
 			kvp := strings.SplitN(query, "=", 2)
 			if len(kvp) != 2 {
-				fmt.Printf("Query string malformed!")
+				fmt.Print("Query string malformed!\n")
 				continue
 			}
 			pathParams[kvp[0]] = kvp[1]
 		}
 	}
-	req := Request{mthd: mthd, url: endpt, pathParams: pathParams}
+
+	reqHdrs := headers{}
+	var end int
+	fmt.Printf("Number of lines: %d\n", len(lines))
+	for i, line := range lines {
+		// ?????
+		end = i
+		if i == 0 {
+			continue
+		}
+		sline := strings.TrimSpace(string(line))
+		if sline == "" {
+			// Blank line between headers and body
+			break
+		}
+
+		kvp := strings.SplitN(sline, ": ", 2)
+		if len(kvp) != 2 {
+			fmt.Printf("Malformed header: [%s]\n", sline)
+			continue
+		}
+		reqHdrs[kvp[0]] = kvp[1]
+	}
+	fmt.Printf("Ending on %d\n", end)
+	var sb strings.Builder
+	for _, line := range lines[end:] {
+		sb.Write(bytes.TrimSpace(line))
+	}
+	req := Request{mthd: mthd, url: endpt, pathParams: pathParams, headers: reqHdrs, body: sb.String()}
 
 	// Default to 200 OK status
 	rw := ResponseWriter{s: StatusOK, hdrs: map[string]string{"Server": "routeit"}}

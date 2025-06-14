@@ -74,7 +74,7 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
 	// Default to 200 OK status
-	rw := ResponseWriter{s: StatusOK}
+	rw := ResponseWriter{s: StatusOK, hdrs: map[string]string{"Server": "routeit"}}
 	err = handler(rw, &Request{})
 	if err != nil {
 		fmt.Println(err)

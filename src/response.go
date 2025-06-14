@@ -7,8 +7,9 @@ import (
 )
 
 type ResponseWriter struct {
-	bdy []byte
-	s   HttpStatus
+	bdy  []byte
+	s    HttpStatus
+	hdrs headers
 }
 
 func (rw *ResponseWriter) Json(v any) error {
@@ -17,6 +18,8 @@ func (rw *ResponseWriter) Json(v any) error {
 		return err
 	}
 	rw.bdy = b
+	rw.hdrs["Content-Length"] = fmt.Sprintf("%d", len(b))
+	rw.hdrs["Content-Type"] = "application/json"
 	return nil
 }
 
@@ -31,11 +34,9 @@ func (rw *ResponseWriter) write() []byte {
 	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", rw.s.code, rw.s.msg))
 
 	// Headers
-	sb.WriteString("Server: routeit\n")
-	// TODO: should come from the response
-	sb.WriteString("Content-Type: application/json\n")
-	sb.WriteString("Cache-Control: no-cache\n")
-	sb.WriteString(fmt.Sprintf("Content-Length: %d\n", len(rw.bdy)))
+	for k, v := range rw.hdrs {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", k, v))
+	}
 
 	// Blank line between headers and the response
 	sb.WriteString("\n")
@@ -43,3 +44,5 @@ func (rw *ResponseWriter) write() []byte {
 	sb.Write(rw.bdy)
 	return []byte(sb.String())
 }
+
+type headers map[string]string

@@ -29,12 +29,17 @@ func (s *server) Start() error {
 			continue
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, func(rw ResponseWriter, req *Request) error {
+			return rw.Write("HTTP/1.1 200 Ok\nServer: routeit\nContent-Type: application/json\nContent-Length: 5\nCache-Control: no-store\n\nHello")
+		})
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
+func handleConnection(conn net.Conn, handler HandlerFunc) {
+	defer func() {
+		conn.Close()
+		fmt.Print("Response dispatched\n")
+	}()
 
 	buf := make([]byte, 1024)
 	_, err := conn.Read(buf)
@@ -45,7 +50,8 @@ func handleConnection(conn net.Conn) {
 
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
-	_, err = conn.Write([]byte("HTTP/1.1 200 Ok\nServer: routeit\nContent-Type: application/json\nContent-Length: 5\nCache-Control: no-store\n\nHello"))
+	rw := ResponseWriter{conn}
+	err = handler(rw, &Request{})
 	if err != nil {
 		fmt.Println(err)
 	}

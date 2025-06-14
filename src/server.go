@@ -1,8 +1,10 @@
 package routeit
 
 import (
+	"bytes"
 	"fmt"
 	"net"
+	"strings"
 )
 
 type server struct {
@@ -73,9 +75,50 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
+	lines := bytes.Split(buf, []byte("\n"))
+	ptcl := bytes.SplitN(bytes.TrimSpace(lines[0]), []byte(" "), 3)
+	if len(ptcl) != 3 {
+		fmt.Print("Unexpected HTTP protocol line!")
+		return
+	}
+
+	ver := string(ptcl[2])
+	if ver != "HTTP/1.1" {
+		fmt.Print("Unsupported HTTP version!")
+		return
+	}
+
+	mthd, found := parseMethod(string(ptcl[0]))
+	if !found {
+		fmt.Print("Unsupported HTTP Method!")
+		return
+	}
+
+	path := string(ptcl[1])
+	pathParams := pathParameters{}
+	foo := strings.Split(path, "?")
+	endpt := foo[0]
+	if len(foo) > 1 {
+		if len(foo) > 2 {
+			fmt.Print("Unexpected number of query options!")
+			return
+		}
+
+		queries := foo[1]
+		for _, query := range strings.Split(queries, "&") {
+			kvp := strings.SplitN(query, "=", 2)
+			if len(kvp) != 2 {
+				fmt.Printf("Query string malformed!")
+				continue
+			}
+			pathParams[kvp[0]] = kvp[1]
+		}
+	}
+	req := Request{mthd: mthd, url: endpt, pathParams: pathParams}
+
 	// Default to 200 OK status
 	rw := ResponseWriter{s: StatusOK, hdrs: map[string]string{"Server": "routeit"}}
-	err = handler(rw, &Request{})
+	err = handler(rw, &req)
 	if err != nil {
 		fmt.Println(err)
 	}

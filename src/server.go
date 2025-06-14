@@ -2,27 +2,23 @@ package routeit
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
 )
 
 type server struct {
-	port int
+	port   int
+	router router
 }
 
 func NewServer(port int) *server {
-	return &server{port}
+	return &server{port: port, router: router{}}
 }
 
-type example struct {
-	Name   string `json:"name"`
-	Nested nested `json:"nested"`
-}
-
-type nested struct {
-	Age    int     `json:"age"`
-	Height float32 `json:"height"`
+func (s *server) RegisterRoutes(rreg RouteRegistry) {
+	s.router.registerRoutes(rreg)
 }
 
 func (s *server) Start() error {
@@ -41,15 +37,13 @@ func (s *server) Start() error {
 			continue
 		}
 
-		go handleConnection(conn, func(rw ResponseWriter, req *Request) error {
-			ex := example{
-				Name: "John Doe",
-				Nested: nested{
-					Age:    25,
-					Height: 1.82,
-				},
+		go handleConnection(conn, func(rw *ResponseWriter, req *Request) error {
+			hndl, found := s.router.route(req)
+			if !found {
+				// TODO: will want to do something with this in the future
+				return errors.New("unsupported route")
 			}
-			err := rw.Json(ex)
+			err := hndl.fn(rw, req)
 			if err != nil {
 				return err
 			}
@@ -148,7 +142,7 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 
 	// Default to 200 OK status
 	rw := ResponseWriter{s: StatusOK, hdrs: map[string]string{"Server": "routeit"}}
-	err = handler(rw, &req)
+	err = handler(&rw, &req)
 	if err != nil {
 		fmt.Println(err)
 	}

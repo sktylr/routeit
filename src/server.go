@@ -13,6 +13,16 @@ func NewServer(port int) *server {
 	return &server{port}
 }
 
+type example struct {
+	Name   string `json:"name"`
+	Nested nested `json:"nested"`
+}
+
+type nested struct {
+	Age    int     `json:"age"`
+	Height float32 `json:"height"`
+}
+
 func (s *server) Start() error {
 	fmt.Printf("Starting server on port %d\n", s.port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
@@ -30,7 +40,18 @@ func (s *server) Start() error {
 		}
 
 		go handleConnection(conn, func(rw ResponseWriter, req *Request) error {
-			return rw.Write("HTTP/1.1 200 Ok\nServer: routeit\nContent-Type: application/json\nContent-Length: 5\nCache-Control: no-store\n\nHello")
+			ex := example{
+				Name: "John Doe",
+				Nested: nested{
+					Age:    25,
+					Height: 1.82,
+				},
+			}
+			err := rw.Json(ex)
+			if err != nil {
+				return err
+			}
+			return rw.write()
 		})
 	}
 }
@@ -50,7 +71,7 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
-	rw := ResponseWriter{conn}
+	rw := ResponseWriter{conn: conn}
 	err = handler(rw, &Request{})
 	if err != nil {
 		fmt.Println(err)

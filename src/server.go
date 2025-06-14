@@ -51,7 +51,9 @@ func (s *server) Start() error {
 			if err != nil {
 				return err
 			}
-			return rw.write()
+			msg := rw.write()
+			_, err = conn.Write(msg)
+			return err
 		})
 	}
 }
@@ -72,7 +74,7 @@ func handleConnection(conn net.Conn, handler HandlerFunc) {
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
 	// Default to 200 OK status
-	rw := ResponseWriter{conn: conn, s: StatusOK}
+	rw := ResponseWriter{s: StatusOK}
 	err = handler(rw, &Request{})
 	if err != nil {
 		fmt.Println(err)

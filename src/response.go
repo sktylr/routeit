@@ -3,15 +3,12 @@ package routeit
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"strings"
 )
 
 type ResponseWriter struct {
-	// TODO: may be able to avoid having this
-	conn net.Conn
-	b    []byte
-	s    HttpStatus
+	bdy []byte
+	s   HttpStatus
 }
 
 func (rw *ResponseWriter) Json(v any) error {
@@ -19,7 +16,7 @@ func (rw *ResponseWriter) Json(v any) error {
 	if err != nil {
 		return err
 	}
-	rw.b = b
+	rw.bdy = b
 	return nil
 }
 
@@ -27,7 +24,7 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 	rw.s = s
 }
 
-func (rw *ResponseWriter) write() error {
+func (rw *ResponseWriter) write() []byte {
 	var sb strings.Builder
 
 	// HTTP line
@@ -38,13 +35,11 @@ func (rw *ResponseWriter) write() error {
 	// TODO: should come from the response
 	sb.WriteString("Content-Type: application/json\n")
 	sb.WriteString("Cache-Control: no-cache\n")
-	sb.WriteString(fmt.Sprintf("Content-Length: %d\n", len(rw.b)))
+	sb.WriteString(fmt.Sprintf("Content-Length: %d\n", len(rw.bdy)))
 
 	// Blank line between headers and the response
 	sb.WriteString("\n")
 
-	sb.Write(rw.b)
-
-	_, err := rw.conn.Write([]byte(sb.String()))
-	return err
+	sb.Write(rw.bdy)
+	return []byte(sb.String())
 }

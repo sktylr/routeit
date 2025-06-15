@@ -1,8 +1,8 @@
 package routeit
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 	"testing"
 )
 
@@ -10,29 +10,29 @@ import (
 
 func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 	tests := []struct {
-		name   string
-		input  string
-		errMsg string
+		name       string
+		input      string
+		wantStatus HttpStatus
 	}{
 		{
 			"path contains spaces",
 			"GET /hello bad path HTTP/1.1\r\nHost: localhost\r\n\r\n",
-			"malformed protocol line: GET /hello bad path HTTP/1.1",
+			StatusBadRequest,
 		},
 		{
 			"path missing",
 			"GET HTTP/1.1\r\nHost: localhost\r\n\r\n",
-			"malformed protocol line: GET HTTP/1.1",
+			StatusBadRequest,
 		},
 		{
 			"unsupported method",
 			"POST / HTTP/1.1\r\nHost: localhost\r\n\r\n",
-			"unsupported http method: POST",
+			StatusNotImplemented,
 		},
 		{
 			"unsupported http version",
 			"GET / HTTP/2.0\r\nHost: localhost\r\n\r\n",
-			"unsupported http version: HTTP/2.0",
+			StatusBadRequest,
 		},
 	}
 
@@ -40,12 +40,7 @@ func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			bts := []byte(tc.input)
 			_, err := requestFromRaw(bts)
-			if err == nil {
-				t.Error("expected error")
-			}
-			if !strings.Contains(err.Error(), tc.errMsg) {
-				t.Errorf(`error message = %q, wanted containing %#q`, err.Error(), tc.errMsg)
-			}
+			verifyHttpError(t, err, tc.wantStatus)
 		})
 	}
 }
@@ -53,24 +48,14 @@ func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 func TestRequestFromRawNoCarriageReturn(t *testing.T) {
 	bts := []byte("GET / HTTP/1.1\nHost: localhost\n\nbody")
 	_, err := requestFromRaw(bts)
-	if err == nil {
-		t.Error("expected error")
-	}
-	if !strings.Contains(err.Error(), "malformed http request") {
-		t.Errorf(`error message = %q, wanted containing "malformed http request"`, err.Error())
-	}
+	verifyHttpError(t, err, StatusBadRequest)
 }
 
 func TestRequestFromRawNoHeaders(t *testing.T) {
 	in := []byte("GET / HTTP/1.1\r\n\r\nthe body\r\n")
 
 	_, err := requestFromRaw(in)
-	if err == nil {
-		t.Error("expected error")
-	}
-	if !strings.Contains(err.Error(), "malformed http request") {
-		t.Errorf(`error message = %q, wanted containing "malformed http request"`, err.Error())
-	}
+	verifyHttpError(t, err, StatusBadRequest)
 }
 
 func TestRequestFromRawOneHeader(t *testing.T) {
@@ -134,12 +119,7 @@ func TestRequestFromRawRequiresHeaders(t *testing.T) {
 	if req != nil {
 		t.Error("requestFromRaw requires headers expected nil request")
 	}
-	if err == nil {
-		t.Error("requestFromRaw requires header expected error to be present")
-	}
-	if !strings.Contains(err.Error(), "malformed http request") {
-		t.Errorf(`requestFromRaw requires headers msg = %q, wanted "malformed http request"`, err.Error())
-	}
+	verifyHttpError(t, err, StatusBadRequest)
 }
 
 func TestRequestFromRawRequiresHostHeader(t *testing.T) {
@@ -149,12 +129,7 @@ func TestRequestFromRawRequiresHostHeader(t *testing.T) {
 	if req != nil {
 		t.Error("requestFromRaw requires Host headers expected nil request")
 	}
-	if err == nil {
-		t.Error("requestFromRaw requires Host header expected error to be present")
-	}
-	if !strings.Contains(err.Error(), "malformed http request") {
-		t.Errorf(`requestFromRaw requires headers msg = %q, wanted "malformed http request"`, err.Error())
-	}
+	verifyHttpError(t, err, StatusBadRequest)
 }
 
 func TestRequestFromRawParsesQueryString(t *testing.T) {
@@ -194,15 +169,9 @@ func TestRequestFromRawParsesQueryString(t *testing.T) {
 
 func TestRequestFromRawRejectsMalformedQueryStrings(t *testing.T) {
 	in := []byte("GET /endpoint?q=foo?bar HTTP/1.1\r\nHost: localhost\r\n\r\n")
-	wantMsg := "unexpected number of query options"
 
 	_, err := requestFromRaw(in)
-	if err == nil {
-		t.Error("expected error to be present")
-	}
-	if !strings.Contains(err.Error(), wantMsg) {
-		t.Errorf(`error message = %q, wanted containing %#q`, err.Error(), wantMsg)
-	}
+	verifyHttpError(t, err, StatusBadRequest)
 }
 
 func TestRequestFromRawAllowsComplexBodies(t *testing.T) {
@@ -259,5 +228,18 @@ func expectHeader(t *testing.T, msg string, key string, hdrs headers, want strin
 func expectMethod(t *testing.T, msg string, got HttpMethod, want HttpMethod) {
 	if got != want {
 		t.Errorf(`requestFromRaw %s mthd = %q, wanted %#q`, msg, got, want)
+	}
+}
+
+func verifyHttpError(t *testing.T, err error, want HttpStatus) {
+	if err == nil {
+		t.Error("expected error to be present")
+	}
+	var httpErr *httpError
+	if !errors.As(err, &httpErr) {
+		t.Errorf("expected httpError, got %T", err)
+	}
+	if httpErr.Status != want {
+		t.Errorf("httpError status got [status=%d, msg=%s], wanted [status=%d, msg=%s]", httpErr.Status.code, httpErr.Status.msg, want.code, want.msg)
 	}
 }

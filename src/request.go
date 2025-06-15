@@ -2,8 +2,6 @@ package routeit
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"io"
 	"strings"
 )
@@ -72,7 +70,7 @@ func requestFromRaw(raw []byte) (*Request, error) {
 	// return after the Host header and 1 carriage return after all the headers.
 	// This means there will be at least 4 sections.
 	if len(sections) < 4 {
-		return nil, errors.New("malformed http request")
+		return nil, BadRequestError()
 	}
 
 	prtclRaw := sections[0]
@@ -95,7 +93,7 @@ func requestFromRaw(raw []byte) (*Request, error) {
 	_, hasHost := reqHdrs["Host"]
 	if !hasHost {
 		// The Host header is required as part of HTTP/1.1
-		return nil, errors.New("malformed http request")
+		return nil, BadRequestError()
 	}
 
 	cLen := reqHdrs.contentLength()
@@ -126,16 +124,16 @@ type protocolLine struct {
 func parseProtocolLine(raw []byte) (protocolLine, error) {
 	split := bytes.Split(raw, []byte(" "))
 	if len(split) != 3 {
-		return protocolLine{}, fmt.Errorf("malformed protocol line: %s", string(raw))
+		return protocolLine{}, BadRequestError()
 	}
 
-	mthdRaw, path, prtcl := string(split[0]), string(split[1]), string(split[2])
-	mthd, found := methodMap[mthdRaw]
+	mthdRaw, path, prtcl := split[0], string(split[1]), string(split[2])
+	mthd, found := methodMap[string(mthdRaw)]
 	if !found {
-		return protocolLine{}, fmt.Errorf("unsupported http method: %s", mthdRaw)
+		return protocolLine{}, NotImplementedError()
 	}
 	if prtcl != "HTTP/1.1" {
-		return protocolLine{}, fmt.Errorf("unsupported http version: %s", prtcl)
+		return protocolLine{}, BadRequestError()
 	}
 
 	return protocolLine{mthd, path, prtcl}, nil
@@ -152,13 +150,13 @@ func parseQuery(raw string) (string, queryParameters, error) {
 	}
 
 	if len(split) > 2 {
-		return endpoint, nil, errors.New("unexpected number of query options")
+		return endpoint, nil, BadRequestError()
 	}
 
 	for _, query := range strings.Split(split[1], "&") {
 		kvp := strings.Split(query, "=")
 		if len(kvp) != 2 {
-			return endpoint, nil, errors.New("query string malformed")
+			return endpoint, nil, BadRequestError()
 		}
 		queryParams[kvp[0]] = kvp[1]
 	}

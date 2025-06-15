@@ -1,11 +1,9 @@
 package routeit
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -106,76 +104,15 @@ func handleConnection(conn net.Conn, handler HandlerFunc, reqSize RequestSize) {
 
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
-	lines := bytes.Split(buf, []byte("\n"))
-	ptcl := bytes.SplitN(bytes.TrimSpace(lines[0]), []byte(" "), 3)
-	if len(ptcl) != 3 {
-		fmt.Print("Unexpected HTTP protocol line!\n")
+	req, err := requestFromRaw(buf)
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
-
-	ver := string(ptcl[2])
-	if ver != "HTTP/1.1" {
-		fmt.Print("Unsupported HTTP version!\n")
-		return
-	}
-
-	mthd, found := parseMethod(string(ptcl[0]))
-	if !found {
-		fmt.Print("Unsupported HTTP Method!\n")
-		return
-	}
-
-	path := string(ptcl[1])
-	pathParams := pathParameters{}
-	foo := strings.Split(path, "?")
-	endpt := foo[0]
-	if len(foo) > 1 {
-		if len(foo) > 2 {
-			fmt.Print("Unexpected number of query options!\n")
-			return
-		}
-
-		queries := foo[1]
-		for _, query := range strings.Split(queries, "&") {
-			kvp := strings.SplitN(query, "=", 2)
-			if len(kvp) != 2 {
-				fmt.Print("Query string malformed!\n")
-				continue
-			}
-			pathParams[kvp[0]] = kvp[1]
-		}
-	}
-
-	reqHdrs := headers{}
-	var end int
-	for i, line := range lines {
-		// ?????
-		end = i
-		if i == 0 {
-			continue
-		}
-		sline := strings.TrimSpace(string(line))
-		if sline == "" {
-			// Blank line between headers and body
-			break
-		}
-
-		kvp := strings.SplitN(sline, ": ", 2)
-		if len(kvp) != 2 {
-			fmt.Printf("Malformed header: [%s]\n", sline)
-			continue
-		}
-		reqHdrs[kvp[0]] = kvp[1]
-	}
-	var sb strings.Builder
-	for _, line := range lines[end:] {
-		sb.Write(bytes.TrimSpace(line))
-	}
-	req := Request{mthd: mthd, url: endpt, pathParams: pathParams, headers: reqHdrs, body: sb.String()}
 
 	// Default to 200 OK status
 	rw := ResponseWriter{s: StatusOK, hdrs: map[string]string{"Server": "routeit"}}
-	err = handler(&rw, &req)
+	err = handler(&rw, req)
 	if err != nil {
 		fmt.Println(err)
 	}

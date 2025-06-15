@@ -35,6 +35,7 @@ func (rw *ResponseWriter) write() []byte {
 	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", rw.s.code, rw.s.msg))
 
 	// Headers
+	// TODO: we should probs set the content length header here to avoid it being overwritten
 	now := time.Now().UTC()
 	rw.hdrs["Date"] = now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
 	rw.hdrs.writeTo(&sb)

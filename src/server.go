@@ -58,8 +58,12 @@ func (s *server) Start() error {
 		}
 
 		now := time.Now()
-		conn.SetReadDeadline(now.Add(s.conf.ReadDeadline))
-		conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline))
+		if err = conn.SetReadDeadline(now.Add(s.conf.ReadDeadline)); err != nil {
+			fmt.Println(err)
+		}
+		if err = conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline)); err != nil {
+			fmt.Println(err)
+		}
 
 		go handleConnection(conn, func(rw *ResponseWriter, req *Request) error {
 			hndl, found := s.router.route(req)

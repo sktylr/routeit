@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+// TODO: some of the tests in here are dependent on having a request body in a GET request. Once future request methods are supported these should be changed and a request body should be ignored for GET requests
+
 func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -62,42 +64,41 @@ func TestRequestFromRawNoCarriageReturn(t *testing.T) {
 func TestRequestFromRawNoHeaders(t *testing.T) {
 	in := []byte("GET / HTTP/1.1\r\n\r\nthe body\r\n")
 
-	req, err := requestFromRaw(in)
-	if err != nil {
-		t.Errorf("requestFromRaw no headers unexpected error %s", err)
+	_, err := requestFromRaw(in)
+	if err == nil {
+		t.Error("expected error")
 	}
-	// Don't parse since there is no Content-Length present
-	expectBody(t, "no headers", req.body, "")
-	expectUrl(t, "no headers", req.url, "/")
-	if len(req.headers) != 0 {
-		t.Errorf(`requestFromRaw no headers headers = %q, wanted {}`, req.headers)
+	if !strings.Contains(err.Error(), "malformed http request") {
+		t.Errorf(`error message = %q, wanted containing "malformed http request"`, err.Error())
 	}
-	expectMethod(t, "no headers", req.mthd, GET)
 }
 
 func TestRequestFromRawOneHeader(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\nContent-Length: 8\r\n\r\nthe body")
+	in := []byte("GET / HTTP/1.1\r\nHost: localhost\r\n\r\nthe body")
 
 	req, err := requestFromRaw(in)
 	if err != nil {
 		t.Errorf("requestFromRaw one header unexpected error %s", err)
 	}
-	expectBody(t, "one header", req.body, "the body")
+	// Unparsed since there is no Content-Type header
+	expectBody(t, "one header", req.body, "")
 	expectUrl(t, "one header", req.url, "/")
 	if len(req.headers) != 1 {
-		t.Errorf(`requestFromRaw one header headers = %q, wanted {"Content-Length": "8"}`, req.headers)
+		t.Errorf(`requestFromRaw one header headers = %q, wanted {"Host": "localhost"}`, req.headers)
 	}
-	expectHeader(t, "one header", "Content-Length", req.headers, "8")
+	expectHeader(t, "one header", "Host", req.headers, "localhost")
 	expectMethod(t, "one header", req.mthd, GET)
 }
 
 func TestRequestFromRawMultipleHeaders(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\nContent-Length: 8\r\nContent-Type: text/plain\r\n\r\nthe body")
+	in := []byte("GET / HTTP/1.1\r\nContent-Length: 8\r\nContent-Type: text/plain\r\nHost: localhost\r\n\r\nthe body")
 	wantCl := "8"
 	wantCt := "text/plain"
+	wantHost := "localhost"
 	wantHdrs := map[string]string{
 		"Content-Length": wantCl,
 		"Content-Type":   wantCt,
+		"Host":           wantHost,
 	}
 
 	req, err := requestFromRaw(in)
@@ -111,7 +112,49 @@ func TestRequestFromRawMultipleHeaders(t *testing.T) {
 	}
 	expectHeader(t, "multiple headers", "Content-Type", req.headers, wantCt)
 	expectHeader(t, "multiple headers", "Content-Length", req.headers, wantCl)
+	expectHeader(t, "multiple headers", "Host", req.headers, wantHost)
 	expectMethod(t, "multiple headers", req.mthd, GET)
+}
+
+func TestRequestFromRawOnlyConsumesContentLength(t *testing.T) {
+	in := []byte("GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nthis is a long body!")
+	want := "thi"
+
+	req, err := requestFromRaw(in)
+	if err != nil {
+		t.Errorf("requestFromRaw only consumes content length unexpected error %s", err)
+	}
+	expectBody(t, "only consumes content length", req.body, want)
+}
+
+func TestRequestFromRawRequiresHeaders(t *testing.T) {
+	in := []byte("GET / HTTP/1.1\r\n\r\n")
+
+	req, err := requestFromRaw(in)
+	if req != nil {
+		t.Error("requestFromRaw requires headers expected nil request")
+	}
+	if err == nil {
+		t.Error("requestFromRaw requires header expected error to be present")
+	}
+	if !strings.Contains(err.Error(), "malformed http request") {
+		t.Errorf(`requestFromRaw requires headers msg = %q, wanted "malformed http request"`, err.Error())
+	}
+}
+
+func TestRequestFromRawRequiresHostHeader(t *testing.T) {
+	in := []byte("GET / HTTP/1.1\r\nAccept: */*\r\n\r\n")
+
+	req, err := requestFromRaw(in)
+	if req != nil {
+		t.Error("requestFromRaw requires Host headers expected nil request")
+	}
+	if err == nil {
+		t.Error("requestFromRaw requires Host header expected error to be present")
+	}
+	if !strings.Contains(err.Error(), "malformed http request") {
+		t.Errorf(`requestFromRaw requires headers msg = %q, wanted "malformed http request"`, err.Error())
+	}
 }
 
 func TestRequestFromRawParsesQueryString(t *testing.T) {
@@ -159,32 +202,6 @@ func TestRequestFromRawRejectsMalformedQueryStrings(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), wantMsg) {
 		t.Errorf(`error message = %q, wanted containing %#q`, err.Error(), wantMsg)
-	}
-}
-
-func TestRequestFromRawOnlyConsumesContentLength(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nthis is a long body!")
-	want := "thi"
-
-	req, err := requestFromRaw(in)
-	if err != nil {
-		t.Errorf("requestFromRaw only consumes content length unexpected error %s", err)
-	}
-	expectBody(t, "only consumes content length", req.body, want)
-}
-
-func TestRequestFromRawRequiresHeaders(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\n\r\n")
-
-	req, err := requestFromRaw(in)
-	if req != nil {
-		t.Error("requestFromRaw requires headers expected nil request")
-	}
-	if err == nil {
-		t.Error("requestFromRaw requires header expected error to be present")
-	}
-	if !strings.Contains(err.Error(), "malformed http request") {
-		t.Errorf(`requestFromRaw requires headers msg = %q, wanted "malformed http request"`, err.Error())
 	}
 }
 

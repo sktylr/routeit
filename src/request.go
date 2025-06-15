@@ -66,7 +66,6 @@ func (req *Request) Header(key string) (string, bool) {
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
 func requestFromRaw(raw []byte) (*Request, error) {
-	// TODO: must reject request if does not contain the host header
 	sections := bytes.Split(raw, []byte("\r\n"))
 
 	// We are expecting 1 carriage return after the protocol line, 1 carriage
@@ -91,6 +90,13 @@ func requestFromRaw(raw []byte) (*Request, error) {
 	}
 
 	reqHdrs := headersFromRaw(hdrsRaw)
+
+	// TODO: in future, we should verify that this is an allowed host
+	_, hasHost := reqHdrs["Host"]
+	if !hasHost {
+		// The Host header is required as part of HTTP/1.1
+		return nil, errors.New("malformed http request")
+	}
 
 	cLen := reqHdrs.contentLength()
 	var body string

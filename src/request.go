@@ -2,13 +2,17 @@ package routeit
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 )
 
 type Request struct {
-	mthd       HttpMethod
-	url        string
+	mthd HttpMethod
+	url  string
+	// TODO: need to change these
+	queries    queryParameters
 	pathParams pathParameters
 	headers    headers
 	// TODO: consider byte slice here
@@ -35,90 +39,122 @@ var methodMap = map[string]HttpMethod{
 	"GET": GET,
 }
 
-func parseMethod(mthdRaw string) (HttpMethod, bool) {
-	mthd, found := methodMap[mthdRaw]
-	return mthd, found
-}
-
 func (req *Request) PathParam(param string) (string, bool) {
 	val, found := req.pathParams[param]
 	return val, found
 }
 
 type pathParameters map[string]string
+type queryParameters map[string]string
 
 func (req *Request) Header(key string) (string, bool) {
 	val, found := req.headers[key]
 	return val, found
 }
 
+// Parses the raw byte slice of the request into a more usable request structure
+//
+// The request is made up of three components: the protocol line, headers and the
+// body. For HTTP/1.1, at a bare minimum the Host header must be included, though
+// the body is optional (and ignored for certain request methods such as GET).
+//
+// Each section is split using carriage returns (CRLF or \r\n). After the protocol
+// line, and each header line is also split using a carriage return. The protocol
+// line is always only a single line made up of three components - the request
+// method, the path (or URI) and the http protocol, and a blank line (using a
+// carriage return) also follows the headers before the optional body.
+//
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
 func requestFromRaw(raw []byte) (*Request, error) {
-	lines := bytes.Split(raw, []byte("\n"))
-	ptcl := bytes.SplitN(bytes.TrimSpace(lines[0]), []byte(" "), 3)
-	if len(ptcl) != 3 {
-		fmt.Print("Unexpected HTTP protocol line!\n")
-		return nil, fmt.Errorf("unexpected http protocol line: %s", ptcl)
+	// TODO: must reject request if does not contain the host header
+	sections := bytes.Split(raw, []byte("\r\n"))
+
+	// We are expecting 1 carriage return after the protocol line, 1 carriage
+	// return after the Host header and 1 carriage return after all the headers.
+	// This means there will be at least 4 sections.
+	if len(sections) < 4 {
+		return nil, errors.New("malformed http request")
 	}
 
-	ver := string(ptcl[2])
-	if ver != "HTTP/1.1" {
-		// TODO: should make this a response object instead
-		fmt.Print("Unsupported HTTP version!\n")
-		return nil, fmt.Errorf("unsupported http version: %s", ver)
+	prtclRaw := sections[0]
+	hdrsRaw := sections[1 : len(sections)-1]
+	bdyRaw := sections[len(sections)-1]
+
+	ptcl, err := parseProtocolLine(prtclRaw)
+	if err != nil {
+		return nil, err
 	}
 
-	mthd, found := parseMethod(string(ptcl[0]))
-	if !found {
-		fmt.Print("Unsupported HTTP Method!\n")
-		return nil, fmt.Errorf("unsupported http method: %s", ptcl[0])
+	endpt, queryParams, err := parseQuery(ptcl.path)
+	if err != nil {
+		return nil, err
 	}
 
-	path := string(ptcl[1])
-	pathParams := pathParameters{}
-	foo := strings.Split(path, "?")
-	endpt := foo[0]
-	if len(foo) > 1 {
-		if len(foo) > 2 {
-			// TODO: handle this better
-			fmt.Print("Unexpected number of query options!\n")
+	reqHdrs := headersFromRaw(hdrsRaw)
+
+	cLen := reqHdrs.contentLength()
+	var body string
+	// TODO: prevent parsing if method is GET
+	// TODO: make the buffer size also depend on the server max allowed request
+	if cLen > 0 {
+		reader := bytes.NewReader(bdyRaw)
+		buf := make([]byte, cLen)
+		_, err := io.ReadFull(reader, buf)
+		if err != nil {
+			return nil, err
 		}
-
-		queries := foo[1]
-		for _, query := range strings.Split(queries, "&") {
-			kvp := strings.SplitN(query, "=", 2)
-			if len(kvp) != 2 {
-				fmt.Print("Query string malformed!\n")
-				continue
-			}
-			pathParams[kvp[0]] = kvp[1]
-		}
+		body = string(buf)
+	} else {
+		body = ""
 	}
-
-	reqHdrs := headers{}
-	var end int
-	for i, line := range lines {
-		// ?????
-		end = i
-		if i == 0 {
-			continue
-		}
-		sline := strings.TrimSpace(string(line))
-		if sline == "" {
-			// Blank line between headers and body
-			break
-		}
-
-		kvp := strings.SplitN(sline, ": ", 2)
-		if len(kvp) != 2 {
-			fmt.Printf("Malformed header: [%s]\n", sline)
-			continue
-		}
-		reqHdrs[kvp[0]] = kvp[1]
-	}
-	var sb strings.Builder
-	for _, line := range lines[end:] {
-		sb.Write(bytes.TrimSpace(line))
-	}
-	req := Request{mthd: mthd, url: endpt, pathParams: pathParams, headers: reqHdrs, body: sb.String()}
+	req := Request{mthd: ptcl.mthd, url: endpt, queries: queryParams, pathParams: pathParameters{}, headers: reqHdrs, body: body}
 	return &req, nil
+}
+
+type protocolLine struct {
+	mthd  HttpMethod
+	path  string
+	prtcl string
+}
+
+func parseProtocolLine(raw []byte) (protocolLine, error) {
+	split := bytes.Split(raw, []byte(" "))
+	if len(split) != 3 {
+		return protocolLine{}, fmt.Errorf("malformed protocol line: %s", string(raw))
+	}
+
+	mthdRaw, path, prtcl := string(split[0]), string(split[1]), string(split[2])
+	mthd, found := methodMap[mthdRaw]
+	if !found {
+		return protocolLine{}, fmt.Errorf("unsupported http method: %s", mthdRaw)
+	}
+	if prtcl != "HTTP/1.1" {
+		return protocolLine{}, fmt.Errorf("unsupported http version: %s", prtcl)
+	}
+
+	return protocolLine{mthd, path, prtcl}, nil
+}
+
+func parseQuery(raw string) (string, queryParameters, error) {
+	split := strings.Split(raw, "?")
+	endpoint := split[0]
+	queryParams := queryParameters{}
+
+	if len(split) == 1 {
+		// No query string present
+		return endpoint, queryParameters{}, nil
+	}
+
+	if len(split) > 2 {
+		return endpoint, nil, errors.New("unexpected number of query options")
+	}
+
+	for _, query := range strings.Split(split[1], "&") {
+		kvp := strings.Split(query, "=")
+		if len(kvp) != 2 {
+			return endpoint, nil, errors.New("query string malformed")
+		}
+		queryParams[kvp[0]] = kvp[1]
+	}
+	return endpoint, queryParams, nil
 }

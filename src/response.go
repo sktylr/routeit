@@ -34,9 +34,7 @@ func (rw *ResponseWriter) write() []byte {
 	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", rw.s.code, rw.s.msg))
 
 	// Headers
-	for k, v := range rw.hdrs {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", k, v))
-	}
+	rw.hdrs.writeTo(&sb)
 
 	// Blank line between headers and the response
 	sb.WriteString("\n")
@@ -44,5 +42,3 @@ func (rw *ResponseWriter) write() []byte {
 	sb.Write(rw.bdy)
 	return []byte(sb.String())
 }
-
-type headers map[string]string

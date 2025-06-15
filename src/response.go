@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type ResponseWriter struct {
@@ -34,6 +35,8 @@ func (rw *ResponseWriter) write() []byte {
 	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", rw.s.code, rw.s.msg))
 
 	// Headers
+	now := time.Now().UTC()
+	rw.hdrs["Date"] = now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
 	rw.hdrs.writeTo(&sb)
 
 	// Blank line between headers and the response

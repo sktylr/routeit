@@ -17,7 +17,9 @@ type nested struct {
 }
 
 func main() {
-	srv := routeit.NewServer(8080)
+	srv := routeit.NewServer(routeit.ServerConfig{
+		Port: 8080,
+	})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			ex := example{

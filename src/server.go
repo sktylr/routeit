@@ -8,13 +8,24 @@ import (
 	"strings"
 )
 
+type ServerConfig struct {
+	Port        int
+	RequestSize RequestSize
+}
+
 type server struct {
-	port   int
+	conf   ServerConfig
 	router router
 }
 
-func NewServer(port int) *server {
-	return &server{port: port, router: router{}}
+func NewServer(conf ServerConfig) *server {
+	if conf.RequestSize == 0 {
+		conf.RequestSize = KiB
+	}
+	if conf.Port == 0 {
+		conf.Port = 8080
+	}
+	return &server{conf: conf, router: router{}}
 }
 
 func (s *server) RegisterRoutes(rreg RouteRegistry) {
@@ -22,10 +33,10 @@ func (s *server) RegisterRoutes(rreg RouteRegistry) {
 }
 
 func (s *server) Start() error {
-	fmt.Printf("Starting server on port %d\n", s.port)
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
+	fmt.Printf("Starting server on port %d\n", s.conf.Port)
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
 	if err != nil {
-		fmt.Printf("Failed to establish connection on port %d\n", s.port)
+		fmt.Printf("Failed to establish connection on port %d\n", s.conf.Port)
 		return err
 	}
 	fmt.Print("Server started, ready for requests...\n")
@@ -50,19 +61,26 @@ func (s *server) Start() error {
 			msg := rw.write()
 			_, err = conn.Write(msg)
 			return err
-		})
+		}, s.conf.RequestSize)
 	}
 }
 
-func handleConnection(conn net.Conn, handler HandlerFunc) {
+type RequestSize uint32
+
+const (
+	Byte RequestSize = 1
+	KiB              = 1024 * Byte
+	MiB              = 1024 * KiB
+)
+
+func handleConnection(conn net.Conn, handler HandlerFunc, reqSize RequestSize) {
 	// TODO: need to choose between strings and bytes here!
 	defer func() {
 		conn.Close()
 		fmt.Print("Response dispatched\n")
 	}()
 
-	// TODO: make this configurable
-	buf := make([]byte, 1024)
+	buf := make([]byte, reqSize)
 	_, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println(err)

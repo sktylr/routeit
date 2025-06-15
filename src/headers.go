@@ -8,12 +8,11 @@ import (
 
 type headers map[string]string
 
-// TODO: this should have a carriage return on everything!
 func (h headers) writeTo(sb *strings.Builder) {
 	for k, v := range h {
 		key := strings.Map(sanitiseHeader, strings.TrimSpace(k))
 		val := strings.Map(sanitiseHeader, v)
-		sb.WriteString(fmt.Sprintf("%s: %s\n", key, val))
+		sb.WriteString(fmt.Sprintf("%s: %s\r\n", key, val))
 	}
 }
 
@@ -74,6 +73,5 @@ func sanitiseHeader(r rune) rune {
 	if (r < ' ' || r > '~') && r != '\t' {
 		return -1
 	}
-
 	return r
 }

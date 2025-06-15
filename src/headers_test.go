@@ -12,7 +12,7 @@ func TestHeadersWriteTo(t *testing.T) {
 		"Date":           "Fri, 13 Jun 2025 19:35:42 GMT",
 		"Content-Length": "85",
 	}
-	want := "Content-Type: application/json\nDate: Fri, 13 Jun 2025 19:35:42 GMT\nContent-Length: 85\n"
+	want := "Content-Type: application/json\r\nDate: Fri, 13 Jun 2025 19:35:42 GMT\r\nContent-Length: 85\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.writeTo")
 }
@@ -28,7 +28,7 @@ func TestHeadersWriteToClearsNewlines(t *testing.T) {
 	h := headers{
 		"Content-Length": "1\n5\n",
 	}
-	want := "Content-Length: 15\n"
+	want := "Content-Length: 15\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.writeTo clears new lines")
 }
@@ -37,7 +37,7 @@ func TestHeadersWriteToClearsInternalCarriageReturn(t *testing.T) {
 	h := headers{
 		"Content-Type": "application/\r\njson",
 	}
-	want := "Content-Type: application/json\n"
+	want := "Content-Type: application/json\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.writeTo clears internal carriage return")
 }
@@ -46,7 +46,7 @@ func TestHeadersWriteToDoesNotClearInteriorWhitespace(t *testing.T) {
 	h := headers{
 		"Content-Type": "application/json; charset=utf-8",
 	}
-	want := "Content-Type: application/json; charset=utf-8\n"
+	want := "Content-Type: application/json; charset=utf-8\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.writeTo does not clear interior whitespace")
 }
@@ -55,7 +55,7 @@ func TestHeadersWriteToAllowsHTab(t *testing.T) {
 	h := headers{
 		"Content-Type": "application/json\tcharset=utf-8",
 	}
-	want := "Content-Type: application/json\tcharset=utf-8\n"
+	want := "Content-Type: application/json\tcharset=utf-8\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.writeTo allows tabs")
 }

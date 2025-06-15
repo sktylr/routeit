@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 type ServerConfig struct {
-	Port        int
-	RequestSize RequestSize
+	Port          int
+	RequestSize   RequestSize
+	ReadDeadline  time.Duration
+	WriteDeadline time.Duration
 }
 
 type server struct {
@@ -24,6 +27,12 @@ func NewServer(conf ServerConfig) *server {
 	}
 	if conf.Port == 0 {
 		conf.Port = 8080
+	}
+	if conf.ReadDeadline == 0 {
+		conf.ReadDeadline = 10 * time.Second
+	}
+	if conf.WriteDeadline == 0 {
+		conf.WriteDeadline = 10 * time.Second
 	}
 	return &server{conf: conf, router: router{}}
 }
@@ -47,6 +56,10 @@ func (s *server) Start() error {
 			fmt.Println(err)
 			continue
 		}
+
+		now := time.Now()
+		conn.SetReadDeadline(now.Add(s.conf.ReadDeadline))
+		conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline))
 
 		go handleConnection(conn, func(rw *ResponseWriter, req *Request) error {
 			hndl, found := s.router.route(req)
@@ -131,7 +144,6 @@ func handleConnection(conn net.Conn, handler HandlerFunc, reqSize RequestSize) {
 
 	reqHdrs := headers{}
 	var end int
-	fmt.Printf("Number of lines: %d\n", len(lines))
 	for i, line := range lines {
 		// ?????
 		end = i
@@ -151,7 +163,6 @@ func handleConnection(conn net.Conn, handler HandlerFunc, reqSize RequestSize) {
 		}
 		reqHdrs[kvp[0]] = kvp[1]
 	}
-	fmt.Printf("Ending on %d\n", end)
 	var sb strings.Builder
 	for _, line := range lines[end:] {
 		sb.Write(bytes.TrimSpace(line))

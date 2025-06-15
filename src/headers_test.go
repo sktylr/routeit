@@ -60,19 +60,13 @@ func TestHeadersWriteToAllowsHTab(t *testing.T) {
 	verifyWriteToOutput(t, h, want, "h.writeTo allows tabs")
 }
 
-func TestNewHeadersDefaultsServer(t *testing.T) {
-	h := newHeaders()
+func TestNewResponseHeadersDefaultsServer(t *testing.T) {
+	h := newResponseHeaders()
 
 	if len(h) != 1 {
 		t.Errorf(`len(h) = %q, want match for %#q`, len(h), 1)
 	}
-	val, found := h["Server"]
-	if !found {
-		t.Error("Expected to find 'Server' in default headers")
-	}
-	if val != "routeit" {
-		t.Errorf(`h["Server"] = %q, want "routeit"`, val)
-	}
+	verifyPresentAndMatches(t, h, "newResponseHeaders defaults server", "Server", "routeit")
 }
 
 func TestSetOverwrites(t *testing.T) {
@@ -82,13 +76,7 @@ func TestSetOverwrites(t *testing.T) {
 
 	h.set("Content-Length", "16")
 
-	cl, found := h["Content-Length"]
-	if !found {
-		t.Error("set overwrites, wanted 'Content-Length' to be present")
-	}
-	if cl != "16" {
-		t.Errorf(`set overwrites h["Content-Length"] = %q, want "16"`, cl)
-	}
+	verifyPresentAndMatches(t, h, "set overwrites", "Content-Length", "16")
 }
 
 func TestSetSanitises(t *testing.T) {
@@ -97,14 +85,61 @@ func TestSetSanitises(t *testing.T) {
 	h.set("Content\r\n-Length", "16\n\n\t")
 	want := "16\t"
 
-	cl, found := h["Content-Length"]
-	if !found {
-		t.Error("set sanitises, wanted 'Content-Length' to be present")
+	verifyPresentAndMatches(t, h, "set sanitises", "Content-Length", want)
+}
+
+func TestHeadersFromRaw(t *testing.T) {
+	raw := [][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")}
+
+	h := headersFromRaw(raw)
+
+	if len(h) != 2 {
+		t.Errorf(`headers from raw len(h) = %d, want match for 2`, len(h))
 	}
-	if cl != want {
-		t.Errorf(`set sanitises h["Content-Length"] = %q, want %#q`, cl, want)
+	verifyPresentAndMatches(t, h, "headers from raw", "Host", "localhost")
+	verifyPresentAndMatches(t, h, "headers from raw", "Content-Type", "application/json")
+}
+
+func TestHeadersFromRawExitsAfterEmptyLines(t *testing.T) {
+	raw := [][]byte{[]byte(""), []byte("Host: localhost")}
+
+	h := headersFromRaw(raw)
+	if len(h) != 0 {
+		t.Errorf(`headers from raw empty line len(h) = %d, wanted 0`, len(h))
+	}
+}
+
+func TestContentLength(t *testing.T) {
+	tests := []struct {
+		name string
+		in   headers
+		want uint
+	}{
+		{
+			"not present",
+			headers{},
+			0,
+		},
+		{
+			"not parsable",
+			headers{"Content-Length": "abc"},
+			0,
+		},
+		{
+			"valid",
+			headers{"Content-Length": "85"},
+			85,
+		},
 	}
 
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cLen := tc.in.contentLength()
+			if cLen != tc.want {
+				t.Errorf(`h.contentLength() = %d, wanted %d`, cLen, tc.want)
+			}
+		})
+	}
 }
 
 func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
@@ -133,5 +168,15 @@ func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
 		if l != wl {
 			t.Errorf(`%s = %q, want %#q`, msg, l, wl)
 		}
+	}
+}
+
+func verifyPresentAndMatches(t *testing.T, h headers, msg string, key string, want string) {
+	got, exists := h[key]
+	if !exists {
+		t.Errorf("%s, wanted %q to be present", msg, key)
+	}
+	if got != want {
+		t.Errorf(`%s h[%q] = %q, want %#q`, msg, key, got, want)
 	}
 }

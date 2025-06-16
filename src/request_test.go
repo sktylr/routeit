@@ -1,7 +1,6 @@
 package routeit
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 )
@@ -204,18 +203,21 @@ func TestRequestFromRawAllowsComplexBodies(t *testing.T) {
 }
 
 func expectBody(t *testing.T, msg string, got string, want string) {
+	t.Helper()
 	if got != want {
 		t.Errorf(`requestFromRaw %s body = %q, wanted %#q`, msg, got, want)
 	}
 }
 
 func expectUrl(t *testing.T, msg string, got string, want string) {
+	t.Helper()
 	if got != want {
 		t.Errorf(`requestFromRaw %s url = %q, wanted %#q`, msg, got, want)
 	}
 }
 
 func expectHeader(t *testing.T, msg string, key string, hdrs headers, want string) {
+	t.Helper()
 	got, exists := hdrs[key]
 	if !exists {
 		t.Errorf(`requestFromRaw %s expected header %#q to exist`, msg, key)
@@ -226,20 +228,18 @@ func expectHeader(t *testing.T, msg string, key string, hdrs headers, want strin
 }
 
 func expectMethod(t *testing.T, msg string, got HttpMethod, want HttpMethod) {
+	t.Helper()
 	if got != want {
 		t.Errorf(`requestFromRaw %s mthd = %q, wanted %#q`, msg, got, want)
 	}
 }
 
-func verifyHttpError(t *testing.T, err error, want HttpStatus) {
+func verifyHttpError(t *testing.T, err *httpError, want HttpStatus) {
+	t.Helper()
 	if err == nil {
-		t.Error("expected error to be present")
+		t.Fatal("expected error to be present")
 	}
-	var httpErr *httpError
-	if !errors.As(err, &httpErr) {
-		t.Errorf("expected httpError, got %T", err)
-	}
-	if httpErr.Status != want {
-		t.Errorf("httpError status got [status=%d, msg=%s], wanted [status=%d, msg=%s]", httpErr.Status.code, httpErr.Status.msg, want.code, want.msg)
+	if err.Status != want {
+		t.Errorf("httpError status got [status=%d, msg=%s], wanted [status=%d, msg=%s]", err.Status.code, err.Status.msg, want.code, want.msg)
 	}
 }

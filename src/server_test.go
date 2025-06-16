@@ -63,18 +63,21 @@ func TestNewServerOnlyWriteTimeout(t *testing.T) {
 }
 
 func verifyDefaultPort(t *testing.T, conf ServerConfig) {
+	t.Helper()
 	if conf.Port != 8080 {
 		t.Errorf(`default port = %d, want 8080`, conf.Port)
 	}
 }
 
 func verifyDefaultRequestSize(t *testing.T, conf ServerConfig) {
+	t.Helper()
 	if conf.RequestSize != 1024 {
 		t.Errorf(`default request buffer size = %d, want 1024`, conf.RequestSize)
 	}
 }
 
 func verifyDefaultReadTimeout(t *testing.T, conf ServerConfig) {
+	t.Helper()
 	// 10s = 10^10 ns
 	if conf.ReadDeadline != 10_000_000_000 {
 		t.Errorf(`default read timeout = %d, want 10_000_000_000`, conf.ReadDeadline)
@@ -82,6 +85,7 @@ func verifyDefaultReadTimeout(t *testing.T, conf ServerConfig) {
 }
 
 func verifyDefaultWriteTimeout(t *testing.T, conf ServerConfig) {
+	t.Helper()
 	// 10s = 10^10 ns
 	if conf.WriteDeadline != 10_000_000_000 {
 		t.Errorf(`default write timeout = %d, want 10_000_000_000`, conf.WriteDeadline)

@@ -143,6 +143,7 @@ func TestContentLength(t *testing.T) {
 }
 
 func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
+	t.Helper()
 	var sb strings.Builder
 	h.writeTo(&sb)
 	actual := sb.String()
@@ -172,6 +173,7 @@ func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
 }
 
 func verifyPresentAndMatches(t *testing.T, h headers, msg string, key string, want string) {
+	t.Helper()
 	got, exists := h[key]
 	if !exists {
 		t.Errorf("%s, wanted %q to be present", msg, key)

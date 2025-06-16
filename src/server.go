@@ -63,20 +63,7 @@ func (s *server) Start() error {
 			fmt.Println(err)
 		}
 
-		go handleConnection(conn, func(rw *ResponseWriter, req *Request) error {
-			hndl, found := s.router.route(req)
-			if !found {
-				// TODO: will want to do something with this in the future
-				return errors.New("unsupported route")
-			}
-			err := hndl.fn(rw, req)
-			if err != nil {
-				return err
-			}
-			msg := rw.write()
-			_, err = conn.Write(msg)
-			return err
-		}, s.conf.RequestSize)
+		go s.handleNewConnection(conn)
 	}
 }
 
@@ -88,14 +75,14 @@ const (
 	MiB              = 1024 * KiB
 )
 
-func handleConnection(conn net.Conn, handler HandlerFunc, reqSize RequestSize) {
+func (s *server) handleNewConnection(conn net.Conn) {
 	// TODO: need to choose between strings and bytes here!
 	defer func() {
 		conn.Close()
-		fmt.Print("Response dispatched\n")
+		fmt.Println("Response dispatched")
 	}()
 
-	buf := make([]byte, reqSize)
+	buf := make([]byte, s.conf.RequestSize)
 	_, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println(err)
@@ -104,16 +91,36 @@ func handleConnection(conn net.Conn, handler HandlerFunc, reqSize RequestSize) {
 
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
-	req, err := requestFromRaw(buf)
+	res := s.handleNewRequest(buf)
+	_, err = conn.Write(res.write())
+
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Printf("Error while responding to client: %s", err)
+	}
+}
+
+func (s *server) handleNewRequest(raw []byte) *ResponseWriter {
+	req, _ := requestFromRaw(raw)
+	// TODO: handle this properly!
+
+	// Default to a 200 OK status code
+	rw := &ResponseWriter{s: StatusOK, hdrs: newResponseHeaders()}
+	handler, found := s.router.route(req)
+	if !found {
+		return NotFoundError().toResponse()
+	}
+	err := handler.fn(rw, req)
+
+	if err == nil {
+		return rw
 	}
 
-	// Default to 200 OK status
-	rw := ResponseWriter{s: StatusOK, hdrs: map[string]string{"Server": "routeit"}}
-	err = handler(&rw, req)
-	if err != nil {
-		fmt.Println(err)
+	var httpErr *httpError
+	if errors.As(err, &httpErr) {
+		return httpErr.toResponse()
 	}
+
+	// If the error is not a well formed httpError, then we consider it
+	// to be unexpected and return a 500 Internal Server Error
+	return InternalServerError().toResponse()
 }

@@ -121,7 +121,7 @@ type protocolLine struct {
 	prtcl string
 }
 
-func parseProtocolLine(raw []byte) (protocolLine, error) {
+func parseProtocolLine(raw []byte) (protocolLine, *httpError) {
 	split := bytes.Split(raw, []byte(" "))
 	if len(split) != 3 {
 		return protocolLine{}, BadRequestError()
@@ -139,7 +139,7 @@ func parseProtocolLine(raw []byte) (protocolLine, error) {
 	return protocolLine{mthd, path, prtcl}, nil
 }
 
-func parseQuery(raw string) (string, queryParameters, error) {
+func parseQuery(raw string) (string, queryParameters, *httpError) {
 	split := strings.Split(raw, "?")
 	endpoint := split[0]
 	queryParams := queryParameters{}

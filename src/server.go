@@ -85,6 +85,7 @@ func (s *server) handleNewConnection(conn net.Conn) {
 	buf := make([]byte, s.conf.RequestSize)
 	_, err := conn.Read(buf)
 	if err != nil {
+		// TODO: should handle read timeouts here and return 408 Request Timeout
 		fmt.Println(err)
 		return
 	}
@@ -99,12 +100,25 @@ func (s *server) handleNewConnection(conn net.Conn) {
 	}
 }
 
-func (s *server) handleNewRequest(raw []byte) *ResponseWriter {
-	req, _ := requestFromRaw(raw)
-	// TODO: handle this properly!
+func (s *server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
+	defer func() {
+		// Prevent panics in the application code from crashing the
+		// server entirely. We recover the panic and return a generic
+		// 500 Internal Server Error since the fault is on the server,
+		// not the client.
+		if r := recover(); r != nil {
+			fmt.Printf("Application code panicked: %s\n", r)
+			rw = InternalServerError().toResponse()
+		}
+	}()
+
+	req, httpErr := requestFromRaw(raw)
+	if httpErr != nil {
+		return httpErr.toResponse()
+	}
 
 	// Default to a 200 OK status code
-	rw := &ResponseWriter{s: StatusOK, hdrs: newResponseHeaders()}
+	rw = &ResponseWriter{s: StatusOK, hdrs: newResponseHeaders()}
 	handler, found := s.router.route(req)
 	if !found {
 		return NotFoundError().toResponse()
@@ -115,7 +129,6 @@ func (s *server) handleNewRequest(raw []byte) *ResponseWriter {
 		return rw
 	}
 
-	var httpErr *httpError
 	if errors.As(err, &httpErr) {
 		return httpErr.toResponse()
 	}

@@ -63,7 +63,7 @@ func (req *Request) Header(key string) (string, bool) {
 // carriage return) also follows the headers before the optional body.
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
-func requestFromRaw(raw []byte) (*Request, error) {
+func requestFromRaw(raw []byte) (*Request, *httpError) {
 	sections := bytes.Split(raw, []byte("\r\n"))
 
 	// We are expecting 1 carriage return after the protocol line, 1 carriage
@@ -101,11 +101,18 @@ func requestFromRaw(raw []byte) (*Request, error) {
 	// TODO: prevent parsing if method is GET
 	// TODO: make the buffer size also depend on the server max allowed request
 	if cLen > 0 {
+		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds
 		reader := bytes.NewReader(bdyRaw)
 		buf := make([]byte, cLen)
 		_, err := io.ReadFull(reader, buf)
 		if err != nil {
-			return nil, err
+			// Http servers are expected to read **exactly** Content-Length bytes
+			// from the request body. This error is returned if the reader contains
+			// **less** than the requested number of bytes, so we cannot read it
+			// all. Either the client has not sent it all (e.g. due to a slow
+			// connection), or the request is malformed. Return 400 Bad Request
+			// since the failure is with the client.
+			return nil, BadRequestError()
 		}
 		body = string(buf)
 	} else {

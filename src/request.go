@@ -87,7 +87,10 @@ func requestFromRaw(raw []byte) (*Request, *httpError) {
 		return nil, err
 	}
 
-	reqHdrs := headersFromRaw(hdrsRaw)
+	reqHdrs, err := headersFromRaw(hdrsRaw)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: in future, we should verify that this is an allowed host
 	_, hasHost := reqHdrs["Host"]

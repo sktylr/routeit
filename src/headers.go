@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// TODO: need to make this work for case insensitive lookup
 type headers map[string]string
 
 func (h headers) writeTo(sb *strings.Builder) {
@@ -29,7 +30,7 @@ func newResponseHeaders() headers {
 // Parses a slice of byte slices into the headers type.
 //
 // Expects that the input has already been split on the carriage return symbol \r\n
-func headersFromRaw(raw [][]byte) headers {
+func headersFromRaw(raw [][]byte) (headers, *httpError) {
 	h := headers{}
 	for i, line := range raw {
 		if len(line) == 0 {
@@ -40,17 +41,19 @@ func headersFromRaw(raw [][]byte) headers {
 				// Ignore subsequent properties for now.
 				fmt.Printf("found end of headers section, returning... (total headers = %d, on index = %d)\n", len(raw), i)
 			}
-			return h
+			return h, nil
 		}
 
-		kvp := strings.SplitN(string(line), ": ", 2)
+		// TODO: also need to ensure exactly 1 :
+		// TODO: improve this properly
+		kvp := strings.Split(string(line), ":")
 		if len(kvp) != 2 {
 			fmt.Printf("Malformed header: [%s]\n", string(line))
-			continue
+			return h, BadRequestError()
 		}
-		h[kvp[0]] = kvp[1]
+		h[kvp[0]] = strings.TrimPrefix(kvp[1], " ")
 	}
-	return h
+	return h, nil
 }
 
 // Extract the content length field from the header map, defaulting to 0 if not present
@@ -61,7 +64,7 @@ func (h headers) contentLength() uint {
 	}
 	cLen, err := strconv.Atoi(cLenRaw)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return 0
 	}
 	return uint(cLen)

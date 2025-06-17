@@ -91,8 +91,11 @@ func TestSetSanitises(t *testing.T) {
 func TestHeadersFromRaw(t *testing.T) {
 	raw := [][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")}
 
-	h := headersFromRaw(raw)
+	h, err := headersFromRaw(raw)
 
+	if err != nil {
+		t.Errorf("expected error to be nil: %s", err)
+	}
 	if len(h) != 2 {
 		t.Errorf(`headers from raw len(h) = %d, want match for 2`, len(h))
 	}
@@ -103,7 +106,10 @@ func TestHeadersFromRaw(t *testing.T) {
 func TestHeadersFromRawExitsAfterEmptyLines(t *testing.T) {
 	raw := [][]byte{[]byte(""), []byte("Host: localhost")}
 
-	h := headersFromRaw(raw)
+	h, err := headersFromRaw(raw)
+	if err != nil {
+		t.Errorf("expected error to be nil: %s", err)
+	}
 	if len(h) != 0 {
 		t.Errorf(`headers from raw empty line len(h) = %d, wanted 0`, len(h))
 	}

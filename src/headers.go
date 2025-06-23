@@ -13,7 +13,7 @@ func (h headers) writeTo(sb *strings.Builder) {
 	for k, v := range h {
 		key := strings.Map(sanitiseHeader, strings.TrimSpace(k))
 		val := strings.Map(sanitiseHeader, v)
-		sb.WriteString(fmt.Sprintf("%s: %s\r\n", key, val))
+		fmt.Fprintf(sb, "%s: %s\r\n", key, val)
 	}
 }
 
@@ -46,7 +46,7 @@ func headersFromRaw(raw [][]byte) (headers, *httpError) {
 
 		// TODO: also need to ensure exactly 1 :
 		// TODO: improve this properly
-		kvp := strings.Split(string(line), ":")
+		kvp := strings.Split(string(line), ": ")
 		if len(kvp) != 2 {
 			fmt.Printf("Malformed header: [%s]\n", string(line))
 			return h, BadRequestError()

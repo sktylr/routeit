@@ -118,7 +118,7 @@ func (s *server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	}
 
 	// Default to a 200 OK status code
-	rw = &ResponseWriter{s: StatusOK, hdrs: newResponseHeaders()}
+	rw = newResponse(StatusOK)
 	handler, found := s.router.route(req)
 	if !found {
 		return NotFoundError().toResponse()

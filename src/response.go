@@ -13,6 +13,11 @@ type ResponseWriter struct {
 	hdrs headers
 }
 
+func newResponse(status HttpStatus) *ResponseWriter {
+	headers := newResponseHeaders()
+	return &ResponseWriter{s: status, hdrs: headers}
+}
+
 func (rw *ResponseWriter) Json(v any) error {
 	b, err := json.Marshal(v)
 	if err != nil {

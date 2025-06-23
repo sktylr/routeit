@@ -36,9 +36,8 @@ func NotImplementedError() *httpError {
 }
 
 func (e *httpError) toResponse() *ResponseWriter {
-	hdrs := newResponseHeaders()
-	hdrs["Content-Type"] = "text/plain"
-	body := []byte(fmt.Sprintf("%d: %s", e.Status.code, e.Status.msg))
-	hdrs["Content-Length"] = fmt.Sprintf("%d", len(body))
-	return &ResponseWriter{s: e.Status, hdrs: hdrs, bdy: body}
+	rw := newResponse(e.Status)
+	body := fmt.Sprintf("%d: %s", e.Status.code, e.Status.msg)
+	rw.Text(body)
+	return rw
 }

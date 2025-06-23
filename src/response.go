@@ -31,8 +31,8 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 func (rw *ResponseWriter) write() []byte {
 	var sb strings.Builder
 
-	// HTTP line
-	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\n", rw.s.code, rw.s.msg))
+	// Status line
+	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", rw.s.code, rw.s.msg))
 
 	// Headers
 	// TODO: we should probs set the content length header here to avoid it being overwritten
@@ -40,8 +40,8 @@ func (rw *ResponseWriter) write() []byte {
 	rw.hdrs["Date"] = now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
 	rw.hdrs.writeTo(&sb)
 
-	// Blank line between headers and the response
-	sb.WriteString("\n")
+	// CRLF between headers and the response
+	sb.WriteString("\r\n")
 
 	sb.Write(rw.bdy)
 	return []byte(sb.String())

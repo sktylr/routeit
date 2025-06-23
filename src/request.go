@@ -143,7 +143,7 @@ func parseProtocolLine(raw []byte) (protocolLine, *httpError) {
 		return protocolLine{}, NotImplementedError()
 	}
 	if prtcl != "HTTP/1.1" {
-		return protocolLine{}, BadRequestError()
+		return protocolLine{}, HttpVersionNotSupportedError()
 	}
 
 	return protocolLine{mthd, path, prtcl}, nil

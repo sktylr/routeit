@@ -35,6 +35,10 @@ func NotImplementedError() *httpError {
 	return &httpError{StatusNotImplemented}
 }
 
+func HttpVersionNotSupportedError() *httpError {
+	return &httpError{StatusHttpVersionNotSupported}
+}
+
 func (e *httpError) toResponse() *ResponseWriter {
 	rw := newResponse(e.Status)
 	body := fmt.Sprintf("%d: %s", e.Status.code, e.Status.msg)

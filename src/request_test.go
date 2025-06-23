@@ -31,7 +31,7 @@ func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 		{
 			"unsupported http version",
 			"GET / HTTP/2.0\r\nHost: localhost\r\n\r\n",
-			StatusBadRequest,
+			StatusHttpVersionNotSupported,
 		},
 	}
 

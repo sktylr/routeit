@@ -64,7 +64,7 @@ var (
 	StatusBadGateway                    = HttpStatus{502, "Bad Gateway"}
 	StatusServiceUnavailable            = HttpStatus{503, "Service Unavailable"}
 	StatusGatewayTimeout                = HttpStatus{504, "Gateway Timeout"}
-	StatusHTTPVersionNotSupported       = HttpStatus{505, "HTTP Version Not Supported"}
+	StatusHttpVersionNotSupported       = HttpStatus{505, "HTTP Version Not Supported"}
 	StatusVariantAlsoNegotiates         = HttpStatus{506, "Variant Also Negotiates"}
 	StatusInsufficientStorage           = HttpStatus{507, "Insufficient Storage"}
 	StatusLoopDetected                  = HttpStatus{508, "Loop Detected"}

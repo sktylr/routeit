@@ -3,7 +3,7 @@
 This example is a simple example that exposes 4 endpoints.
 The application can be run using `go run main.go`.
 
-`/hello`: This endpoint returns a simple JSON payload.
+`/hello`: This endpoint returns a simple JSON payload. It is hardcoded and not dependent on the request input.
 ```bash
 $ curl http://localhost:8080/hello
 {"name":"John Doe","nested":{"age":25,"height":1.82}}

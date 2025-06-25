@@ -67,6 +67,13 @@ func (s *server) Start() error {
 	}
 }
 
+// Attempts to start the server, panicking if that fails
+func (s *server) StartOrPanic() {
+	if err := s.Start(); err != nil {
+		panic(fmt.Sprintf("failed to start server: %s", err))
+	}
+}
+
 type RequestSize uint32
 
 const (

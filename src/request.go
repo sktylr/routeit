@@ -163,7 +163,7 @@ func parseQuery(raw string) (string, queryParameters, *httpError) {
 		return endpoint, nil, BadRequestError()
 	}
 
-	for _, query := range strings.Split(split[1], "&") {
+	for query := range strings.SplitSeq(split[1], "&") {
 		kvp := strings.Split(query, "=")
 		if len(kvp) != 2 {
 			return endpoint, nil, BadRequestError()

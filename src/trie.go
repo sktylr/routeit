@@ -32,16 +32,14 @@ func (t *trie[T]) find(path string) (*T, bool) {
 		return nil, false
 	}
 
-	segments := strings.Split(path, "/")
-
 	current := t.root
-	for _, segment := range segments {
-		if segment == "" {
+	for seg := range strings.SplitSeq(path, "/") {
+		if seg == "" {
 			continue
 		}
 		found := false
 		for _, child := range current.children {
-			if child.key == segment {
+			if child.key == seg {
 				current = child
 				found = true
 				break
@@ -60,14 +58,12 @@ func (t *trie[T]) insert(path string, value *T) {
 		t.root = &node[T]{}
 	}
 
-	segments := strings.Split(path, "/")
-
 	current := t.root
-	for _, segment := range segments {
-		if segment == "" {
+	for seg := range strings.SplitSeq(path, "/") {
+		if seg == "" {
 			continue
 		}
-		current = current.getOrCreateChild(segment)
+		current = current.getOrCreateChild(seg)
 	}
 
 	current.value = value

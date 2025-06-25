@@ -7,10 +7,6 @@ type httpError struct {
 	Status HttpStatus
 }
 
-func (e *httpError) Error() string {
-	return fmt.Sprintf("http error: %d %s", e.Status.code, e.Status.msg)
-}
-
 /*
  * 4xx Errors
  */
@@ -37,6 +33,10 @@ func NotImplementedError() *httpError {
 
 func HttpVersionNotSupportedError() *httpError {
 	return &httpError{StatusHttpVersionNotSupported}
+}
+
+func (e *httpError) Error() string {
+	return fmt.Sprintf("http error: %d %s", e.Status.code, e.Status.msg)
 }
 
 func (e *httpError) toResponse() *ResponseWriter {

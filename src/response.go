@@ -33,16 +33,16 @@ func (rw *ResponseWriter) Text(text string) {
 	rw.body([]byte(text), "text/plain")
 }
 
+func (rw *ResponseWriter) Status(s HttpStatus) {
+	rw.s = s
+}
+
 // Destructively sets the body of the response and updates headers accordingly
 func (rw *ResponseWriter) body(raw []byte, contentType string) {
 	rw.bdy = raw
 	rw.hdrs["Content-Length"] = fmt.Sprintf("%d", len(raw))
 	// TODO: should define an enum type thing for this!
 	rw.hdrs["Content-Type"] = contentType
-}
-
-func (rw *ResponseWriter) Status(s HttpStatus) {
-	rw.s = s
 }
 
 func (rw *ResponseWriter) write() []byte {

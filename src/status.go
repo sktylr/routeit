@@ -1,11 +1,5 @@
 package routeit
 
-// Http Status codes for responses. https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
-type HttpStatus struct {
-	code int
-	msg  string
-}
-
 var (
 	StatusContinue                      = HttpStatus{100, "Continue"}
 	StatusSwitchingProtocols            = HttpStatus{101, "Switching Protocols"}
@@ -71,3 +65,9 @@ var (
 	StatusNotExtended                   = HttpStatus{510, "Not Extended"}
 	StatusNetworkAuthenticationRequired = HttpStatus{511, "Network Authentication Required"}
 )
+
+// Http Status codes for responses. https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
+type HttpStatus struct {
+	code int
+	msg  string
+}

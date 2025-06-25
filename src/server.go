@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+const (
+	Byte RequestSize = 1
+	KiB              = 1024 * Byte
+	MiB              = 1024 * KiB
+)
+
+type RequestSize uint32
+
 type ServerConfig struct {
 	Port          int
 	RequestSize   RequestSize
@@ -39,6 +47,13 @@ func (s *server) RegisterRoutes(rreg RouteRegistry) {
 	s.router.registerRoutes(rreg)
 }
 
+// Attempts to start the server, panicking if that fails
+func (s *server) StartOrPanic() {
+	if err := s.Start(); err != nil {
+		panic(fmt.Sprintf("failed to start server: %s", err))
+	}
+}
+
 func (s *server) Start() error {
 	fmt.Printf("Starting server on port %d\n", s.conf.Port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
@@ -66,21 +81,6 @@ func (s *server) Start() error {
 		go s.handleNewConnection(conn)
 	}
 }
-
-// Attempts to start the server, panicking if that fails
-func (s *server) StartOrPanic() {
-	if err := s.Start(); err != nil {
-		panic(fmt.Sprintf("failed to start server: %s", err))
-	}
-}
-
-type RequestSize uint32
-
-const (
-	Byte RequestSize = 1
-	KiB              = 1024 * Byte
-	MiB              = 1024 * KiB
-)
 
 func (s *server) handleNewConnection(conn net.Conn) {
 	// TODO: need to choose between strings and bytes here!

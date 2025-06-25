@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+var (
+	GET = HttpMethod{"GET"}
+)
+
+var methodMap = map[string]HttpMethod{
+	"GET": GET,
+}
+
 type Request struct {
 	mthd HttpMethod
 	url  string
@@ -17,37 +25,17 @@ type Request struct {
 	body string
 }
 
-func (req *Request) Method() HttpMethod {
-	return req.mthd
-}
-
-func (req *Request) Url() string {
-	return req.url
-}
-
 type HttpMethod struct {
 	name string
-}
-
-var (
-	GET = HttpMethod{"GET"}
-)
-
-var methodMap = map[string]HttpMethod{
-	"GET": GET,
-}
-
-func (req *Request) PathParam(param string) (string, bool) {
-	val, found := req.pathParams[param]
-	return val, found
 }
 
 type pathParameters map[string]string
 type queryParameters map[string]string
 
-func (req *Request) Header(key string) (string, bool) {
-	val, found := req.headers[key]
-	return val, found
+type protocolLine struct {
+	mthd  HttpMethod
+	path  string
+	prtcl string
 }
 
 // Parses the raw byte slice of the request into a more usable request structure
@@ -125,10 +113,22 @@ func requestFromRaw(raw []byte) (*Request, *httpError) {
 	return &req, nil
 }
 
-type protocolLine struct {
-	mthd  HttpMethod
-	path  string
-	prtcl string
+func (req *Request) Method() HttpMethod {
+	return req.mthd
+}
+
+func (req *Request) Url() string {
+	return req.url
+}
+
+func (req *Request) PathParam(param string) (string, bool) {
+	val, found := req.pathParams[param]
+	return val, found
+}
+
+func (req *Request) Header(key string) (string, bool) {
+	val, found := req.headers[key]
+	return val, found
 }
 
 func parseProtocolLine(raw []byte) (protocolLine, *httpError) {

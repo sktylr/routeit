@@ -9,20 +9,6 @@ import (
 // TODO: need to make this work for case insensitive lookup
 type headers map[string]string
 
-func (h headers) writeTo(sb *strings.Builder) {
-	for k, v := range h {
-		key := strings.Map(sanitiseHeader, strings.TrimSpace(k))
-		val := strings.Map(sanitiseHeader, v)
-		fmt.Fprintf(sb, "%s: %s\r\n", key, val)
-	}
-}
-
-func (h headers) set(key string, val string) {
-	sKey := strings.Map(sanitiseHeader, key)
-	sVal := strings.Map(sanitiseHeader, val)
-	h[sKey] = sVal
-}
-
 func newResponseHeaders() headers {
 	return headers{"Server": "routeit"}
 }
@@ -54,6 +40,20 @@ func headersFromRaw(raw [][]byte) (headers, *httpError) {
 		h[kvp[0]] = strings.TrimPrefix(kvp[1], " ")
 	}
 	return h, nil
+}
+
+func (h headers) writeTo(sb *strings.Builder) {
+	for k, v := range h {
+		key := strings.Map(sanitiseHeader, strings.TrimSpace(k))
+		val := strings.Map(sanitiseHeader, v)
+		fmt.Fprintf(sb, "%s: %s\r\n", key, val)
+	}
+}
+
+func (h headers) set(key string, val string) {
+	sKey := strings.Map(sanitiseHeader, key)
+	sVal := strings.Map(sanitiseHeader, val)
+	h[sKey] = sVal
 }
 
 // Extract the content length field from the header map, defaulting to 0 if not present

@@ -1,25 +1,30 @@
 package routeit
 
+type RouteRegistry map[string]Handler
+
+type route struct {
+	Get Handler
+}
+
 type router struct {
-	rreg RouteRegistry
+	routes *trie[route]
+}
+
+func newRouter() *router {
+	return &router{routes: newTrie[route]()}
 }
 
 func (r *router) registerRoutes(rreg RouteRegistry) {
-	r.rreg = rreg
+	for path, handler := range rreg {
+		// For now we only support GET requests
+		r.routes.insert(path, &route{Get: handler})
+	}
 }
 
 func (r *router) route(req *Request) (Handler, bool) {
-	hndl, found := r.rreg[req.url]
-	if !found {
-		hdnl := Handler{}
-		return hdnl, found
+	handler, found := r.routes.find(req.url)
+	if handler != nil && found {
+		return handler.Get, true
 	}
-
-	if hndl.mthd != req.mthd {
-		return hndl, false
-	}
-
-	return hndl, found
+	return Handler{}, false
 }
-
-type RouteRegistry map[string]Handler

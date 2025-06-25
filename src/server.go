@@ -16,18 +16,24 @@ const (
 type RequestSize uint32
 
 type ServerConfig struct {
-	Port          int
-	RequestSize   RequestSize
-	ReadDeadline  time.Duration
+	// The port the server listens on
+	Port int
+	// The maximum request size (headers, protocol and body inclusive) that
+	// the server will accept. Anything above this will be rejected.
+	RequestSize RequestSize
+	// The read deadline to leave the connection with the client open for.
+	ReadDeadline time.Duration
+	// The write deadline that the connection is left open with the client
+	// for responses.
 	WriteDeadline time.Duration
 }
 
-type server struct {
+type Server struct {
 	conf   ServerConfig
 	router *router
 }
 
-func NewServer(conf ServerConfig) *server {
+func NewServer(conf ServerConfig) *Server {
 	if conf.RequestSize == 0 {
 		conf.RequestSize = KiB
 	}
@@ -40,21 +46,21 @@ func NewServer(conf ServerConfig) *server {
 	if conf.WriteDeadline == 0 {
 		conf.WriteDeadline = 10 * time.Second
 	}
-	return &server{conf: conf, router: newRouter()}
+	return &Server{conf: conf, router: newRouter()}
 }
 
-func (s *server) RegisterRoutes(rreg RouteRegistry) {
+func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 	s.router.registerRoutes(rreg)
 }
 
 // Attempts to start the server, panicking if that fails
-func (s *server) StartOrPanic() {
+func (s *Server) StartOrPanic() {
 	if err := s.Start(); err != nil {
 		panic(fmt.Sprintf("failed to start server: %s", err))
 	}
 }
 
-func (s *server) Start() error {
+func (s *Server) Start() error {
 	fmt.Printf("Starting server on port %d\n", s.conf.Port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
 	if err != nil {
@@ -82,7 +88,7 @@ func (s *server) Start() error {
 	}
 }
 
-func (s *server) handleNewConnection(conn net.Conn) {
+func (s *Server) handleNewConnection(conn net.Conn) {
 	// TODO: need to choose between strings and bytes here!
 	defer func() {
 		conn.Close()
@@ -107,7 +113,7 @@ func (s *server) handleNewConnection(conn net.Conn) {
 	}
 }
 
-func (s *server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
+func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	defer func() {
 		// Prevent panics in the application code from crashing the
 		// server entirely. We recover the panic and return a generic

@@ -12,6 +12,7 @@ func TestNewServerDefaults(t *testing.T) {
 	verifyDefaultRequestSize(t, srv.conf)
 	verifyDefaultReadTimeout(t, srv.conf)
 	verifyDefaultWriteTimeout(t, srv.conf)
+	verifyDefaultNamespace(t, srv.conf)
 }
 
 func TestNewServerOnlyPort(t *testing.T) {
@@ -24,6 +25,7 @@ func TestNewServerOnlyPort(t *testing.T) {
 	verifyDefaultRequestSize(t, srv.conf)
 	verifyDefaultReadTimeout(t, srv.conf)
 	verifyDefaultWriteTimeout(t, srv.conf)
+	verifyDefaultNamespace(t, srv.conf)
 }
 
 func TestNewServerOnlyRequestBufferSize(t *testing.T) {
@@ -36,6 +38,7 @@ func TestNewServerOnlyRequestBufferSize(t *testing.T) {
 	}
 	verifyDefaultReadTimeout(t, srv.conf)
 	verifyDefaultWriteTimeout(t, srv.conf)
+	verifyDefaultNamespace(t, srv.conf)
 }
 
 func TestNewServerOnlyReadTimeout(t *testing.T) {
@@ -48,6 +51,7 @@ func TestNewServerOnlyReadTimeout(t *testing.T) {
 		t.Errorf(`custom read timeout = %d, want %d`, srv.conf.ReadDeadline, wantReadTmo)
 	}
 	verifyDefaultWriteTimeout(t, srv.conf)
+	verifyDefaultNamespace(t, srv.conf)
 }
 
 func TestNewServerOnlyWriteTimeout(t *testing.T) {
@@ -59,6 +63,19 @@ func TestNewServerOnlyWriteTimeout(t *testing.T) {
 	verifyDefaultReadTimeout(t, srv.conf)
 	if srv.conf.WriteDeadline != wantWriteTmo {
 		t.Errorf(`custom write timeout = %d, want %d`, srv.conf.WriteDeadline, wantWriteTmo)
+	}
+	verifyDefaultNamespace(t, srv.conf)
+}
+
+func TestNewServerOnlyNamespace(t *testing.T) {
+	srv := NewServer(ServerConfig{Namespace: "/api"})
+
+	verifyDefaultPort(t, srv.conf)
+	verifyDefaultRequestSize(t, srv.conf)
+	verifyDefaultReadTimeout(t, srv.conf)
+	verifyDefaultWriteTimeout(t, srv.conf)
+	if srv.conf.Namespace != "/api" {
+		t.Errorf(`custom namespace = %q, wanted "/api"`, srv.conf.Namespace)
 	}
 }
 
@@ -89,5 +106,12 @@ func verifyDefaultWriteTimeout(t *testing.T, conf ServerConfig) {
 	// 10s = 10^10 ns
 	if conf.WriteDeadline != 10_000_000_000 {
 		t.Errorf(`default write timeout = %d, want 10_000_000_000`, conf.WriteDeadline)
+	}
+}
+
+func verifyDefaultNamespace(t *testing.T, conf ServerConfig) {
+	t.Helper()
+	if conf.Namespace != "/" {
+		t.Errorf(`default namespace = %q, want "/"`, conf.Namespace)
 	}
 }

@@ -26,6 +26,9 @@ type ServerConfig struct {
 	// The write deadline that the connection is left open with the client
 	// for responses.
 	WriteDeadline time.Duration
+	// A global namespace that **all** routes are registered under. Common
+	// examples include /api. Does not need to include a leading slash.
+	Namespace string
 }
 
 type Server struct {
@@ -46,7 +49,12 @@ func NewServer(conf ServerConfig) *Server {
 	if conf.WriteDeadline == 0 {
 		conf.WriteDeadline = 10 * time.Second
 	}
-	return &Server{conf: conf, router: newRouter()}
+	if conf.Namespace == "" {
+		conf.Namespace = "/"
+	}
+	router := newRouter()
+	router.globalNamespace(conf.Namespace)
+	return &Server{conf: conf, router: router}
 }
 
 func (s *Server) RegisterRoutes(rreg RouteRegistry) {

@@ -27,6 +27,15 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 	}
 }
 
+func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
+	if !strings.HasPrefix(namespace, "/") {
+		namespace = "/" + namespace
+	}
+	for path, handler := range rreg {
+		r.routes.insert(namespace+path, &route{Get: handler})
+	}
+}
+
 // Registers a global namespace to all routes
 func (r *router) globalNamespace(namespace string) {
 	if !strings.HasPrefix(namespace, "/") {

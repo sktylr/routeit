@@ -57,8 +57,30 @@ func NewServer(conf ServerConfig) *Server {
 	return &Server{conf: conf, router: router}
 }
 
+// Register all routes in the provided registry to the router on the server.
+// All routes will already obey the global namespace (if configured). This is
+// a destructive operation, meaning that if there are multiple calls to
+// RegisterRoutes with overlapping values, the latest value takes precedence.
 func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 	s.router.registerRoutes(rreg)
+}
+
+// Register all routes in the registry under a specific namespace. All routes
+// already obey the global namespace (if configured). This is a destructive
+// operation. For example, if the /api/foo route has already been registered,
+// and this function is called with the /api namespace and the registry contains
+// a /foo route, this function will overwrite the original routing entry.
+//
+// Examples:
+// Namespace = /api
+// RegisterRoutesUnderNamespace("/foo", {"/bar": ...})
+// The route registered will be /api/foo/bar
+//
+// Namespace = <not initialised>
+// RegisterRoutesUnderNamespace("/foo/bar", {"/baz": ...})
+// The route will be registered under /foo/bar/baz
+func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
+	s.router.registerRoutesUnderNamespace(namespace, rreg)
 }
 
 // Attempts to start the server, panicking if that fails

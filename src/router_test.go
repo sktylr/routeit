@@ -224,6 +224,67 @@ func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 	verifyRouteFound(t, router, req)
 }
 
+func TestStaticDirDoesNotAllowAccessOutsideRoot(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{
+			"containing $HOME", "static/~/foo",
+		},
+		{
+			"backtracking outside", "static/../..",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router := newRouter()
+
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("router invalid static dir, expected panic but got none - static = %#q", router.static)
+				}
+			}()
+
+			router.staticDir(tc.in)
+		})
+	}
+}
+
+func TestStaticDirSimplifiesExpressions(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			// The leading slash should be understood to mean ./ since we don't
+			// allow access outside of the project root.
+			"leading slash", "/static", "static",
+		},
+		{
+			"useless backtrack", "static/../static/../static", "static",
+		},
+		{
+			"cyclic", "static/foo/../../static/../static/foo/../foo", "static/foo",
+		},
+		{
+			"current directory", "static/..", ".",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router := newRouter()
+			router.staticDir(tc.in)
+			if router.static != tc.want {
+				t.Errorf(`router.static = %q, wanted %#q`, router.static, tc.want)
+			}
+		})
+	}
+}
+
 func defaultRouteRegistry() RouteRegistry {
 	return RouteRegistry{
 		"/some/route":    Get(doNotWantHandler),

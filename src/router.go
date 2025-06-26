@@ -1,7 +1,9 @@
 package routeit
 
 import (
+	"fmt"
 	"path"
+	"regexp"
 	"strings"
 )
 
@@ -66,7 +68,14 @@ func (r *router) globalNamespace(namespace string) {
 }
 
 func (r *router) staticDir(s string) {
-	r.static = path.Clean(s)
+	cleaned := path.Clean(s)
+	// This is only run ~once per program execution so we don't need to fuss
+	// too much about optimising by pre-compiling etc.
+	re := regexp.MustCompile(`(~|\.{2,})`)
+	if re.MatchString(cleaned) {
+		panic(fmt.Sprintf("invalid static assets directory [%s] - must not be outside project root", s))
+	}
+	r.static = strings.TrimPrefix(cleaned, "/")
 }
 
 func (r *router) route(req *Request) (*route, bool) {

@@ -1,4 +1,4 @@
-### examples/static
+### examples/static-assets
 
 This example shows how static file loading can be done.
 Here we store assets on disk and serve them from the server using a static asset configuration.

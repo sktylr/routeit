@@ -1,4 +1,4 @@
-module github.com/sktylr/routeit/examples/static
+module github.com/sktylr/routeit/examples/static-assets
 
 go 1.24.4
 

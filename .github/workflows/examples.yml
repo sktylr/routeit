@@ -12,6 +12,7 @@ jobs:
                 - routing/namespaced
                 - routing/simple
                 - simple
+                - static-assets
 
     steps:
       - uses: actions/checkout@v4

@@ -187,7 +187,8 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		return httpErr.toResponse()
 	}
 
-	// If the error is not a well formed httpError, then we consider it
-	// to be unexpected and return a 500 Internal Server Error
-	return InternalServerError().toResponse()
+	// If the error is not a well formed httpError, then we attempt to infer
+	// the type of Http error it corresponds to, falling back to 500: Internal
+	// Server Error if that fails.
+	return toHttpError(err).toResponse()
 }

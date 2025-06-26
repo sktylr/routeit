@@ -1,7 +1,9 @@
 package routeit
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 )
 
@@ -44,6 +46,18 @@ func NotImplementedError() *HttpError {
 
 func HttpVersionNotSupportedError() *HttpError {
 	return &HttpError{status: StatusHttpVersionNotSupported}
+}
+
+// Converts from a general error into a HttpError, is possible. Falls back to
+// a 500: Internal Server Error if no match is possible.
+func toHttpError(err error) *HttpError {
+	if errors.Is(err, fs.ErrPermission) {
+		return ForbiddenError()
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return NotFoundError()
+	}
+	return InternalServerError()
 }
 
 // Add a custom message to the response exception. This is destructive and

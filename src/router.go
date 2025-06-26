@@ -80,8 +80,7 @@ func (r *router) route(req *Request) (*route, bool) {
 	trimmed := strings.TrimPrefix(sanitised, r.namespace+"/")
 
 	if r.static != "" && strings.HasPrefix(trimmed, r.static) {
-		// TODO: the memory performance here should be addressed
-		return &route{Get: staticLoader()}, true
+		return &route{Get: staticLoader}, true
 	}
 
 	route, found := r.routes.find(trimmed)

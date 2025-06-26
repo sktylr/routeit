@@ -18,17 +18,21 @@ func newResponse(status HttpStatus) *ResponseWriter {
 	return &ResponseWriter{s: status, hdrs: headers}
 }
 
+// Adds a JSON response body to the response and sets the corresponding
+// Content-Length and Content-Type headers. This is a destructive operation,
+// meaning repeated calls to Json(...) only preserve the last invocation.
 func (rw *ResponseWriter) Json(v any) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	rw.bdy = b
-	rw.hdrs["Content-Length"] = fmt.Sprintf("%d", len(b))
-	rw.hdrs["Content-Type"] = "application/json"
+	rw.body(b, "application/json")
 	return nil
 }
 
+// Adds a plaintext response body to the response and sets the corresponding
+// Content-Length and Content-Type headers. This is a destructive operation,
+// meaning repeated calls to Text(...) only preserve the last invocation.
 func (rw *ResponseWriter) Text(text string) {
 	rw.body([]byte(text), "text/plain")
 }

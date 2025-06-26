@@ -111,7 +111,10 @@ func verifyDefaultWriteTimeout(t *testing.T, conf ServerConfig) {
 
 func verifyDefaultNamespace(t *testing.T, conf ServerConfig) {
 	t.Helper()
-	if conf.Namespace != "/" {
-		t.Errorf(`default namespace = %q, want "/"`, conf.Namespace)
+	// Internally the router strips the leading and any trailing slashes for
+	// the global namespace, so this should be empty by default. The trie
+	// structure will handle the routing beyond that.
+	if conf.Namespace != "" {
+		t.Errorf(`default namespace = %q, want ""`, conf.Namespace)
 	}
 }

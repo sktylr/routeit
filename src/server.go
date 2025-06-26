@@ -49,9 +49,6 @@ func NewServer(conf ServerConfig) *Server {
 	if conf.WriteDeadline == 0 {
 		conf.WriteDeadline = 10 * time.Second
 	}
-	if conf.Namespace == "" {
-		conf.Namespace = "/"
-	}
 	router := newRouter()
 	router.globalNamespace(conf.Namespace)
 	return &Server{conf: conf, router: router}

@@ -9,7 +9,8 @@ type route struct {
 }
 
 type router struct {
-	routes    *trie[route]
+	routes *trie[route]
+	// The global namespace that all registered routes are prefixed with.
 	namespace string
 }
 
@@ -101,5 +102,6 @@ func (r *route) dispatch(rw *ResponseWriter, req *Request) error {
 		rw.bdy = []byte{}
 		return err
 	}
+	// This should be unreachable but is required to satisfy the type system.
 	return MethodNotAllowedError()
 }

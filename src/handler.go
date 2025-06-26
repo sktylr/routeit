@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 )
 
 // Dynamically loads static assets from disk.
@@ -28,6 +29,11 @@ var staticLoader = Handler{mthd: GET, fn: func(rw *ResponseWriter, req *Request)
 	}
 
 	rw.Raw(data)
+	// TODO: this is a hacky workaround for css files. net/http's DetectContentType
+	// does not know how to infer CSS files, so just returns text/plain.
+	if strings.HasSuffix(path, "styles.css") {
+		rw.hdrs.set("Content-Type", "text/css")
+	}
 	return nil
 }}
 

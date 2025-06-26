@@ -234,12 +234,12 @@ func expectMethod(t *testing.T, msg string, got HttpMethod, want HttpMethod) {
 	}
 }
 
-func verifyHttpError(t *testing.T, err *httpError, want HttpStatus) {
+func verifyHttpError(t *testing.T, err *HttpError, want HttpStatus) {
 	t.Helper()
 	if err == nil {
 		t.Fatal("expected error to be present")
 	}
-	if err.Status != want {
-		t.Errorf("httpError status got [status=%d, msg=%s], wanted [status=%d, msg=%s]", err.Status.code, err.Status.msg, want.code, want.msg)
+	if err.status != want {
+		t.Errorf("httpError status got [status=%d, msg=%s], wanted [status=%d, msg=%s]", err.status.code, err.status.msg, want.code, want.msg)
 	}
 }

@@ -16,7 +16,7 @@ func newResponseHeaders() headers {
 // Parses a slice of byte slices into the headers type.
 //
 // Expects that the input has already been split on the carriage return symbol \r\n
-func headersFromRaw(raw [][]byte) (headers, *httpError) {
+func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 	h := headers{}
 	for i, line := range raw {
 		if len(line) == 0 {

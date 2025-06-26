@@ -1,47 +1,62 @@
 package routeit
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-// TODO: should allow storing an actual message here as well
-type httpError struct {
-	Status HttpStatus
+type HttpError struct {
+	status  HttpStatus
+	message string
 }
 
 /*
  * 4xx Errors
  */
 
-func BadRequestError() *httpError {
-	return &httpError{StatusBadRequest}
+func BadRequestError() *HttpError {
+	return &HttpError{status: StatusBadRequest}
 }
 
-func NotFoundError() *httpError {
-	return &httpError{StatusNotFound}
+func NotFoundError() *HttpError {
+	return &HttpError{status: StatusNotFound}
 }
 
 /*
  * 5xx Errors
  */
 
-func InternalServerError() *httpError {
-	return &httpError{StatusInternalServerError}
+func InternalServerError() *HttpError {
+	return &HttpError{status: StatusInternalServerError}
 }
 
-func NotImplementedError() *httpError {
-	return &httpError{StatusNotImplemented}
+func NotImplementedError() *HttpError {
+	return &HttpError{status: StatusNotImplemented}
 }
 
-func HttpVersionNotSupportedError() *httpError {
-	return &httpError{StatusHttpVersionNotSupported}
+func HttpVersionNotSupportedError() *HttpError {
+	return &HttpError{status: StatusHttpVersionNotSupported}
 }
 
-func (e *httpError) Error() string {
-	return fmt.Sprintf("http error: %d %s", e.Status.code, e.Status.msg)
+// Add a custom message to the response exception. This is destructive and
+// overwrites the previous message if present.
+func (he *HttpError) WithMessage(message string) *HttpError {
+	he.message = message
+	return he
 }
 
-func (e *httpError) toResponse() *ResponseWriter {
-	rw := newResponse(e.Status)
-	body := fmt.Sprintf("%d: %s", e.Status.code, e.Status.msg)
-	rw.Text(body)
+func (e *HttpError) Error() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%d: %s", e.status.code, e.status.msg))
+	if e.message != "" {
+		sb.WriteString(". ")
+		sb.WriteString(e.message)
+	}
+	return sb.String()
+}
+
+func (e *HttpError) toResponse() *ResponseWriter {
+	rw := newResponse(e.status)
+	rw.Text(e.Error())
 	return rw
 }

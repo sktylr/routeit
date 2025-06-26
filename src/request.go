@@ -51,7 +51,7 @@ type protocolLine struct {
 // carriage return) also follows the headers before the optional body.
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
-func requestFromRaw(raw []byte) (*Request, *httpError) {
+func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	sections := bytes.Split(raw, []byte("\r\n"))
 
 	// We are expecting 1 carriage return after the protocol line, 1 carriage
@@ -131,7 +131,7 @@ func (req *Request) Header(key string) (string, bool) {
 	return val, found
 }
 
-func parseProtocolLine(raw []byte) (protocolLine, *httpError) {
+func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	split := bytes.Split(raw, []byte(" "))
 	if len(split) != 3 {
 		return protocolLine{}, BadRequestError()
@@ -149,7 +149,7 @@ func parseProtocolLine(raw []byte) (protocolLine, *httpError) {
 	return protocolLine{mthd, path, prtcl}, nil
 }
 
-func parseQuery(raw string) (string, queryParameters, *httpError) {
+func parseQuery(raw string) (string, queryParameters, *HttpError) {
 	split := strings.Split(raw, "?")
 	endpoint := split[0]
 	queryParams := queryParameters{}

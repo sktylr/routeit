@@ -172,7 +172,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	// TODO: will need to update this to properly set Allow headers etc if the route is valid but does not support that method.
 	handler, found := s.router.route(req)
 	if !found {
-		return NotFoundError().toResponse()
+		return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Url())).toResponse()
 	}
 	err := handler.fn(rw, req)
 

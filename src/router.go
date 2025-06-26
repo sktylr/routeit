@@ -63,7 +63,7 @@ func (r *router) globalNamespace(namespace string) {
 
 }
 
-func (r *router) route(req *Request) (Handler, bool) {
+func (r *router) route(req *Request) (*route, bool) {
 	// TODO: need to improve the string manipulation here - it looks expensive!
 	sanitised := strings.TrimSuffix(req.Url(), "/")
 	if !strings.HasPrefix(sanitised, "/") {
@@ -71,13 +71,22 @@ func (r *router) route(req *Request) (Handler, bool) {
 	}
 	if !strings.HasPrefix(sanitised, r.namespace) {
 		// The route is not under the global namespace so we know it isn't valid
-		return Handler{}, false
+		return nil, false
 	}
 
 	trimmed := strings.TrimPrefix(sanitised, r.namespace)
-	handler, found := r.routes.find(trimmed)
-	if handler != nil && found {
-		return handler.Get, true
+	route, found := r.routes.find(trimmed)
+	if route != nil && found {
+		return route, true
 	}
-	return Handler{}, false
+	return nil, false
+}
+
+// Dispatches the request for the given route, choosing the handler based on
+// the request's Http method.
+func (r *route) dispatch(rw *ResponseWriter, req *Request) error {
+	if req.Method() == GET {
+		return r.Get.fn(rw, req)
+	}
+	return MethodNotAllowedError()
 }

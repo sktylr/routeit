@@ -170,11 +170,11 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	// Default to a 200 OK status code
 	rw = newResponse(StatusOK)
 	// TODO: will need to update this to properly set Allow headers etc if the route is valid but does not support that method.
-	handler, found := s.router.route(req)
+	route, found := s.router.route(req)
 	if !found {
 		return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Url())).toResponse()
 	}
-	err := handler.fn(rw, req)
+	err := route.dispatch(rw, req)
 
 	if err == nil {
 		return rw

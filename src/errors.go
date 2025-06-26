@@ -22,6 +22,10 @@ func NotFoundError() *HttpError {
 	return &HttpError{status: StatusNotFound}
 }
 
+func MethodNotAllowedError() *HttpError {
+	return &HttpError{status: StatusMethodNotAllowed}
+}
+
 /*
  * 5xx Errors
  */

@@ -228,7 +228,7 @@ func verifyRouteFound(t *testing.T, router *router, req *Request) {
 	if !found {
 		t.Error("expected route to be found")
 	}
-	err := got.fn(&ResponseWriter{}, req)
+	err := got.dispatch(&ResponseWriter{}, req)
 	if err != nil {
 		t.Errorf("did not expect handler to error: %s", err.Error())
 	}

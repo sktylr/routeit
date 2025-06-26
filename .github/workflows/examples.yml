@@ -1,0 +1,35 @@
+---
+name: routeit examples Build and Test
+"on": [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+        matrix:
+            example:
+                - routing/namespaced
+                - routing/simple
+                - simple
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Go version ${{ matrix.example }}
+        id: get_version
+        working-directory: examples/${{ matrix.example }}
+        run: echo "go_version=$(grep '^go ' go.mod | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.get_version.outputs.go_version }}
+
+      - name: Build
+        working-directory: examples/${{ matrix.example }}
+        run: go build -v ./...
+
+      - name: Test
+        working-directory: examples/${{ matrix.example }}
+        run: go test -v ./...

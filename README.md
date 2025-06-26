@@ -46,7 +46,9 @@ They are currently all exposed to the integrator, meaning that the application d
 
 Application code can return errors of any type to the library in their handlers.
 A number of helpful error functions are exposed which allow the application code to conform their errors to Http responses.
-Additionally, any errors that do not conform to the library's errors, or code that panics, is mapped to a 500 Internal Server Error response.
+If non-library errors are returned (or the application code panics), we attempt to infer the reason or cause and map that to a HTTP error.
+For example, if an `ErrNotExist` error is returned, we map that to a 404: Not Found HTTP error.
+We fallback to mapping to a 500: Internal Server Error if we cannot establish a mapping.
 
 #### Routing
 

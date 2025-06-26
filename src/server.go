@@ -164,7 +164,12 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		// not the client.
 		if r := recover(); r != nil {
 			fmt.Printf("Application code panicked: %s\n", r)
-			rw = InternalServerError().toResponse()
+			switch e := r.(type) {
+			case error:
+				rw = toHttpError(e).toResponse()
+			default:
+				rw = InternalServerError().toResponse()
+			}
 		}
 	}()
 

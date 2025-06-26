@@ -31,11 +31,11 @@ type ServerConfig struct {
 	Namespace string
 	// The location of the statically loaded files served by the server. All
 	// requests to reach these files must also start with this prefix and may
-	// also need the global Namespace if configured. The path must not be
-	// outside the root of where the project is located and the server will
-	// panic if this happens. The path does not have to point to a valid
-	// directory as this allows the server to dynamically write to disk and
-	// serve files from there, though this is discouraged.
+	// also need the global Namespace if configured. The path must be a
+	// subdirectory of the project's root and the server will panic if this is
+	// not the case. The path does not have to point to a _valid_ directory as
+	// this allows the server to dynamically write to disk and serve files from
+	// there, though this is discouraged.
 	StaticDir string
 }
 

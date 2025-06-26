@@ -75,7 +75,14 @@ func (r *router) staticDir(s string) {
 	if re.MatchString(cleaned) {
 		panic(fmt.Sprintf("invalid static assets directory [%s] - must not be outside project root", s))
 	}
-	r.static = strings.TrimPrefix(cleaned, "/")
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	if cleaned == "." {
+		// The assets must be loaded from a subdirectory of the project's root
+		// - clearing the value will mean that we ignore static lookups when
+		// we receive requests.
+		cleaned = ""
+	}
+	r.static = cleaned
 }
 
 func (r *router) route(req *Request) (*route, bool) {

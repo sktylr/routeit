@@ -270,7 +270,7 @@ func TestStaticDirSimplifiesExpressions(t *testing.T) {
 			"cyclic", "static/foo/../../static/../static/foo/../foo", "static/foo",
 		},
 		{
-			"current directory", "static/..", ".",
+			"current directory", "static/..", "",
 		},
 	}
 

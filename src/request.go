@@ -7,11 +7,13 @@ import (
 )
 
 var (
-	GET = HttpMethod{"GET"}
+	GET  = HttpMethod{"GET"}
+	HEAD = HttpMethod{"HEAD"}
 )
 
 var methodMap = map[string]HttpMethod{
-	"GET": GET,
+	"GET":  GET,
+	"HEAD": HEAD,
 }
 
 type Request struct {

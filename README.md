@@ -22,7 +22,7 @@ This also helps me understand how I should design my interfaces, as I get hands 
 | Http Method | Supported? |
 | ----------- | ---------- |
 | GET         | ✅         |
-| HEAD        | ❌         |
+| HEAD        | ✅         |
 | POST        | ❌         |
 | PUT         | ❌         |
 | DELETE      | ❌         |

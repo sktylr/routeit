@@ -82,11 +82,30 @@ func (r *router) route(req *Request) (*route, bool) {
 	return nil, false
 }
 
+func (r *route) supportsMethod(m HttpMethod) bool {
+	switch m {
+	case GET, HEAD:
+		return r.Get.fn != nil
+	}
+	return false
+}
+
 // Dispatches the request for the given route, choosing the handler based on
 // the request's Http method.
 func (r *route) dispatch(rw *ResponseWriter, req *Request) error {
+	if !r.supportsMethod(req.Method()) {
+		return MethodNotAllowedError()
+	}
 	if req.Method() == GET {
 		return r.Get.fn(rw, req)
+	}
+	if req.Method() == HEAD {
+		// The HEAD method is the same as GET, except it does not return a
+		// response body, only headers. It is often used to determine how
+		// large a resource is before committing to downloading it.
+		err := r.Get.fn(rw, req)
+		rw.bdy = []byte{}
+		return err
 	}
 	return MethodNotAllowedError()
 }

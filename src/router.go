@@ -22,14 +22,28 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 	// (if set) when registering routes. We must make sure that lookup accounts
 	//  for this namespace however.
 	for path, handler := range rreg {
+		// TODO: need to improve the string manipulation here - it looks expensive!
+		// When registering routes, we ignore **all* trailing slashes and ensure
+		// a leading slash is prefixed. This is different to lookup, where we
+		// only ignore the **last** trailing slash if present.
+		if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
+		for strings.HasSuffix(path, "/") {
+			path = strings.TrimSuffix(path, "/")
+		}
 		// For now we only support GET requests
 		r.routes.insert(path, &route{Get: handler})
 	}
 }
 
 func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
+	// TODO: need to improve the string manipulation here - it looks expensive!
 	if !strings.HasPrefix(namespace, "/") {
 		namespace = "/" + namespace
+	}
+	for strings.HasSuffix(namespace, "/") {
+		namespace = strings.TrimSuffix(namespace, "/")
 	}
 	for path, handler := range rreg {
 		r.routes.insert(namespace+path, &route{Get: handler})
@@ -38,21 +52,29 @@ func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegist
 
 // Registers a global namespace to all routes
 func (r *router) globalNamespace(namespace string) {
+	// TODO: need to improve the string manipulation here - it looks expensive!
 	if !strings.HasPrefix(namespace, "/") {
-		r.namespace = "/" + namespace
-	} else {
-		r.namespace = namespace
+		namespace = "/" + namespace
 	}
+	for strings.HasSuffix(namespace, "/") {
+		namespace = strings.TrimSuffix(namespace, "/")
+	}
+	r.namespace = namespace
+
 }
 
 func (r *router) route(req *Request) (Handler, bool) {
-	url := req.Url()
-	if !strings.HasPrefix(url, r.namespace) {
+	// TODO: need to improve the string manipulation here - it looks expensive!
+	sanitised := strings.TrimSuffix(req.Url(), "/")
+	if !strings.HasPrefix(sanitised, "/") {
+		sanitised = "/" + sanitised
+	}
+	if !strings.HasPrefix(sanitised, r.namespace) {
 		// The route is not under the global namespace so we know it isn't valid
 		return Handler{}, false
 	}
 
-	trimmed := strings.TrimPrefix(url, r.namespace)
+	trimmed := strings.TrimPrefix(sanitised, r.namespace)
 	handler, found := r.routes.find(trimmed)
 	if handler != nil && found {
 		return handler.Get, true

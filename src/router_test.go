@@ -34,6 +34,18 @@ func TestRouteValidRoute(t *testing.T) {
 	verifyRouteFound(t, router, req)
 }
 
+func TestRouteHandlesRepeatedSlashes(t *testing.T) {
+	router := newRouter()
+	router.registerRoutes(RouteRegistry{
+		"/some/route":    Get(doNotWantHandler),
+		"/another/route": Get(doNotWantHandler),
+		"/want":          Get(wantHandler),
+	})
+	req := requestWithUrlAndMethod("/some//route", GET)
+
+	verifyRouteNotFound(t, router, req)
+}
+
 func TestRouteWithGlobalNamespaceFound(t *testing.T) {
 	router := newRouter()
 	router.registerRoutes(RouteRegistry{
@@ -43,6 +55,19 @@ func TestRouteWithGlobalNamespaceFound(t *testing.T) {
 	})
 	router.globalNamespace("/api")
 	req := requestWithUrlAndMethod("/api/want", GET)
+
+	verifyRouteFound(t, router, req)
+}
+
+func TestRouteWithMultiTieredGlobalNamespace(t *testing.T) {
+	router := newRouter()
+	router.registerRoutes(RouteRegistry{
+		"/some/route":    Get(doNotWantHandler),
+		"/another/route": Get(doNotWantHandler),
+		"/want":          Get(wantHandler),
+	})
+	router.globalNamespace("/api/foo")
+	req := requestWithUrlAndMethod("/api/foo/want", GET)
 
 	verifyRouteFound(t, router, req)
 }
@@ -68,6 +93,18 @@ func TestRouteLocalNamespaceFound(t *testing.T) {
 		"/want":          Get(wantHandler),
 	})
 	req := requestWithUrlAndMethod("/api/want", GET)
+
+	verifyRouteFound(t, router, req)
+}
+
+func TestRouteWithMultiTieredLocalNamespace(t *testing.T) {
+	router := newRouter()
+	router.registerRoutesUnderNamespace("/api/foo", RouteRegistry{
+		"/some/route":    Get(doNotWantHandler),
+		"/another/route": Get(doNotWantHandler),
+		"/want":          Get(wantHandler),
+	})
+	req := requestWithUrlAndMethod("/api/foo/want", GET)
 
 	verifyRouteFound(t, router, req)
 }
@@ -200,6 +237,31 @@ func TestGlobalNamespaceIgnoresTrailingSlash(t *testing.T) {
 func TestLocalNamespaceIgnoresTrailingSlash(t *testing.T) {
 	router := newRouter()
 	router.registerRoutesUnderNamespace("/api/", RouteRegistry{
+		"/some/route":    Get(doNotWantHandler),
+		"/another/route": Get(doNotWantHandler),
+		"/want":          Get(wantHandler),
+	})
+	req := requestWithUrlAndMethod("/api/want", GET)
+
+	verifyRouteFound(t, router, req)
+}
+
+func TestGlobalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
+	router := newRouter()
+	router.registerRoutes(RouteRegistry{
+		"/some/route":    Get(doNotWantHandler),
+		"/another/route": Get(doNotWantHandler),
+		"/want":          Get(wantHandler),
+	})
+	router.globalNamespace("/api//")
+	req := requestWithUrlAndMethod("/api/want", GET)
+
+	verifyRouteFound(t, router, req)
+}
+
+func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
+	router := newRouter()
+	router.registerRoutesUnderNamespace("/api//", RouteRegistry{
 		"/some/route":    Get(doNotWantHandler),
 		"/another/route": Get(doNotWantHandler),
 		"/want":          Get(wantHandler),

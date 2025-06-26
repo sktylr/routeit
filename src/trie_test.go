@@ -53,40 +53,6 @@ func TestTrieLookupNonLeafPresent(t *testing.T) {
 	}
 }
 
-func TestTrieLookupForcesLeadingSlash(t *testing.T) {
-	val := 56
-	trie := newTrie[int]()
-	trie.insert("/foo/bar/baz", &val)
-
-	verifyTrieElementPresent(t, trie, "foo/bar/baz", val)
-	verifyTrieElementPresent(t, trie, "/foo/bar/baz", val)
-}
-
-func TestTrieLookupIgnoresTrailingSlash(t *testing.T) {
-	val := 17
-	trie := newTrie[int]()
-	trie.insert("/foo/bar/baz", &val)
-
-	verifyTrieElementPresent(t, trie, "/foo/bar/baz/", val)
-	verifyTrieElementPresent(t, trie, "/foo/bar/baz", val)
-}
-
-func TestTrieInsertForcesLeadingSlash(t *testing.T) {
-	val := 45
-	trie := newTrie[int]()
-	trie.insert("foo/bar", &val)
-
-	verifyTrieElementPresent(t, trie, "/foo/bar", val)
-}
-
-func TestTrieInsertIgnoresTrailingSlash(t *testing.T) {
-	val := 18
-	trie := newTrie[int]()
-	trie.insert("/foo/bar/", &val)
-
-	verifyTrieElementPresent(t, trie, "/foo/bar", val)
-}
-
 func verifyTrieElementPresent(t *testing.T, trie *trie[int], key string, want int) {
 	t.Helper()
 	actual, found := trie.find(key)

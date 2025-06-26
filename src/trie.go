@@ -34,10 +34,6 @@ func (t *trie[T]) find(path string) (*T, bool) {
 
 	current := t.root
 	for seg := range strings.SplitSeq(path, "/") {
-		if seg == "" {
-			// TODO: need to ensure we only invalidate against missing leading slashes or ignored trailing slashes. i.e. if we get GET /bad// then we should 404 even if /bad is a valid route.
-			continue
-		}
 		found := false
 		for _, child := range current.children {
 			if child.key == seg {
@@ -61,9 +57,6 @@ func (t *trie[T]) insert(path string, value *T) {
 
 	current := t.root
 	for seg := range strings.SplitSeq(path, "/") {
-		if seg == "" {
-			continue
-		}
 		current = current.getOrCreateChild(seg)
 	}
 

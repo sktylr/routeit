@@ -90,6 +90,13 @@ func (s *Server) StartOrPanic() {
 	}
 }
 
+// Starts the server using the config and registered routes. This should be the
+// last line of a main function as any code after this call is not executable.
+// The server's config is **not** thread-safe - meaning that if thread A
+// initialised the server, registered routes and started the server, and thread
+// B registered additional routes to the server, then thread B's modifications
+// would come into affect on the live server once the scheduler gave thread B
+// priority.
 func (s *Server) Start() error {
 	fmt.Printf("Starting server on port %d\n", s.conf.Port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))

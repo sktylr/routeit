@@ -148,7 +148,7 @@ func TestLookupIgnoresTrailingSlash(t *testing.T) {
 	verifyRouteFound(t, router, req)
 }
 
-func TestGlobalNamespaceEnsuresLeadingSlash(t *testing.T) {
+func TestGlobalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
 	router := newRouter()
 	router.registerRoutes(defaultRouteRegistry())
 	router.globalNamespace("api")
@@ -157,9 +157,34 @@ func TestGlobalNamespaceEnsuresLeadingSlash(t *testing.T) {
 	verifyRouteFound(t, router, req)
 }
 
-func TestLocalNamespaceEnsuresLeadingSlash(t *testing.T) {
+func TestGlobalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
+	router := newRouter()
+	router.registerRoutes(RouteRegistry{
+		"some/route":    Get(doNotWantHandler),
+		"another/route": Get(doNotWantHandler),
+		"want":          Get(wantHandler),
+	})
+	router.globalNamespace("/api")
+	req := requestWithUrlAndMethod("/api/want", GET)
+
+	verifyRouteFound(t, router, req)
+}
+
+func TestLocalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
 	router := newRouter()
 	router.registerRoutesUnderNamespace("api", defaultRouteRegistry())
+	req := requestWithUrlAndMethod("/api/want", GET)
+
+	verifyRouteFound(t, router, req)
+}
+
+func TestLocalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
+	router := newRouter()
+	router.registerRoutesUnderNamespace("/api", RouteRegistry{
+		"some/route":    Get(doNotWantHandler),
+		"another/route": Get(doNotWantHandler),
+		"want":          Get(wantHandler),
+	})
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)

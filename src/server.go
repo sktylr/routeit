@@ -17,7 +17,7 @@ type RequestSize uint32
 
 type ServerConfig struct {
 	// The port the server listens on
-	Port int
+	Port uint16
 	// The maximum request size (headers, protocol and body inclusive) that
 	// the server will accept. Anything above this will be rejected.
 	RequestSize RequestSize

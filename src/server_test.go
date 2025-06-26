@@ -17,7 +17,7 @@ func TestNewServerDefaults(t *testing.T) {
 
 func TestNewServerOnlyPort(t *testing.T) {
 	srv := NewServer(ServerConfig{Port: 3000})
-	wantPort := 3000
+	wantPort := uint16(3000)
 
 	if srv.conf.Port != wantPort {
 		t.Errorf(`custom port = %d, want %d`, srv.conf.Port, wantPort)

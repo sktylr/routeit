@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -28,12 +29,16 @@ var staticLoader = Handler{mthd: GET, fn: func(rw *ResponseWriter, req *Request)
 		return err
 	}
 
-	rw.Raw(data)
-	// TODO: this is a hacky workaround for css files. net/http's DetectContentType
-	// does not know how to infer CSS files, so just returns text/plain.
-	if strings.HasSuffix(path, "styles.css") {
-		rw.hdrs.set("Content-Type", "text/css")
+	cType := http.DetectContentType(data)
+	if strings.HasPrefix(cType, "text/plain") && strings.HasSuffix(path, ".css") {
+		// net/http.DetectContentType is not capable of inferring CSS content
+		// types. This causes issues with browsers since the inferred content
+		// type is text/plain which cannot be understood as a stylesheet by some
+		// browsers.
+		cType = strings.Replace(cType, "text/plain", "text/css", 1)
 	}
+	rw.RawWithContentType(data, cType)
+
 	return nil
 }}
 

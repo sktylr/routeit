@@ -133,6 +133,12 @@ func (req *Request) Header(key string) (string, bool) {
 	return val, found
 }
 
+// TODO: query params are currently not url decoded!
+func (req *Request) QueryParam(key string) (string, bool) {
+	val, found := req.queries[key]
+	return val, found
+}
+
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	split := bytes.Split(raw, []byte(" "))
 	if len(split) != 3 {

@@ -1,12 +1,21 @@
 ### examples/simple
 
-This example is a simple example that exposes 4 endpoints.
+This example is a simple example that exposes 5 endpoints.
 The application can be run using `go run main.go`.
 
 `/hello`: This endpoint returns a simple JSON payload. It is hardcoded and not dependent on the request input.
 ```bash
 $ curl http://localhost:8080/hello
 {"name":"John Doe","nested":{"age":25,"height":1.82}}
+```
+
+`/echo`: This endpoint echoes the `message` query parameter.
+If not present, it responds indicating as such.
+```bash
+$ curl http://localhost:8080/echo
+Looks like you didn't want me to echo anything!
+$ curl http://localhost:8080/echo?message=Hello
+Hello
 ```
 
 `/error`: This endpoint returns an error that is not part of the `routeit` package. Internally the `routeit` package will map this to a 500 Internal Server Error.

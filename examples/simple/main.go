@@ -32,6 +32,16 @@ func main() {
 			}
 			return rw.Json(ex)
 		}),
+		"/echo": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			msg, found := req.QueryParam("message")
+			if !found {
+				rw.Text("Looks like you didn't want me to echo anything!\n")
+				return nil
+			}
+
+			rw.Text(msg)
+			return nil
+		}),
 		"/error": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			// This route returns an error which is mapped internally into a
 			// 500 Internal Server Error and propagated into the response

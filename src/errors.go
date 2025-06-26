@@ -18,6 +18,10 @@ func BadRequestError() *HttpError {
 	return &HttpError{status: StatusBadRequest}
 }
 
+func ForbiddenError() *HttpError {
+	return &HttpError{status: StatusForbidden}
+}
+
 func NotFoundError() *HttpError {
 	return &HttpError{status: StatusNotFound}
 }

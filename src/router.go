@@ -1,6 +1,9 @@
 package routeit
 
-import "strings"
+import (
+	"path"
+	"strings"
+)
 
 type RouteRegistry map[string]Handler
 
@@ -12,6 +15,8 @@ type router struct {
 	routes *trie[route]
 	// The global namespace that all registered routes are prefixed with.
 	namespace string
+	// The static directory for serving responses from disk.
+	static string
 }
 
 func newRouter() *router {
@@ -58,7 +63,10 @@ func (r *router) globalNamespace(namespace string) {
 		namespace = strings.TrimSuffix(namespace, "/")
 	}
 	r.namespace = namespace
+}
 
+func (r *router) staticDir(s string) {
+	r.static = path.Clean(s)
 }
 
 func (r *router) route(req *Request) (*route, bool) {
@@ -70,6 +78,12 @@ func (r *router) route(req *Request) (*route, bool) {
 	}
 
 	trimmed := strings.TrimPrefix(sanitised, r.namespace+"/")
+
+	if r.static != "" && strings.HasPrefix(trimmed, r.static) {
+		// TODO: the memory performance here should be addressed
+		return &route{Get: staticLoader()}, true
+	}
+
 	route, found := r.routes.find(trimmed)
 	if route != nil && found {
 		return route, true

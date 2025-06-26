@@ -3,6 +3,7 @@ package routeit
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -35,6 +36,15 @@ func (rw *ResponseWriter) Json(v any) error {
 // meaning repeated calls to Text(...) only preserve the last invocation.
 func (rw *ResponseWriter) Text(text string) {
 	rw.body([]byte(text), "text/plain")
+}
+
+// Adds a raw response body to the response and sets the corresponding
+// Content-Length and Content-Type headers. This is a destructive operation,
+// meaning repeated calls to Raw(...) only preserve the last invocation. The
+// mimetype of the body is inferred from its content.
+func (rw *ResponseWriter) Raw(raw []byte) {
+	cType := http.DetectContentType(raw)
+	rw.body(raw, cType)
 }
 
 func (rw *ResponseWriter) Status(s HttpStatus) {

@@ -29,6 +29,11 @@ type ServerConfig struct {
 	// A global namespace that **all** routes are registered under. Common
 	// examples include /api. Does not need to include a leading slash.
 	Namespace string
+	// The location of the statically loaded files served by the server. All
+	// requests to reach these files must also start with this prefix and may
+	// also need the global Namespace if configured. The path must not be
+	// outside the root of where the project is located.
+	StaticDir string
 }
 
 type Server struct {
@@ -51,6 +56,7 @@ func NewServer(conf ServerConfig) *Server {
 	}
 	router := newRouter()
 	router.globalNamespace(conf.Namespace)
+	router.staticDir(conf.StaticDir)
 	return &Server{conf: conf, router: router}
 }
 

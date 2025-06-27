@@ -15,7 +15,7 @@ If not present, it responds indicating as such.
 $ curl http://localhost:8080/echo
 Looks like you didn't want me to echo anything!
 $ curl http://localhost:8080/echo?message=Hello
-Hello
+Received message to echo: Hello
 ```
 
 `/error`: This endpoint returns an error that is not part of the `routeit` package. Internally the `routeit` package will map this to a 500 Internal Server Error.

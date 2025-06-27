@@ -11,7 +11,7 @@ var (
 	HEAD = HttpMethod{"HEAD"}
 )
 
-var methodMap = map[string]HttpMethod{
+var methodLookup = map[string]HttpMethod{
 	"GET":  GET,
 	"HEAD": HEAD,
 }
@@ -115,10 +115,12 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	return &req, nil
 }
 
+// Access the request's HTTP method
 func (req *Request) Method() HttpMethod {
 	return req.mthd
 }
 
+// The request's URL excluding the host
 func (req *Request) Url() string {
 	return req.url
 }
@@ -128,12 +130,14 @@ func (req *Request) PathParam(param string) (string, bool) {
 	return val, found
 }
 
+// Access a header value, if present
 func (req *Request) Header(key string) (string, bool) {
 	val, found := req.headers[key]
 	return val, found
 }
 
 // TODO: query params are currently not url decoded!
+// Access a query parameter if present
 func (req *Request) QueryParam(key string) (string, bool) {
 	val, found := req.queries[key]
 	return val, found
@@ -146,7 +150,7 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	}
 
 	mthdRaw, path, prtcl := split[0], string(split[1]), string(split[2])
-	mthd, found := methodMap[string(mthdRaw)]
+	mthd, found := methodLookup[string(mthdRaw)]
 	if !found {
 		return protocolLine{}, NotImplementedError()
 	}

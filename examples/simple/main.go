@@ -39,7 +39,7 @@ func main() {
 				return nil
 			}
 
-			rw.Text(msg)
+			rw.Textf("Received message to echo: %s\n", msg)
 			return nil
 		}),
 		"/error": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {

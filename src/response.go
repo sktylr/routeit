@@ -38,6 +38,12 @@ func (rw *ResponseWriter) Text(text string) {
 	rw.RawWithContentType([]byte(text), "text/plain")
 }
 
+// Shorthand for the Text function using a format string.
+func (rw *ResponseWriter) Textf(format string, a ...any) {
+	text := fmt.Sprintf(format, a...)
+	rw.Text(text)
+}
+
 // Adds a raw response body to the response and sets the corresponding
 // Content-Length and Content-Type headers. This is a destructive operation,
 // meaning repeated calls to Raw(...) only preserve the last invocation. The

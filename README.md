@@ -19,17 +19,17 @@ This also helps me understand how I should design my interfaces, as I get hands 
 
 **Http Version Support**: Only HTTP/1.1 is supported. My implementation is mostly based off https://httpwg.org/specs/rfc9112.html and [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference) developer specs.
 
-| Http Method | Supported? |
-| ----------- | ---------- |
-| GET         | ✅         |
-| HEAD        | ✅         |
-| POST        | ❌         |
-| PUT         | ❌         |
-| DELETE      | ❌         |
-| CONNECT     | ❌         |
-| OPTIONS     | ❌         |
-| TRACE       | ❌         |
-| PATCH       | ❌         |
+| Http Method | Supported? | Notes                                                                                |
+| ----------- | ---------- | ------------------------------------------------------------------------------------ |
+| GET         | ✅         |                                                                                      |
+| HEAD        | ✅         | Cannot be implemented by the integrator, it is baked into the server implementation. |
+| POST        | ❌         |                                                                                      |
+| PUT         | ❌         |                                                                                      |
+| DELETE      | ❌         |                                                                                      |
+| CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                             |
+| OPTIONS     | ❌         |                                                                                      |
+| TRACE       | ❌         |                                                                                      |
+| PATCH       | ❌         |                                                                                      |
 
 | Content Types      | Request supported? | Response supported? |
 | ------------------ | ------------------ | ------------------- |

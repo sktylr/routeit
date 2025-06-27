@@ -96,7 +96,7 @@ func (r *router) route(req *Request) (*route, bool) {
 	trimmed := strings.TrimPrefix(sanitised, r.namespace+"/")
 
 	if r.static != "" && strings.HasPrefix(trimmed, r.static) {
-		return &route{Get: staticLoader}, true
+		return r.staticLoader(), true
 	}
 
 	route, found := r.routes.find(trimmed)
@@ -133,4 +133,8 @@ func (r *route) dispatch(rw *ResponseWriter, req *Request) error {
 	}
 	// This should be unreachable but is required to satisfy the type system.
 	return MethodNotAllowedError()
+}
+
+func (r *router) staticLoader() *route {
+	return &route{Get: staticLoader(r.namespace)}
 }

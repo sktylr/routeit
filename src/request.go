@@ -18,7 +18,8 @@ var methodLookup = map[string]HttpMethod{
 
 type Request struct {
 	mthd HttpMethod
-	url  string
+	// TODO: need to normalise this properly and have a (private) method for trimming the namespace etc.
+	url string
 	// TODO: need to change these
 	queries    queryParameters
 	pathParams pathParameters

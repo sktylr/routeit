@@ -224,6 +224,54 @@ func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 	verifyRouteFound(t, router, req)
 }
 
+func TestStaticRoutingFound(t *testing.T) {
+	router := newRouter()
+	router.staticDir("static")
+	req := requestWithUrlAndMethod("/static", GET)
+
+	// We don't want to actually load the file from disk in the test, so we
+	// only assert on the presence of the routing. This works for these tests
+	// since we have no other handlers registered, meaning that if we found
+	// this one it must be the static loader.
+	_, found := router.route(req)
+	if !found {
+		t.Error("expected to find static router")
+	}
+}
+
+func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
+	router := newRouter()
+	router.globalNamespace("/api")
+	router.staticDir("static")
+	req := requestWithUrlAndMethod("/api/static", GET)
+
+	// We don't want to actually load the file from disk in the test, so we
+	// only assert on the presence of the routing. This works for these tests
+	// since we have no other handlers registered, meaning that if we found
+	// this one it must be the static loader.
+	_, found := router.route(req)
+	if !found {
+		t.Error("expected to find static router")
+	}
+}
+
+func TestStaticRoutingNotFoundBacktracking(t *testing.T) {
+	router := newRouter()
+	router.staticDir("static")
+	req := requestWithUrlAndMethod("/static/../main.go", GET)
+
+	verifyRouteNotFound(t, router, req)
+}
+
+func TestStaticRoutingGlobalNamespaceNotFoundBacktracking(t *testing.T) {
+	router := newRouter()
+	router.globalNamespace("/api")
+	router.staticDir("static")
+	req := requestWithUrlAndMethod("/api/static/../main.go", GET)
+
+	verifyRouteNotFound(t, router, req)
+}
+
 func TestStaticDirDoesNotAllowAccessOutsideRoot(t *testing.T) {
 	tests := []struct {
 		name string

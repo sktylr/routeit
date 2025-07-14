@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/sktylr/routeit"
 )
 
-func TestHello(t *testing.T) {
+func TestGetHello(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 
 	res := client.Get("/hello")
@@ -27,50 +28,103 @@ func TestHello(t *testing.T) {
 	}
 }
 
-func TestEchoNoQueryParams(t *testing.T) {
+func TestHeadHello(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	res := client.Head("/hello")
+
+	res.AssertBodyNilOrEmpty(t)
+	res.AssertStatusCode(t, routeit.StatusOK)
+	res.AssertHeaderMatches(t, "Content-Type", "application/json")
+}
+
+func TestGetEchoNoQueryParams(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 
 	res := client.Get("/echo")
 
 	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertBodyMatchesString(t, "Looks like you didn't want me to echo anything!\n")
+	wantBody := "Looks like you didn't want me to echo anything!\n"
+	res.AssertBodyMatchesString(t, wantBody)
+	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
+	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 }
 
-func TestEchoWithQueryParam(t *testing.T) {
+func TestHeadEchoNoQueryParams(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	res := client.Head("/echo")
+
+	res.AssertStatusCode(t, routeit.StatusOK)
+	res.AssertBodyNilOrEmpty(t)
+	bodyLen := len("Looks like you didn't want me to echo anything!\n")
+	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", bodyLen))
+	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+}
+
+func TestGetEchoWithQueryParam(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 
 	res := client.Get("/echo?message=hello")
 
 	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertBodyMatchesString(t, "Received message to echo: hello\n")
+	wantBody := "Received message to echo: hello\n"
+	res.AssertBodyMatchesString(t, wantBody)
+	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
+	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 }
 
-func TestError(t *testing.T) {
+func TestHeadEchoWithQueryParam(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 
-	res := client.Get("/error")
+	res := client.Head("/echo?message=hello")
 
-	assertInternalServerError(t, res)
+	res.AssertStatusCode(t, routeit.StatusOK)
+	bodyLen := len("Received message to echo: hello\n")
+	res.AssertBodyNilOrEmpty(t)
+	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", bodyLen))
+	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 }
 
-func TestCrash(t *testing.T) {
+func TestGetInternalServerError(t *testing.T) {
+	tests := []string{
+		"/error",
+		"/crash",
+		"/panic",
+	}
+
 	client := routeit.NewTestClient(GetServer())
 
-	res := client.Get("/crash")
+	for _, tc := range tests {
+		t.Run(tc, func(t *testing.T) {
+			res := client.Get(tc)
 
-	assertInternalServerError(t, res)
+			res.AssertStatusCode(t, routeit.StatusInternalServerError)
+			res.AssertBodyMatchesString(t, "500: Internal Server Error")
+			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+		})
+	}
 }
 
-func TestPanic(t *testing.T) {
+func TestHeadInternalServerError(t *testing.T) {
+	t.Skip("HEAD error parsing is not yet fixed")
+	tests := []string{
+		"/error",
+		"/crash",
+		"/panic",
+	}
+
 	client := routeit.NewTestClient(GetServer())
 
-	res := client.Get("/panic")
+	for _, tc := range tests {
+		t.Run(tc, func(t *testing.T) {
+			res := client.Head(tc)
 
-	assertInternalServerError(t, res)
-}
-
-func assertInternalServerError(t *testing.T, res *routeit.TestResponse) {
-	t.Helper()
-	res.AssertStatusCode(t, routeit.StatusInternalServerError)
-	res.AssertBodyMatchesString(t, "500: Internal Server Error")
+			// TODO: currently errors bypass the response body stripping logic
+			res.AssertBodyNilOrEmpty(t)
+			res.AssertStatusCode(t, routeit.StatusInternalServerError)
+			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+			res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len("500: Internal Server Error")))
+		})
+	}
 }

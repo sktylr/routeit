@@ -55,3 +55,15 @@ We fallback to mapping to a 500: Internal Server Error if we cannot establish a 
 Routing is currently handled using a trie-like structure.
 Typically tries are separated at the character level, but in my case I separate at the path separators (`/`), so each node contains a path segment.
 Currently only static paths are supported.
+
+#### Testing
+
+The framework supports a simple testing paradigm that allows user to perform E2E-like tests on their server.
+A `TestClient` is provided which takes a `Server` structure as an argument and performs nearly all of the server work that a running server would perform.
+To reduce flakiness, the test server does not actually start the server and open TCP connections for each request.
+Instead, the raw request is handed off to the server directly.
+This means that parsing, routing and handling are all still performed under the test, giving a near E2E feel for the tests.
+The response that is returned by the test client features intuitive methods to perform assertions on the response itself, including the status code and body.
+The test client will handle all panics or errors reported by the application, so there is no need to use a defer-recover block to handle expected panics within the code.
+Examples of how to use the testing API can be found in the [`examples`](/examples) directory.
+Each example project in this directory features tests, which give me a place to explore how I would like testing to work, while also providing an indicator if any bugs or regressions are introduced.

@@ -226,7 +226,7 @@ func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 
 func TestStaticRoutingFound(t *testing.T) {
 	router := newRouter()
-	router.staticDir("static")
+	router.newStaticDir("static")
 	req := requestWithUrlAndMethod("/static", GET)
 
 	// We don't want to actually load the file from disk in the test, so we
@@ -242,7 +242,7 @@ func TestStaticRoutingFound(t *testing.T) {
 func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
 	router := newRouter()
 	router.globalNamespace("/api")
-	router.staticDir("static")
+	router.newStaticDir("static")
 	req := requestWithUrlAndMethod("/api/static", GET)
 
 	// We don't want to actually load the file from disk in the test, so we
@@ -257,7 +257,7 @@ func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
 
 func TestStaticRoutingNotFoundBacktracking(t *testing.T) {
 	router := newRouter()
-	router.staticDir("static")
+	router.newStaticDir("static")
 	req := requestWithUrlAndMethod("/static/../main.go", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -266,7 +266,7 @@ func TestStaticRoutingNotFoundBacktracking(t *testing.T) {
 func TestStaticRoutingGlobalNamespaceNotFoundBacktracking(t *testing.T) {
 	router := newRouter()
 	router.globalNamespace("/api")
-	router.staticDir("static")
+	router.newStaticDir("static")
 	req := requestWithUrlAndMethod("/api/static/../main.go", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -297,11 +297,11 @@ func TestStaticDirEnforcesSubdirectory(t *testing.T) {
 
 			defer func() {
 				if r := recover(); r == nil {
-					t.Errorf("router invalid static dir, expected panic but got none - static = %#q", router.static)
+					t.Errorf("router invalid static dir, expected panic but got none - static = %#q", router.staticDir)
 				}
 			}()
 
-			router.staticDir(tc.in)
+			router.newStaticDir(tc.in)
 		})
 	}
 }
@@ -335,9 +335,9 @@ func TestStaticDirSimplifiesExpressions(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			router := newRouter()
-			router.staticDir(tc.in)
-			if router.static != tc.want {
-				t.Errorf(`router.static = %q, wanted %#q`, router.static, tc.want)
+			router.newStaticDir(tc.in)
+			if router.staticDir != tc.want {
+				t.Errorf(`router.static = %q, wanted %#q`, router.staticDir, tc.want)
 			}
 		})
 	}

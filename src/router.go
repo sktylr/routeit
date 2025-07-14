@@ -14,7 +14,8 @@ type router struct {
 	// The global namespace that all registered routes are prefixed with.
 	namespace string
 	// The static directory for serving responses from disk.
-	static string
+	staticDir    string
+	staticLoader *Handler
 }
 
 func newRouter() *router {
@@ -34,7 +35,6 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 		for strings.HasSuffix(path, "/") {
 			path = strings.TrimSuffix(path, "/")
 		}
-		// For now we only support GET requests
 		r.routes.insert(path, &handler)
 	}
 }
@@ -63,7 +63,10 @@ func (r *router) globalNamespace(namespace string) {
 	r.namespace = namespace
 }
 
-func (r *router) staticDir(s string) {
+// Sets the static directory that files are loaded from. Panics whenever the
+// directory is not a subdirectory of the project root but does not require the
+// directory to exist when setting it.
+func (r *router) newStaticDir(s string) {
 	if s == "" {
 		return
 	}
@@ -75,9 +78,13 @@ func (r *router) staticDir(s string) {
 		panic(fmt.Sprintf("invalid static assets directory [%s] - must not be outside project root", s))
 	}
 	cleaned = strings.TrimPrefix(cleaned, "/")
-	r.static = cleaned
+	r.staticDir = cleaned
+	r.staticLoader = staticLoader(r.namespace)
 }
 
+// Routes a request to the corresponding handler. A handler may support multiple
+// methods, or may not support the method of the request at all, however the
+// handler found is known to be the correct handler for the given request URI.
 func (r *router) route(req *Request) (*Handler, bool) {
 	// TODO: need to improve the string manipulation here - it looks expensive!
 	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Url(), "/"), "/")
@@ -88,13 +95,13 @@ func (r *router) route(req *Request) (*Handler, bool) {
 
 	trimmed := strings.TrimPrefix(sanitised, r.namespace+"/")
 
-	if r.static != "" && strings.HasPrefix(trimmed, r.static) {
+	if r.staticDir != "" && strings.HasPrefix(trimmed, r.staticDir) {
 		if strings.Contains(trimmed, "..") {
 			// We want to prohibit back-tracking, even if it is technically safe
 			// (e.g. /foo/bar/../bar/image.png)
 			return nil, false
 		}
-		return r.staticLoader(), true
+		return r.staticLoader, true
 	}
 
 	route, found := r.routes.find(trimmed)
@@ -102,9 +109,4 @@ func (r *router) route(req *Request) (*Handler, bool) {
 		return route, true
 	}
 	return nil, false
-}
-
-func (r *router) staticLoader() *Handler {
-	// TODO: update this, its a bit clunky
-	return &Handler{get: staticLoader(r.namespace)}
 }

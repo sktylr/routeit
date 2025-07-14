@@ -60,7 +60,7 @@ func NewServer(conf ServerConfig) *Server {
 	}
 	router := newRouter()
 	router.globalNamespace(conf.Namespace)
-	router.staticDir(conf.StaticDir)
+	router.newStaticDir(conf.StaticDir)
 	return &Server{conf: conf, router: router}
 }
 

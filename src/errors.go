@@ -10,6 +10,7 @@ import (
 type HttpError struct {
 	status  HttpStatus
 	message string
+	headers headers
 }
 
 /*
@@ -17,19 +18,19 @@ type HttpError struct {
  */
 
 func BadRequestError() *HttpError {
-	return &HttpError{status: StatusBadRequest}
+	return &HttpError{status: StatusBadRequest, headers: headers{}}
 }
 
 func ForbiddenError() *HttpError {
-	return &HttpError{status: StatusForbidden}
+	return &HttpError{status: StatusForbidden, headers: headers{}}
 }
 
 func NotFoundError() *HttpError {
-	return &HttpError{status: StatusNotFound}
+	return &HttpError{status: StatusNotFound, headers: headers{}}
 }
 
 func MethodNotAllowedError() *HttpError {
-	return &HttpError{status: StatusMethodNotAllowed}
+	return &HttpError{status: StatusMethodNotAllowed, headers: headers{}}
 }
 
 /*
@@ -37,15 +38,15 @@ func MethodNotAllowedError() *HttpError {
  */
 
 func InternalServerError() *HttpError {
-	return &HttpError{status: StatusInternalServerError}
+	return &HttpError{status: StatusInternalServerError, headers: headers{}}
 }
 
 func NotImplementedError() *HttpError {
-	return &HttpError{status: StatusNotImplemented}
+	return &HttpError{status: StatusNotImplemented, headers: headers{}}
 }
 
 func HttpVersionNotSupportedError() *HttpError {
-	return &HttpError{status: StatusHttpVersionNotSupported}
+	return &HttpError{status: StatusHttpVersionNotSupported, headers: headers{}}
 }
 
 // Converts from a general error into a HttpError, is possible. Falls back to
@@ -77,8 +78,15 @@ func (e *HttpError) Error() string {
 	return sb.String()
 }
 
+func (he *HttpError) header(k string, v string) {
+	he.headers[k] = v
+}
+
 func (e *HttpError) toResponse() *ResponseWriter {
 	rw := newResponse(e.status)
 	rw.Text(e.Error())
+	for k, v := range e.headers {
+		rw.hdrs.set(k, v)
+	}
 	return rw
 }

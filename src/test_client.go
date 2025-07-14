@@ -13,7 +13,6 @@ type TestClient struct {
 type testRequest struct {
 	path    string
 	headers headers
-	body    []byte
 	method  HttpMethod
 }
 

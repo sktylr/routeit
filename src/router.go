@@ -9,12 +9,8 @@ import (
 
 type RouteRegistry map[string]Handler
 
-type route struct {
-	Get Handler
-}
-
 type router struct {
-	routes *trie[route]
+	routes *trie[Handler]
 	// The global namespace that all registered routes are prefixed with.
 	namespace string
 	// The static directory for serving responses from disk.
@@ -22,7 +18,7 @@ type router struct {
 }
 
 func newRouter() *router {
-	return &router{routes: newTrie[route]()}
+	return &router{routes: newTrie[Handler]()}
 }
 
 func (r *router) registerRoutes(rreg RouteRegistry) {
@@ -39,7 +35,7 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 			path = strings.TrimSuffix(path, "/")
 		}
 		// For now we only support GET requests
-		r.routes.insert(path, &route{Get: handler})
+		r.routes.insert(path, &handler)
 	}
 }
 
@@ -53,7 +49,7 @@ func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegist
 		if !strings.HasPrefix(path, "/") {
 			path = "/" + path
 		}
-		r.routes.insert(namespace+path, &route{Get: handler})
+		r.routes.insert(namespace+path, &handler)
 	}
 }
 
@@ -82,7 +78,7 @@ func (r *router) staticDir(s string) {
 	r.static = cleaned
 }
 
-func (r *router) route(req *Request) (*route, bool) {
+func (r *router) route(req *Request) (*Handler, bool) {
 	// TODO: need to improve the string manipulation here - it looks expensive!
 	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Url(), "/"), "/")
 	if !strings.HasPrefix(sanitised, r.namespace) {
@@ -108,35 +104,7 @@ func (r *router) route(req *Request) (*route, bool) {
 	return nil, false
 }
 
-func (r *route) supportsMethod(m HttpMethod) bool {
-	switch m {
-	case GET, HEAD:
-		return r.Get.fn != nil
-	}
-	return false
-}
-
-// Dispatches the request for the given route, choosing the handler based on
-// the request's Http method.
-func (r *route) dispatch(rw *ResponseWriter, req *Request) error {
-	if !r.supportsMethod(req.Method()) {
-		return MethodNotAllowedError()
-	}
-	if req.Method() == GET {
-		return r.Get.fn(rw, req)
-	}
-	if req.Method() == HEAD {
-		// The HEAD method is the same as GET, except it does not return a
-		// response body, only headers. It is often used to determine how
-		// large a resource is before committing to downloading it.
-		err := r.Get.fn(rw, req)
-		rw.bdy = []byte{}
-		return err
-	}
-	// This should be unreachable but is required to satisfy the type system.
-	return MethodNotAllowedError()
-}
-
-func (r *router) staticLoader() *route {
-	return &route{Get: staticLoader(r.namespace)}
+func (r *router) staticLoader() *Handler {
+	// TODO: update this, its a bit clunky
+	return &Handler{get: staticLoader(r.namespace)}
 }

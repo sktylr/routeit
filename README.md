@@ -23,7 +23,7 @@ This also helps me understand how I should design my interfaces, as I get hands 
 | ----------- | ---------- | ------------------------------------------------------------------------------------ |
 | GET         | ✅         |                                                                                      |
 | HEAD        | ✅         | Cannot be implemented by the integrator, it is baked into the server implementation. |
-| POST        | ❌         |                                                                                      |
+| POST        | ✅         |                                                                                      |
 | PUT         | ❌         |                                                                                      |
 | DELETE      | ❌         |                                                                                      |
 | CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                             |
@@ -31,9 +31,11 @@ This also helps me understand how I should design my interfaces, as I get hands 
 | TRACE       | ❌         |                                                                                      |
 | PATCH       | ❌         |                                                                                      |
 
+If the server has a valid route for the request, but the route does not respond to the request method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
+
 | Content Types      | Request supported? | Response supported? |
 | ------------------ | ------------------ | ------------------- |
-| `application/json` | ❌                 | ✅                  |
+| `application/json` | ✅                 | ✅                  |
 | `text/plain`       | ❌                 | ✅                  |
 | ...                | ❌                 | ❌                  |
 

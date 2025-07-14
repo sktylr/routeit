@@ -11,11 +11,21 @@ import (
 type HandlerFunc func(rw *ResponseWriter, req *Request) error
 
 type Handler struct {
-	get HandlerFunc
+	get  HandlerFunc
+	post HandlerFunc
 }
 
+// Creates a handler that will handle GET request. Internally this will also
+// handle HEAD requests which behave the same as GET requests, except the
+// response does not contain the body, instead it only contains the headers
+// that the GET request would return.
 func Get(fn HandlerFunc) Handler {
 	return Handler{get: fn}
+}
+
+// Creates a handler that responds to POST requests
+func Post(fn HandlerFunc) Handler {
+	return Handler{post: fn}
 }
 
 func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
@@ -30,11 +40,17 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 		rw.bdy = []byte{}
 		return err
 	}
+	if req.Method() == POST && h.post != nil {
+		return h.post(rw, req)
+	}
 
 	err := MethodNotAllowedError()
 	allow := make([]string, 0, 6)
 	if h.get != nil {
-		allow = append(allow, "GET", "HEAD")
+		allow = append(allow, GET.name, HEAD.name)
+	}
+	if h.post != nil {
+		allow = append(allow, POST.name)
 	}
 	err.header("Allow", strings.Join(allow, ", "))
 	return err

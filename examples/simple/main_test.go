@@ -128,3 +128,42 @@ func TestHeadInternalServerError(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRootMethodNotAllowed(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	res := client.Get("/")
+
+	res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
+	res.AssertHeaderMatches(t, "Allow", "POST")
+}
+
+func TestPostRoot(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+	inBody := Example{
+		Name: "Foo Bar",
+		Nested: Nested{
+			Age:    34,
+			Height: 1.89,
+		},
+	}
+	wantBody := Greeting{
+		From: inBody,
+		To: Example{
+			Name: "Jane Doe",
+			Nested: Nested{
+				Age:    29,
+				Height: 1.62,
+			},
+		},
+	}
+
+	res := client.PostJson("/", inBody)
+
+	res.AssertStatusCode(t, routeit.StatusOK)
+	var actual Greeting
+	res.BodyToJson(t, &actual)
+	if !reflect.DeepEqual(actual, wantBody) {
+		t.Errorf(`Json response = %#v, wanted %#v`, actual, wantBody)
+	}
+}

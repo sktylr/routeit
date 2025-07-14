@@ -7,6 +7,11 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+type Greeting struct {
+	From Example `json:"from"`
+	To   Example `json:"to"`
+}
+
 type Example struct {
 	Name   string `json:"name"`
 	Nested Nested `json:"nested"`
@@ -58,6 +63,25 @@ func GetServer() *routeit.Server {
 			// Error, which helps keep the server running instead of fully
 			// crashing
 			panic("panicking!")
+		}),
+		"/": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			var body Example
+			err := req.BodyToJson(&body)
+			if err != nil {
+				return err
+			}
+
+			res := Greeting{From: body}
+			res.To = Example{
+				Name: "Jane Doe",
+				Nested: Nested{
+					Age:    29,
+					Height: 1.62,
+				},
+			}
+
+			rw.Json(res)
+			return nil
 		}),
 	})
 	return srv

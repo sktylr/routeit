@@ -19,11 +19,8 @@ var methodLookup = map[string]HttpMethod{
 type Request struct {
 	mthd HttpMethod
 	// TODO: need to normalise this properly and have a (private) method for trimming the namespace etc.
-	url string
-	// TODO: need to change these
-	queries    queryParameters
-	pathParams pathParameters
-	headers    headers
+	uri     uri
+	headers headers
 	// TODO: consider byte slice here
 	body string
 }
@@ -33,7 +30,18 @@ type HttpMethod struct {
 }
 
 type pathParameters map[string]string
+
 type queryParameters map[string]string
+
+// A composed structure representing the target of a request. It contains the
+// parsed URL, which does not include the Host header and is always prefixed
+// with a leading slash. Query parameters are extracted into a separate property
+// and path parameters may be populated by the router.
+type uri struct {
+	url         string
+	pathParams  pathParameters
+	queryParams queryParameters
+}
 
 type protocolLine struct {
 	mthd  HttpMethod
@@ -74,7 +82,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		return nil, err
 	}
 
-	endpt, queryParams, err := parseQuery(ptcl.path)
+	uri, err := parseUri(ptcl.path)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +121,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	} else {
 		body = ""
 	}
-	req := Request{mthd: ptcl.mthd, url: endpt, queries: queryParams, pathParams: pathParameters{}, headers: reqHdrs, body: body}
+	req := Request{mthd: ptcl.mthd, uri: uri, headers: reqHdrs, body: body}
 	return &req, nil
 }
 
@@ -122,13 +130,13 @@ func (req *Request) Method() HttpMethod {
 	return req.mthd
 }
 
-// The request's URL excluding the host
+// The request's URL excluding the host. Does not include query parameters.
 func (req *Request) Url() string {
-	return req.url
+	return req.uri.url
 }
 
 func (req *Request) PathParam(param string) (string, bool) {
-	val, found := req.pathParams[param]
+	val, found := req.uri.pathParams[param]
 	return val, found
 }
 
@@ -141,7 +149,7 @@ func (req *Request) Header(key string) (string, bool) {
 // TODO: query params are currently not url decoded!
 // Access a query parameter if present
 func (req *Request) QueryParam(key string) (string, bool) {
-	val, found := req.queries[key]
+	val, found := req.uri.queryParams[key]
 	return val, found
 }
 
@@ -160,29 +168,43 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 		return protocolLine{}, HttpVersionNotSupportedError()
 	}
 
+	// TODO: need to return 414: URI Too Long if URI is too long
 	return protocolLine{mthd, path, prtcl}, nil
 }
 
-func parseQuery(raw string) (string, queryParameters, *HttpError) {
+func parseUri(raw string) (uri, *HttpError) {
 	split := strings.Split(raw, "?")
+
 	endpoint := split[0]
+	if !strings.HasPrefix(endpoint, "/") {
+		// Per FRC-9112 Section 3.2.1 guidance, origin-form request targets
+		// must include a leading slash. This server adopts a lenient approach
+		// that will prefix this slash if not present. If the URI is invalid it
+		// will be found later by the router.
+		endpoint = "/" + endpoint
+	}
+
 	queryParams := queryParameters{}
+	uri := uri{url: endpoint, queryParams: queryParams}
 
 	if len(split) == 1 {
 		// No query string present
-		return endpoint, queryParameters{}, nil
+		return uri, nil
 	}
 
 	if len(split) > 2 {
-		return endpoint, nil, BadRequestError()
+		// There should only be 1 `?`. Any `?` that feature as part of the
+		// query string should be URL encoded.
+		return uri, BadRequestError()
 	}
 
 	for query := range strings.SplitSeq(split[1], "&") {
 		kvp := strings.Split(query, "=")
 		if len(kvp) != 2 {
-			return endpoint, nil, BadRequestError()
+			return uri, BadRequestError()
 		}
 		queryParams[kvp[0]] = kvp[1]
 	}
-	return endpoint, queryParams, nil
+
+	return uri, nil
 }

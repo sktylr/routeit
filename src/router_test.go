@@ -363,7 +363,7 @@ func doNotWantHandler(rw *ResponseWriter, req *Request) error {
 }
 
 func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
-	return &Request{url: url, mthd: method}
+	return &Request{uri: uri{url: url}, mthd: method}
 }
 
 func verifyRouteFound(t *testing.T, router *router, req *Request) {

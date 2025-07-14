@@ -52,6 +52,17 @@ func (tr *TestResponse) AssertBodyMatchesString(t *testing.T, want string) {
 	}
 }
 
+// TODO: assert body matches f string
+
+// Assert that a body starts with the given prefix. Supports improper
+// substrings (i.e. where the prefix exactly equals the whole body).
+func (tr *TestResponse) AssertBodyStartsWithString(t *testing.T, want string) {
+	t.Helper()
+	if !strings.HasPrefix(string(tr.rw.bdy), want) {
+		t.Errorf(`body = %#q, wanted to start with %#q`, string(tr.rw.bdy), want)
+	}
+}
+
 // Assert that a header is present and matches the given string
 func (tr *TestResponse) AssertHeaderMatches(t *testing.T, header string, want string) {
 	t.Helper()

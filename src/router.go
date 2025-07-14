@@ -96,6 +96,11 @@ func (r *router) route(req *Request) (*route, bool) {
 	trimmed := strings.TrimPrefix(sanitised, r.namespace+"/")
 
 	if r.static != "" && strings.HasPrefix(trimmed, r.static) {
+		if strings.Contains(trimmed, "..") {
+			// We want to prohibit back-tracking, even if it is technically safe
+			// (e.g. /foo/bar/../bar/image.png)
+			return nil, false
+		}
 		return r.staticLoader(), true
 	}
 

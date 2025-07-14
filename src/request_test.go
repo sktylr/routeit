@@ -33,6 +33,16 @@ func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 			"GET / HTTP/2.0\r\nHost: localhost\r\n\r\n",
 			StatusHttpVersionNotSupported,
 		},
+		{
+			"missing method",
+			"/ HTTP/1.1\r\nHost: localhost\r\n\r\n",
+			StatusBadRequest,
+		},
+		{
+			"missing protocol",
+			"GET /\r\nHost: localhost\r\n\r\n",
+			StatusBadRequest,
+		},
 	}
 
 	for _, tc := range tests {
@@ -50,6 +60,16 @@ func TestRequestFromRawNoCarriageReturn(t *testing.T) {
 	verifyHttpError(t, err, StatusBadRequest)
 }
 
+func TestRequestFromRawPrefixesLeadingSlash(t *testing.T) {
+	bts := []byte("GET hello HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+	req, err := requestFromRaw(bts)
+	if err != nil {
+		t.Errorf("did not expect error = %#v", err)
+	}
+	expectUrl(t, "prefixes leading slash", req, "/hello")
+}
+
 func TestRequestFromRawNoHeaders(t *testing.T) {
 	in := []byte("GET / HTTP/1.1\r\n\r\nthe body\r\n")
 
@@ -65,8 +85,9 @@ func TestRequestFromRawOneHeader(t *testing.T) {
 		t.Errorf("requestFromRaw one header unexpected error %s", err)
 	}
 	// Unparsed since there is no Content-Type header
+	// TODO: should swap this to a POST etc once GET's not longer read bodies
 	expectBody(t, "one header", req.body, "")
-	expectUrl(t, "one header", req.url, "/")
+	expectUrl(t, "one header", req, "/")
 	if len(req.headers) != 1 {
 		t.Errorf(`requestFromRaw one header headers = %q, wanted {"Host": "localhost"}`, req.headers)
 	}
@@ -90,7 +111,7 @@ func TestRequestFromRawMultipleHeaders(t *testing.T) {
 		t.Errorf("requestFromRaw multiple headers unexpected error %s", err)
 	}
 	expectBody(t, "multiple headers", req.body, "the body")
-	expectUrl(t, "multiple headers", req.url, "/")
+	expectUrl(t, "multiple headers", req, "/")
 	if len(req.headers) != len(wantHdrs) {
 		t.Errorf(`requestFromRaw multiple headers headers = %q, wanted %#q`, req.headers, wantHdrs)
 	}
@@ -145,19 +166,19 @@ func TestRequestFromRawParsesQueryString(t *testing.T) {
 		t.Errorf("requestFromRaw parses query string unexpected error %s", err)
 	}
 	expectBody(t, "parses query string", req.body, "")
-	expectUrl(t, "parses query string", req.url, "/endpoint")
+	expectUrl(t, "parses query string", req, "/endpoint")
 	expectMethod(t, "parses query string", req.mthd, GET)
-	if len(req.queries) != len(wantQuery) {
-		t.Errorf(`requestFromRaw parses query string query = %q, wanted %#q`, req.queries, wantQuery)
+	if len(req.uri.queryParams) != len(wantQuery) {
+		t.Errorf(`requestFromRaw parses query string query = %q, wanted %#q`, req.uri.queryParams, wantQuery)
 	}
-	q1, exists := req.queries["q1"]
+	q1, exists := req.QueryParam("q1")
 	if !exists {
 		t.Errorf(`requestFromRaw parses query string expected header "q1" to exist`)
 	}
 	if q1 != wantq1 {
 		t.Errorf(`requestFromRaw parses query string headers["q1"] = %q, wanted %#q`, q1, wantq1)
 	}
-	q2, exists := req.queries["q2"]
+	q2, exists := req.QueryParam("q2")
 	if !exists {
 		t.Errorf(`requestFromRaw parses query string expected header "q2" to exist`)
 	}
@@ -199,7 +220,7 @@ func TestRequestFromRawAllowsComplexBodies(t *testing.T) {
 	expectHeader(t, "complex bodies", "Host", req.headers, "localhost")
 	expectHeader(t, "complex bodies", "Content-Length", req.headers, fmt.Sprintf("%d", len(bodyBytes)))
 	expectMethod(t, "complex bodies", req.mthd, GET)
-	expectUrl(t, "complex bodies", req.url, "/")
+	expectUrl(t, "complex bodies", req, "/")
 }
 
 func expectBody(t *testing.T, msg string, got string, want string) {
@@ -209,10 +230,10 @@ func expectBody(t *testing.T, msg string, got string, want string) {
 	}
 }
 
-func expectUrl(t *testing.T, msg string, got string, want string) {
+func expectUrl(t *testing.T, msg string, got *Request, want string) {
 	t.Helper()
-	if got != want {
-		t.Errorf(`requestFromRaw %s url = %q, wanted %#q`, msg, got, want)
+	if got.Url() != want {
+		t.Errorf(`requestFromRaw %s url = %q, wanted %#q`, msg, got.Url(), want)
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-func main() {
+func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{})
 
 	srv.RegisterRoutes(routeit.RouteRegistry{
@@ -16,7 +16,11 @@ func main() {
 		"/a/heavily/nested/route": hello("/a/heavily/nested/route"),
 	})
 
-	srv.StartOrPanic()
+	return srv
+}
+
+func main() {
+	GetServer().StartOrPanic()
 }
 
 func hello(msg string) routeit.Handler {

@@ -6,7 +6,7 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-func main() {
+func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{Namespace: "/api"})
 
 	registry := routeit.RouteRegistry{"/hello": EchoUrlHandler()}
@@ -21,7 +21,11 @@ func main() {
 	// new route at /api/namespace/hello
 	srv.RegisterRoutesUnderNamespace("/namespace", registry)
 
-	srv.StartOrPanic()
+	return srv
+}
+
+func main() {
+	GetServer().StartOrPanic()
 }
 
 func EchoUrlHandler() routeit.Handler {

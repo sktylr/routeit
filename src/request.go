@@ -106,9 +106,13 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 
 	cLen := reqHdrs.contentLength()
 	var body string
-	// TODO: prevent parsing if method is GET or HEAD
 	// TODO: make the buffer size also depend on the server max allowed request
-	if cLen > 0 {
+	if cLen <= 0 || ptcl.mthd == GET || ptcl.mthd == HEAD {
+		// For GET or HEAD requests, the request body should be ignored even if
+		// provided. Where we are consuming the body, we should only look for
+		// Content-Length bytes and no more.
+		body = ""
+	} else {
 		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds
 		reader := bytes.NewReader(bdyRaw)
 		buf := make([]byte, cLen)
@@ -123,8 +127,6 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 			return nil, BadRequestError()
 		}
 		body = string(buf)
-	} else {
-		body = ""
 	}
 	req := Request{mthd: ptcl.mthd, uri: uri, headers: reqHdrs, body: body}
 	return &req, nil

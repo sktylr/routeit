@@ -12,6 +12,7 @@ type HandlerFunc func(rw *ResponseWriter, req *Request) error
 
 type Handler struct {
 	get  HandlerFunc
+	head HandlerFunc
 	post HandlerFunc
 }
 
@@ -20,7 +21,15 @@ type Handler struct {
 // response does not contain the body, instead it only contains the headers
 // that the GET request would return.
 func Get(fn HandlerFunc) Handler {
-	return Handler{get: fn}
+	head := func(rw *ResponseWriter, req *Request) error {
+		// The HEAD method is the same as GET, except it does not return a
+		// response body, only headers. It is often used to determine how
+		// large a resource is before committing to downloading it.
+		err := fn(rw, req)
+		rw.bdy = []byte{}
+		return err
+	}
+	return Handler{get: fn, head: head}
 }
 
 // Creates a handler that responds to POST requests
@@ -32,13 +41,8 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	if req.Method() == GET && h.get != nil {
 		return h.get(rw, req)
 	}
-	if req.Method() == HEAD && h.get != nil {
-		// The HEAD method is the same as GET, except it does not return a
-		// response body, only headers. It is often used to determine how
-		// large a resource is before committing to downloading it.
-		err := h.get(rw, req)
-		rw.bdy = []byte{}
-		return err
+	if req.Method() == HEAD && h.head != nil {
+		return h.head(rw, req)
 	}
 	if req.Method() == POST && h.post != nil {
 		return h.post(rw, req)
@@ -47,7 +51,10 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	err := MethodNotAllowedError()
 	allow := make([]string, 0, 6)
 	if h.get != nil {
-		allow = append(allow, GET.name, HEAD.name)
+		allow = append(allow, GET.name)
+	}
+	if h.head != nil {
+		allow = append(allow, HEAD.name)
 	}
 	if h.post != nil {
 		allow = append(allow, POST.name)

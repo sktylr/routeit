@@ -55,7 +55,7 @@ func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 }
 
 func TestRequestFromRawNoCarriageReturn(t *testing.T) {
-	bts := []byte("GET / HTTP/1.1\nHost: localhost\n\nbody")
+	bts := []byte("POST / HTTP/1.1\nHost: localhost\n\nbody")
 	_, err := requestFromRaw(bts)
 	verifyHttpError(t, err, StatusBadRequest)
 }
@@ -71,32 +71,31 @@ func TestRequestFromRawPrefixesLeadingSlash(t *testing.T) {
 }
 
 func TestRequestFromRawNoHeaders(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\n\r\nthe body\r\n")
+	in := []byte("POST / HTTP/1.1\r\n\r\nthe body\r\n")
 
 	_, err := requestFromRaw(in)
 	verifyHttpError(t, err, StatusBadRequest)
 }
 
 func TestRequestFromRawOneHeader(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\nHost: localhost\r\n\r\nthe body")
+	in := []byte("POST / HTTP/1.1\r\nHost: localhost\r\n\r\nthe body")
 
 	req, err := requestFromRaw(in)
 	if err != nil {
 		t.Errorf("requestFromRaw one header unexpected error %s", err)
 	}
 	// Unparsed since there is no Content-Type header
-	// TODO: should swap this to a POST etc once GET's not longer read bodies
 	expectBody(t, "one header", req.body, "")
 	expectUrl(t, "one header", req, "/")
 	if len(req.headers) != 1 {
 		t.Errorf(`requestFromRaw one header headers = %q, wanted {"Host": "localhost"}`, req.headers)
 	}
 	expectHeader(t, "one header", "Host", req.headers, "localhost")
-	expectMethod(t, "one header", req.mthd, GET)
+	expectMethod(t, "one header", req.mthd, POST)
 }
 
 func TestRequestFromRawMultipleHeaders(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\nContent-Length: 8\r\nContent-Type: text/plain\r\nHost: localhost\r\n\r\nthe body")
+	in := []byte("POST / HTTP/1.1\r\nContent-Length: 8\r\nContent-Type: text/plain\r\nHost: localhost\r\n\r\nthe body")
 	wantCl := "8"
 	wantCt := "text/plain"
 	wantHost := "localhost"
@@ -118,11 +117,11 @@ func TestRequestFromRawMultipleHeaders(t *testing.T) {
 	expectHeader(t, "multiple headers", "Content-Type", req.headers, wantCt)
 	expectHeader(t, "multiple headers", "Content-Length", req.headers, wantCl)
 	expectHeader(t, "multiple headers", "Host", req.headers, wantHost)
-	expectMethod(t, "multiple headers", req.mthd, GET)
+	expectMethod(t, "multiple headers", req.mthd, POST)
 }
 
 func TestRequestFromRawOnlyConsumesContentLength(t *testing.T) {
-	in := []byte("GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nthis is a long body!")
+	in := []byte("POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nthis is a long body!")
 	want := "thi"
 
 	req, err := requestFromRaw(in)
@@ -130,6 +129,22 @@ func TestRequestFromRawOnlyConsumesContentLength(t *testing.T) {
 		t.Errorf("requestFromRaw only consumes content length unexpected error %s", err)
 	}
 	expectBody(t, "only consumes content length", req.body, want)
+}
+
+func TestRequestFromRawDoesNotConsumeBodyUnlessRequiredByMethod(t *testing.T) {
+	methods := []string{"GET", "HEAD"}
+
+	for _, m := range methods {
+		t.Run(m, func(t *testing.T) {
+			in := []byte(fmt.Sprintf("%s / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\nbody", m))
+
+			req, err := requestFromRaw(in)
+			if err != nil {
+				t.Errorf(`requestFromRaw does not consume body unexpected error %v`, err)
+			}
+			expectBody(t, "does not consume body", req.body, "")
+		})
+	}
 }
 
 func TestRequestFromRawRequiresHeaders(t *testing.T) {
@@ -210,7 +225,7 @@ func TestRequestFromRawAllowsComplexBodies(t *testing.T) {
   ]
 }`
 	bodyBytes := []byte(body)
-	in := []byte(fmt.Sprintf("GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: %d\r\n\r\n%s", len(bodyBytes), body))
+	in := fmt.Appendf(nil, "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: %d\r\n\r\n%s", len(bodyBytes), body)
 
 	req, err := requestFromRaw(in)
 	if err != nil {
@@ -219,7 +234,7 @@ func TestRequestFromRawAllowsComplexBodies(t *testing.T) {
 	expectBody(t, "complex bodies", req.body, body)
 	expectHeader(t, "complex bodies", "Host", req.headers, "localhost")
 	expectHeader(t, "complex bodies", "Content-Length", req.headers, fmt.Sprintf("%d", len(bodyBytes)))
-	expectMethod(t, "complex bodies", req.mthd, GET)
+	expectMethod(t, "complex bodies", req.mthd, POST)
 	expectUrl(t, "complex bodies", req, "/")
 }
 

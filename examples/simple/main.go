@@ -7,25 +7,25 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-type example struct {
+type Example struct {
 	Name   string `json:"name"`
-	Nested nested `json:"nested"`
+	Nested Nested `json:"nested"`
 }
 
-type nested struct {
+type Nested struct {
 	Age    int     `json:"age"`
 	Height float32 `json:"height"`
 }
 
-func main() {
+func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
 		Port: 8080,
 	})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			ex := example{
+			ex := Example{
 				Name: "John Doe",
-				Nested: nested{
+				Nested: Nested{
 					Age:    25,
 					Height: 1.82,
 				},
@@ -60,6 +60,11 @@ func main() {
 			panic("panicking!")
 		}),
 	})
+	return srv
+}
+
+func main() {
+	srv := GetServer()
 	err := srv.Start()
 	if err != nil {
 		log.Fatal(err)

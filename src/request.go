@@ -92,7 +92,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 
 	cLen := reqHdrs.contentLength()
 	var body string
-	// TODO: prevent parsing if method is GET
+	// TODO: prevent parsing if method is GET or HEAD
 	// TODO: make the buffer size also depend on the server max allowed request
 	if cLen > 0 {
 		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds

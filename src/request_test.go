@@ -25,7 +25,7 @@ func TestRequestFromRawInvalidProtocolLine(t *testing.T) {
 		},
 		{
 			"unsupported method",
-			"POST / HTTP/1.1\r\nHost: localhost\r\n\r\n",
+			"PATCH / HTTP/1.1\r\nHost: localhost\r\n\r\n",
 			StatusNotImplemented,
 		},
 		{

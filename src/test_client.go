@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -14,6 +15,7 @@ type testRequest struct {
 	path    string
 	headers headers
 	method  HttpMethod
+	body    []byte
 }
 
 // Instantiates a test client that can be used to perform end-to-end tests on
@@ -44,6 +46,25 @@ func (tc TestClient) Head(path string) *TestResponse {
 	return tc.makeRequest(req)
 }
 
+func (tc TestClient) PostJson(path string, body any) *TestResponse {
+	bodyJson, err := json.Marshal(body)
+	if err != nil {
+		// We panic here since this is inside a test and expected to be correct
+		panic(err)
+	}
+	headers := headers{
+		"Content-Type":   "application/json",
+		"Content-Length": fmt.Sprintf("%d", len(bodyJson)),
+	}
+	req := testRequest{
+		path:    path,
+		method:  POST,
+		headers: headers,
+		body:    bodyJson,
+	}
+	return tc.makeRequest(req)
+}
+
 func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	if !strings.HasPrefix(req.path, "/") {
 		req.path = "/" + req.path
@@ -61,6 +82,7 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	for k, v := range req.headers {
 		rb.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
 	}
+	rb.Write(req.body)
 
 	rw := tc.s.handleNewRequest(rb.Bytes())
 	return &TestResponse{rw}

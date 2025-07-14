@@ -10,6 +10,20 @@ func TestGet(t *testing.T) {
 	if h.get == nil {
 		t.Error("did not expect handler.get() to be nil")
 	}
+	if h.post != nil {
+		t.Error("expected handler.post() to be nil")
+	}
+}
+
+func TestPost(t *testing.T) {
+	h := Post(func(rw *ResponseWriter, req *Request) error { return nil })
+
+	if h.post == nil {
+		t.Error("did not expect handler.get() to be nil")
+	}
+	if h.get != nil {
+		t.Error("expected handler.post() to be nil")
+	}
 }
 
 func TestHandleGet(t *testing.T) {
@@ -68,13 +82,38 @@ func TestHandleHead(t *testing.T) {
 	}
 }
 
+func TestHandlePost(t *testing.T) {
+	h := Post(func(rw *ResponseWriter, req *Request) error {
+		rw.Text("From inside the handler")
+		return nil
+	})
+	req := requestWithUrlAndMethod("/foo", POST)
+	rw := newResponse(StatusOK)
+	wantMsg := "From inside the handler"
+
+	err := h.handle(rw, req)
+
+	if err != nil {
+		t.Errorf("did not want error to be present, was %#q", err.Error())
+	}
+	if string(rw.bdy) != wantMsg {
+		t.Errorf(`body = %#q, wanted %#q`, string(rw.bdy), wantMsg)
+	}
+	cType, found := rw.hdrs["Content-Type"]
+	if !found {
+		t.Error("expected Content-Type header to be present")
+	}
+	if cType != "text/plain" {
+		t.Errorf(`Content-Type = %#q, wanted "text/plain"`, cType)
+	}
+}
+
 func TestHandleUnsupportedMethod(t *testing.T) {
 	h := Get(func(rw *ResponseWriter, req *Request) error {
 		rw.Text("From inside the handler")
 		return nil
 	})
-	// TODO: this is a hack until more methods are formally supported
-	req := requestWithUrlAndMethod("/foo", HttpMethod{name: "POST"})
+	req := requestWithUrlAndMethod("/foo", POST)
 	rw := newResponse(StatusOK)
 
 	err := h.handle(rw, req)

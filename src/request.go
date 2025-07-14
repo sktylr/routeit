@@ -2,18 +2,23 @@ package routeit
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
+	"reflect"
 	"strings"
 )
 
 var (
 	GET  = HttpMethod{"GET"}
 	HEAD = HttpMethod{"HEAD"}
+	POST = HttpMethod{"POST"}
 )
 
 var methodLookup = map[string]HttpMethod{
 	"GET":  GET,
 	"HEAD": HEAD,
+	"POST": POST,
 }
 
 type Request struct {
@@ -151,6 +156,20 @@ func (req *Request) Header(key string) (string, bool) {
 func (req *Request) QueryParam(key string) (string, bool) {
 	val, found := req.uri.queryParams[key]
 	return val, found
+}
+
+// TODO: improve this in the future to provide an additional method that confirms the content type of the request and makes sure it is application/json
+// TODO: should look into prohibiting (via a panic or error) this method for GET or HEAD requests, since they should not contain a req body and if they do the server shouldn't read it
+// Parses the Json response body into the destination
+func (req *Request) BodyToJson(to any) error {
+	v := reflect.ValueOf(to)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		// We panic for now, this may change. This is due to an issue introduced
+		// by the integrator, so we panic which will manifest itself as a 500:
+		// Internal Server Error outside of the integrator's control.
+		panic(fmt.Sprintf("BodyToJson requires a non-nil pointer destination, got %T", to))
+	}
+	return json.Unmarshal([]byte(req.body), to)
 }
 
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {

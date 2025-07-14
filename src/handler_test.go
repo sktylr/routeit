@@ -10,6 +10,9 @@ func TestGet(t *testing.T) {
 	if h.get == nil {
 		t.Error("did not expect handler.get() to be nil")
 	}
+	if h.head == nil {
+		t.Error("did not expect handler.head() to be nil")
+	}
 	if h.post != nil {
 		t.Error("expected handler.post() to be nil")
 	}
@@ -19,10 +22,13 @@ func TestPost(t *testing.T) {
 	h := Post(func(rw *ResponseWriter, req *Request) error { return nil })
 
 	if h.post == nil {
-		t.Error("did not expect handler.get() to be nil")
+		t.Error("did not expect handler.post() to be nil")
 	}
 	if h.get != nil {
-		t.Error("expected handler.post() to be nil")
+		t.Error("expected handler.get() to be nil")
+	}
+	if h.head != nil {
+		t.Error("expected handler.head() to be nil")
 	}
 }
 

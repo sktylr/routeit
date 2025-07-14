@@ -19,13 +19,10 @@ func Get(fn HandlerFunc) Handler {
 }
 
 func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
-	if !h.supportsMethod(req.Method()) {
-		return MethodNotAllowedError()
-	}
-	if req.Method() == GET {
+	if req.Method() == GET && h.get != nil {
 		return h.get(rw, req)
 	}
-	if req.Method() == HEAD {
+	if req.Method() == HEAD && h.get != nil {
 		// The HEAD method is the same as GET, except it does not return a
 		// response body, only headers. It is often used to determine how
 		// large a resource is before committing to downloading it.
@@ -33,21 +30,19 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 		rw.bdy = []byte{}
 		return err
 	}
-	// This should be unreachable but is required to satisfy the type system.
-	return MethodNotAllowedError()
-}
 
-func (h *Handler) supportsMethod(m HttpMethod) bool {
-	switch m {
-	case GET, HEAD:
-		return h.get != nil
+	err := MethodNotAllowedError()
+	allow := make([]string, 0, 6)
+	if h.get != nil {
+		allow = append(allow, "GET", "HEAD")
 	}
-	return false
+	err.header("Allow", strings.Join(allow, ", "))
+	return err
 }
 
 // Dynamically loads static assets from disk.
-func staticLoader(namespace string) HandlerFunc {
-	return func(rw *ResponseWriter, req *Request) error {
+func staticLoader(namespace string) *Handler {
+	return &Handler{get: func(rw *ResponseWriter, req *Request) error {
 		// TODO: need more generic handling of this "with namespace", "without namespace" stuff
 		// TODO: probably best to actually store that on the router.
 		url := req.Url()
@@ -84,5 +79,5 @@ func staticLoader(namespace string) HandlerFunc {
 		rw.RawWithContentType(data, cType)
 
 		return nil
-	}
+	}}
 }

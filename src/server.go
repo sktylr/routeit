@@ -35,7 +35,8 @@ type ServerConfig struct {
 	// subdirectory of the project's root and the server will panic if this is
 	// not the case. The path does not have to point to a _valid_ directory as
 	// this allows the server to dynamically write to disk and serve files from
-	// there, though this is discouraged.
+	// there, though this is discouraged. The path is interpreted as a relative
+	// path, not an absolute path, regardless of the presence of a leading slash.
 	StaticDir string
 }
 

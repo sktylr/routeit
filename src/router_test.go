@@ -272,16 +272,22 @@ func TestStaticRoutingGlobalNamespaceNotFoundBacktracking(t *testing.T) {
 	verifyRouteNotFound(t, router, req)
 }
 
-func TestStaticDirDoesNotAllowAccessOutsideRoot(t *testing.T) {
+func TestStaticDirEnforcesSubdirectory(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
 	}{
 		{
-			"containing $HOME", "static/~/foo",
+			"root directory", "~/foo/bar",
+		},
+		{
+			"containing variables", "$HOME/bar",
 		},
 		{
 			"backtracking outside", "static/../..",
+		},
+		{
+			"project root", "static/..",
 		},
 	}
 
@@ -318,7 +324,11 @@ func TestStaticDirSimplifiesExpressions(t *testing.T) {
 			"cyclic", "static/foo/../../static/../static/foo/../foo", "static/foo",
 		},
 		{
-			"current directory", "static/..", "",
+			// The `~` character is only expanded to the system root within the
+			// shell (it is a shorthand), but it is a perfectly legal, albeit
+			// confusing, directory name. This should not be expanded to the
+			// computer root.
+			"containing root shorthand", "static/~/foo", "static/~/foo",
 		},
 	}
 

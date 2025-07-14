@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -52,7 +53,14 @@ func (tr *TestResponse) AssertBodyMatchesString(t *testing.T, want string) {
 	}
 }
 
-// TODO: assert body matches f string
+// Assert that a body exactly matches the given string with format options
+// This is the same as formatting the string using fmt.Sprintf and calling
+// AssertBodyMatchesString directly
+func (tr *TestResponse) AssertBodyMatchesStringf(t *testing.T, wantf string, args ...any) {
+	t.Helper()
+	want := fmt.Sprintf(wantf, args...)
+	tr.AssertBodyMatchesString(t, want)
+}
 
 // Assert that a body starts with the given prefix. Supports improper
 // substrings (i.e. where the prefix exactly equals the whole body).

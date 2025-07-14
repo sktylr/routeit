@@ -66,6 +66,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 
 	prtclRaw := sections[0]
 	hdrsRaw := sections[1 : len(sections)-1]
+	// TODO: make sure that this is correct (i.e. if a body is not included, do the specs state that there must be a carriage return anyway, so we can safely take the body as the last carriage return object?)
 	bdyRaw := sections[len(sections)-1]
 
 	ptcl, err := parseProtocolLine(prtclRaw)

@@ -104,8 +104,9 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 
 	var rb bytes.Buffer
 	rb.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", req.method.name, req.path))
-	for k, v := range req.headers {
-		rb.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+	// TODO: this should more strictly depend on [headers.WriteTo]
+	for _, v := range req.headers {
+		rb.WriteString(fmt.Sprintf("%s: %s\r\n", v.original, v.val))
 	}
 	rb.Write(req.body)
 

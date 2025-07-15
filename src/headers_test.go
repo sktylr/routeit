@@ -66,12 +66,27 @@ func TestNewResponseHeadersDefaultsServer(t *testing.T) {
 }
 
 func TestSetOverwrites(t *testing.T) {
-	h := headers{}
-	h.Set("Content-Length", "15")
+	keys := []string{
+		"Content-Length",
+		"content-length",
+		"content-Length",
+		"cOntent-LEngTh",
+		"Content-length",
+	}
 
-	h.Set("Content-Length", "16")
+	for _, k := range keys {
+		t.Run(k, func(t *testing.T) {
+			h := headers{}
+			h.Set("Content-Length", "15")
 
-	verifyPresentAndMatches(t, h, "set overwrites", "Content-Length", "16")
+			h.Set(k, "16")
+
+			verifyPresentAndMatches(t, h, "set overwrites", "Content-Length", "16")
+			if len(h) != 1 {
+				t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
+			}
+		})
+	}
 }
 
 func TestSetSanitises(t *testing.T) {
@@ -123,12 +138,12 @@ func TestContentLength(t *testing.T) {
 		},
 		{
 			"not parsable",
-			headers{"Content-Length": "abc"},
+			headers{"content-length": headerVal{"abc", "Content-Length"}},
 			0,
 		},
 		{
 			"valid",
-			headers{"Content-Length": "85"},
+			headers{"content-length": headerVal{"85", "Content-Length"}},
 			85,
 		},
 	}
@@ -137,8 +152,29 @@ func TestContentLength(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			cLen := tc.in.ContentLength()
 			if cLen != tc.want {
-				t.Errorf(`h.contentLength() = %d, wanted %d`, cLen, tc.want)
+				t.Errorf(`h.ContentLength() = %d, wanted %d`, cLen, tc.want)
 			}
+		})
+	}
+}
+
+func TestHeadersLookupCaseInsensitive(t *testing.T) {
+	base := newResponseHeaders()
+	base.Set("Key", "val")
+	tests := []string{
+		"key",
+		"Key",
+		"kEy",
+		"keY",
+		"KEy",
+		"KeY",
+		"kEY",
+		"KEY",
+	}
+
+	for _, tc := range tests {
+		t.Run(tc, func(t *testing.T) {
+			verifyPresentAndMatches(t, base, "case insensitive", tc, "val")
 		})
 	}
 }

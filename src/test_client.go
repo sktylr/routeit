@@ -25,37 +25,45 @@ func NewTestClient(s *Server) TestClient {
 }
 
 // Makes a GET request against the specific path. Should not include a trailing
-// slash but may optionally omit a leading slash.
-func (tc TestClient) Get(path string) *TestResponse {
+// slash but may optionally omit a leading slash. Can include an arbitrary
+// number of headers, specified after the path. Keys and values of headers
+// should be individual arguments.
+func (tc TestClient) Get(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  GET,
-		headers: headers{},
+		headers: tc.constructHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
 
 // Makes a HEAD request against the specific path. Should not include a trailing
-// slash but may optionally omit the leading slash
-func (tc TestClient) Head(path string) *TestResponse {
+// slash but may optionally omit the leading slash. Can include an arbitrary
+// number of headers, specified after the path. Keys and values of headers
+// should be individual arguments.
+func (tc TestClient) Head(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  HEAD,
-		headers: headers{},
+		headers: tc.constructHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
 
-func (tc TestClient) PostJson(path string, body any) *TestResponse {
+// Makes a POST request against the specified path, using the second argument
+// as the request body, which is converted to Json. Panics if the Json
+// conversion fails. Can include an arbitrary number of headers, specified
+// after the request body. Keys and values of headers should be individual
+// arguments.
+func (tc TestClient) PostJson(path string, body any, h ...string) *TestResponse {
 	bodyJson, err := json.Marshal(body)
 	if err != nil {
 		// We panic here since this is inside a test and expected to be correct
 		panic(err)
 	}
-	headers := headers{
-		"Content-Type":   CTApplicationJson.string(),
-		"Content-Length": fmt.Sprintf("%d", len(bodyJson)),
-	}
+	headers := tc.constructHeaders(h...)
+	headers.set("Content-Type", CTApplicationJson.string())
+	headers.set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
 	req := testRequest{
 		path:    path,
 		method:  POST,
@@ -65,12 +73,14 @@ func (tc TestClient) PostJson(path string, body any) *TestResponse {
 	return tc.makeRequest(req)
 }
 
-func (tc TestClient) PostText(path string, text string) *TestResponse {
+// Makes a POST request against the specified path, using a text request body.
+// Can include an arbitrary number of headers, specific after the request body.
+// Keys and values of headers should be individual arguments.
+func (tc TestClient) PostText(path string, text string, h ...string) *TestResponse {
 	raw := []byte(text)
-	headers := headers{
-		"Content-Type":   CTTextPlain.string(),
-		"Content-Length": fmt.Sprintf("%d", len(raw)),
-	}
+	headers := tc.constructHeaders(h...)
+	headers.set("Content-Type", CTTextPlain.string())
+	headers.set("Content-Length", fmt.Sprintf("%d", len(raw)))
 	req := testRequest{
 		path:    path,
 		method:  POST,
@@ -101,4 +111,15 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 
 	rw := tc.s.handleNewRequest(rb.Bytes())
 	return &TestResponse{rw}
+}
+
+func (tc TestClient) constructHeaders(h ...string) headers {
+	i := 0
+	total := len(h)
+	headers := headers{}
+	for i < total-1 {
+		headers.set(h[i], h[i+1])
+		i++
+	}
+	return headers
 }

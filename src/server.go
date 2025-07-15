@@ -49,6 +49,8 @@ type Server struct {
 	middleware middlewareRegistry
 }
 
+// Constructs a new server given the config. Defaults are provided for all
+// options to ensure that the server can run with sane values from the get-go.
 func NewServer(conf ServerConfig) *Server {
 	if conf.RequestSize == 0 {
 		conf.RequestSize = KiB
@@ -144,9 +146,13 @@ func (s *Server) Start() error {
 	}
 }
 
+// Handles an incoming connection. Extracts the raw request bytes and sends the
+// raw response back to the client. Read and write deadlines are handled using
+// the server config.
 func (s *Server) handleNewConnection(conn net.Conn) {
 	// TODO: need to choose between strings and bytes here!
 	defer func() {
+		// TODO: should probably look at the headers here to determine whether the conn should actually be closed, or put on a timeout for closure etc.
 		conn.Close()
 	}()
 
@@ -169,6 +175,9 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 	}
 }
 
+// Parses the raw request received from a connection and transforms it into a
+// response. Handles the bulk of the server logic, such as routing, middleware
+// and error handling.
 func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	req, httpErr := requestFromRaw(raw)
 	if httpErr != nil {

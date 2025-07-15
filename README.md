@@ -69,3 +69,11 @@ The response that is returned by the test client features intuitive methods to p
 The test client will handle all panics or errors reported by the application, so there is no need to use a defer-recover block to handle expected panics within the code.
 Examples of how to use the testing API can be found in the [`examples`](/examples) directory.
 Each example project in this directory features tests, which give me a place to explore how I would like testing to work, while also providing an indicator if any bugs or regressions are introduced.
+
+#### Middleware
+
+`routeit` gives the developer the ability to write custom middleware to perform actions such as rate-limiting or authorisation handling.
+Examples can be found in [`examples/middleware`](/examples/middleware).
+Linking is performed through a `Chain` struct which is passed as an argument to the middleware function.
+Multiple middleware functions can be attached to a single server.
+The order of attachment is important, as that is the order used when processing the middleware for each incoming request.

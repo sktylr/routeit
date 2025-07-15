@@ -1,7 +1,6 @@
 package routeit
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -108,8 +107,6 @@ func staticLoader(namespace string) *Handler {
 
 		data, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Println("Could not load!")
-			fmt.Println(err)
 			return err
 		}
 

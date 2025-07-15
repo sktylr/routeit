@@ -18,15 +18,12 @@ func newResponseHeaders() headers {
 // Expects that the input has already been split on the carriage return symbol \r\n
 func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 	h := headers{}
-	for i, line := range raw {
+	for _, line := range raw {
 		if len(line) == 0 {
-			// Empty line which should indicate the end of the headers
-			count := len(raw)
-			if count != i+1 {
-				// There are more headers after this, signalling a malformed request.
-				// Ignore subsequent properties for now.
-				fmt.Printf("found end of headers section, returning... (total headers = %d, on index = %d)\n", len(raw), i)
-			}
+			// Empty line which should indicate the end of the headers. If it
+			// does not, we exit anyway and ignore the remaining headers, since
+			// it should.
+			// TODO: consider increasing the strictness here by rejecting the request
 			return h, nil
 		}
 
@@ -34,6 +31,7 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 		// TODO: improve this properly
 		kvp := strings.Split(string(line), ": ")
 		if len(kvp) != 2 {
+			// TODO: this should use structured logging
 			fmt.Printf("Malformed header: [%s]\n", string(line))
 			return h, BadRequestError()
 		}
@@ -56,7 +54,8 @@ func (h headers) set(key string, val string) {
 	h[sKey] = sVal
 }
 
-// Extract the content length field from the header map, defaulting to 0 if not present
+// Extract the content length field from the header map, defaulting to 0 if not
+// present
 func (h headers) contentLength() uint {
 	cLenRaw, found := h["Content-Length"]
 	if !found {
@@ -64,7 +63,6 @@ func (h headers) contentLength() uint {
 	}
 	cLen, err := strconv.Atoi(cLenRaw)
 	if err != nil {
-		fmt.Println(err)
 		return 0
 	}
 	return uint(cLen)

@@ -68,6 +68,30 @@ var (
 
 // Http Status codes for responses. https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
 type HttpStatus struct {
-	code int
+	code uint16
 	msg  string
+}
+
+func (s HttpStatus) Is1xx() bool {
+	return s.isxx(100, 200)
+}
+
+func (s HttpStatus) Is2xx() bool {
+	return s.isxx(200, 300)
+}
+
+func (s HttpStatus) Is3xx() bool {
+	return s.isxx(300, 400)
+}
+
+func (s HttpStatus) Is4xx() bool {
+	return s.isxx(400, 500)
+}
+
+func (s HttpStatus) Is5xx() bool {
+	return s.isxx(500, 600)
+}
+
+func (s HttpStatus) isxx(min uint16, max uint16) bool {
+	return min <= s.code && s.code < max
 }

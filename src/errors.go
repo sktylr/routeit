@@ -104,7 +104,7 @@ func (e *HttpError) toResponse() *ResponseWriter {
 	rw := newResponse(e.status)
 	rw.Text(e.Error())
 	for k, v := range e.headers {
-		rw.hdrs.set(k, v)
+		rw.hdrs.Set(k, v)
 	}
 	return rw
 }

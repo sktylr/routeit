@@ -106,7 +106,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		return nil, BadRequestError()
 	}
 
-	cLen := reqHdrs.contentLength()
+	cLen := reqHdrs.ContentLength()
 	var body string
 	// TODO: make the buffer size also depend on the server max allowed request
 	if cLen <= 0 || ptcl.mthd == GET || ptcl.mthd == HEAD {

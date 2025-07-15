@@ -14,14 +14,14 @@ func TestHeadersWriteTo(t *testing.T) {
 	}
 	want := "Content-Type: application/json\r\nDate: Fri, 13 Jun 2025 19:35:42 GMT\r\nContent-Length: 85\r\n"
 
-	verifyWriteToOutput(t, h, want, "h.writeTo")
+	verifyWriteToOutput(t, h, want, "h.WriteTo")
 }
 
 func TestHeadersWriteToEmpty(t *testing.T) {
 	h := headers{}
 	want := ""
 
-	verifyWriteToOutput(t, h, want, "h.writeTo empty")
+	verifyWriteToOutput(t, h, want, "h.WriteTo empty")
 }
 
 func TestHeadersWriteToClearsNewlines(t *testing.T) {
@@ -30,7 +30,7 @@ func TestHeadersWriteToClearsNewlines(t *testing.T) {
 	}
 	want := "Content-Length: 15\r\n"
 
-	verifyWriteToOutput(t, h, want, "h.writeTo clears new lines")
+	verifyWriteToOutput(t, h, want, "h.WriteTo clears new lines")
 }
 
 func TestHeadersWriteToClearsInternalCarriageReturn(t *testing.T) {
@@ -39,7 +39,7 @@ func TestHeadersWriteToClearsInternalCarriageReturn(t *testing.T) {
 	}
 	want := "Content-Type: application/json\r\n"
 
-	verifyWriteToOutput(t, h, want, "h.writeTo clears internal carriage return")
+	verifyWriteToOutput(t, h, want, "h.WriteTo clears internal carriage return")
 }
 
 func TestHeadersWriteToDoesNotClearInteriorWhitespace(t *testing.T) {
@@ -48,7 +48,7 @@ func TestHeadersWriteToDoesNotClearInteriorWhitespace(t *testing.T) {
 	}
 	want := "Content-Type: application/json; charset=utf-8\r\n"
 
-	verifyWriteToOutput(t, h, want, "h.writeTo does not clear interior whitespace")
+	verifyWriteToOutput(t, h, want, "h.WriteTo does not clear interior whitespace")
 }
 
 func TestHeadersWriteToAllowsHTab(t *testing.T) {
@@ -57,7 +57,7 @@ func TestHeadersWriteToAllowsHTab(t *testing.T) {
 	}
 	want := "Content-Type: application/json\tcharset=utf-8\r\n"
 
-	verifyWriteToOutput(t, h, want, "h.writeTo allows tabs")
+	verifyWriteToOutput(t, h, want, "h.WriteTo allows tabs")
 }
 
 func TestNewResponseHeadersDefaultsServer(t *testing.T) {
@@ -74,7 +74,7 @@ func TestSetOverwrites(t *testing.T) {
 		"Content-Length": "15",
 	}
 
-	h.set("Content-Length", "16")
+	h.Set("Content-Length", "16")
 
 	verifyPresentAndMatches(t, h, "set overwrites", "Content-Length", "16")
 }
@@ -82,7 +82,7 @@ func TestSetOverwrites(t *testing.T) {
 func TestSetSanitises(t *testing.T) {
 	h := headers{}
 
-	h.set("Content\r\n-Length", "16\n\n\t")
+	h.Set("Content\r\n-Length", "16\n\n\t")
 	want := "16\t"
 
 	verifyPresentAndMatches(t, h, "set sanitises", "Content-Length", want)
@@ -140,7 +140,7 @@ func TestContentLength(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			cLen := tc.in.contentLength()
+			cLen := tc.in.ContentLength()
 			if cLen != tc.want {
 				t.Errorf(`h.contentLength() = %d, wanted %d`, cLen, tc.want)
 			}
@@ -151,7 +151,7 @@ func TestContentLength(t *testing.T) {
 func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
 	t.Helper()
 	var sb strings.Builder
-	h.writeTo(&sb)
+	h.WriteTo(&sb)
 	actual := sb.String()
 
 	if len(actual) != len(want) {

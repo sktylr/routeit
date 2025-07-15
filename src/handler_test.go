@@ -124,7 +124,7 @@ func TestHandleHead(t *testing.T) {
 	if len(rw.bdy) != 0 {
 		t.Errorf("did not want body to be present, was %#q", string(rw.bdy))
 	}
-	cLen := rw.hdrs.contentLength()
+	cLen := rw.hdrs.ContentLength()
 	if cLen != wantLen {
 		t.Errorf("content length = %d, wanted %d", cLen, wantLen)
 	}

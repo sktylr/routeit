@@ -40,7 +40,7 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 	return h, nil
 }
 
-func (h headers) writeTo(sb *strings.Builder) {
+func (h headers) WriteTo(sb *strings.Builder) {
 	for k, v := range h {
 		key := strings.Map(sanitiseHeader, strings.TrimSpace(k))
 		val := strings.Map(sanitiseHeader, v)
@@ -48,7 +48,7 @@ func (h headers) writeTo(sb *strings.Builder) {
 	}
 }
 
-func (h headers) set(key string, val string) {
+func (h headers) Set(key string, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)
 	h[sKey] = sVal
@@ -56,7 +56,7 @@ func (h headers) set(key string, val string) {
 
 // Extract the content length field from the header map, defaulting to 0 if not
 // present
-func (h headers) contentLength() uint {
+func (h headers) ContentLength() uint {
 	cLenRaw, found := h["Content-Length"]
 	if !found {
 		return 0

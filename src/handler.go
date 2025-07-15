@@ -113,16 +113,15 @@ func staticLoader(namespace string) *Handler {
 			return err
 		}
 
-		// TODO: need to improve how we work with this!
-		cType := http.DetectContentType(data)
-		if strings.HasPrefix(cType, "text/plain") && strings.HasSuffix(path, ".css") {
+		cType := parseContentType(http.DetectContentType(data))
+		if cType.part == "text" && cType.subtype == "plain" && strings.HasSuffix(path, ".css") {
 			// net/http.DetectContentType is not capable of inferring CSS content
 			// types. This causes issues with browsers since the inferred content
 			// type is text/plain which cannot be understood as a stylesheet by some
 			// browsers.
-			cType = strings.Replace(cType, "text/plain", "text/css", 1)
+			cType.subtype = "css"
 		}
-		rw.RawWithContentType(data, parseContentType(cType))
+		rw.RawWithContentType(data, cType)
 
 		return nil
 	}}

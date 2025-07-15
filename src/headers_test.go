@@ -6,54 +6,83 @@ import (
 	"testing"
 )
 
-// TODO: can simplify these write to tests!
 func TestHeadersWriteTo(t *testing.T) {
-	h := headers{}
-	h.Set("Content-Type", "application/json")
-	h.Set("date", "Fri, 13 Jun 2025 19:35:42 GMT")
-	h.Set("Content-length", "85")
-	want := "Content-Type: application/json\r\ndate: Fri, 13 Jun 2025 19:35:42 GMT\r\nContent-length: 85\r\n"
+	tests := []struct {
+		name string
+		in   map[string]string
+		want string
+	}{
+		{
+			"multiple multi-case headers",
+			map[string]string{
+				"Content-Type":   "application/json",
+				"date":           "Fri, 13 Jun 2025 19:35:42 GMT",
+				"Content-length": "85",
+			},
+			"Content-Type: application/json\r\ndate: Fri, 13 Jun 2025 19:35:42 GMT\r\nContent-length: 85\r\n",
+		},
+		{
+			"empty",
+			map[string]string{},
+			"",
+		},
+		{
+			"clears new lines",
+			map[string]string{"Content-Length": "1\n5\n"},
+			"Content-Length: 15\r\n",
+		},
+		{
+			"clears internal carriage return",
+			map[string]string{"Content-Type": "application/\r\njson"},
+			"Content-Type: application/json\r\n",
+		},
+		{
+			"does not clear internal whitespace",
+			map[string]string{"Content-Type": "application/json; charset=utf-8"},
+			"Content-Type: application/json; charset=utf-8\r\n",
+		},
+		{
+			"allows HTAB",
+			map[string]string{"Content-Type": "application/json\tcharset=utf-8"},
+			"Content-Type: application/json\tcharset=utf-8\r\n",
+		},
+	}
 
-	verifyWriteToOutput(t, h, want, "h.WriteTo")
-}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := headers{}
+			for k, v := range tc.in {
+				h.Set(k, v)
+			}
 
-func TestHeadersWriteToEmpty(t *testing.T) {
-	h := headers{}
-	want := ""
+			var sb strings.Builder
+			h.WriteTo(&sb)
+			actual := sb.String()
 
-	verifyWriteToOutput(t, h, want, "h.WriteTo empty")
-}
+			if len(actual) != len(tc.want) {
+				t.Errorf(`length = %d, want %d`, len(actual), len(tc.want))
+			}
 
-func TestHeadersWriteToClearsNewlines(t *testing.T) {
-	h := headers{}
-	h.Set("Content-Length", "1\n5\n")
-	want := "Content-Length: 15\r\n"
+			actualLines := make([]string, 0, len(actual))
+			for l := range strings.Lines(actual) {
+				actualLines = append(actualLines, l)
+			}
+			sort.Strings(actualLines)
 
-	verifyWriteToOutput(t, h, want, "h.WriteTo clears new lines")
-}
+			wantLines := make([]string, 0, len(tc.want))
+			for l := range strings.Lines(tc.want) {
+				wantLines = append(wantLines, l)
+			}
+			sort.Strings(wantLines)
 
-func TestHeadersWriteToClearsInternalCarriageReturn(t *testing.T) {
-	h := headers{}
-	h.Set("Content-Type", "application/\r\njson")
-	want := "Content-Type: application/json\r\n"
-
-	verifyWriteToOutput(t, h, want, "h.WriteTo clears internal carriage return")
-}
-
-func TestHeadersWriteToDoesNotClearInteriorWhitespace(t *testing.T) {
-	h := headers{}
-	h.Set("Content-Type", "application/json; charset=utf-8")
-	want := "Content-Type: application/json; charset=utf-8\r\n"
-
-	verifyWriteToOutput(t, h, want, "h.WriteTo does not clear interior whitespace")
-}
-
-func TestHeadersWriteToAllowsHTab(t *testing.T) {
-	h := headers{}
-	h.Set("Content-Type", "application/json\tcharset=utf-8")
-	want := "Content-Type: application/json\tcharset=utf-8\r\n"
-
-	verifyWriteToOutput(t, h, want, "h.WriteTo allows tabs")
+			for i, l := range actualLines {
+				wl := wantLines[i]
+				if l != wl {
+					t.Errorf(`got %q, want %#q`, l, wl)
+				}
+			}
+		})
+	}
 }
 
 func TestNewResponseHeadersDefaultsServer(t *testing.T) {
@@ -176,36 +205,6 @@ func TestHeadersLookupCaseInsensitive(t *testing.T) {
 		t.Run(tc, func(t *testing.T) {
 			verifyPresentAndMatches(t, base, "case insensitive", tc, "val")
 		})
-	}
-}
-
-func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
-	t.Helper()
-	var sb strings.Builder
-	h.WriteTo(&sb)
-	actual := sb.String()
-
-	if len(actual) != len(want) {
-		t.Errorf(`%s length = %d, want %d`, msg, len(actual), len(want))
-	}
-
-	actualLines := make([]string, 0, len(actual))
-	for l := range strings.Lines(actual) {
-		actualLines = append(actualLines, l)
-	}
-	sort.Strings(actualLines)
-
-	wantLines := make([]string, 0, len(want))
-	for l := range strings.Lines(want) {
-		wantLines = append(wantLines, l)
-	}
-	sort.Strings(wantLines)
-
-	for i, l := range actualLines {
-		wl := wantLines[i]
-		if l != wl {
-			t.Errorf(`%s = %q, want %#q`, msg, l, wl)
-		}
 	}
 }
 

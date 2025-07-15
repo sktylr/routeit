@@ -28,6 +28,7 @@ type Request struct {
 	headers headers
 	// TODO: consider byte slice here
 	body string
+	ct   ContentType
 }
 
 type HttpMethod struct {
@@ -128,7 +129,15 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		}
 		body = string(buf)
 	}
-	req := Request{mthd: ptcl.mthd, uri: uri, headers: reqHdrs, body: body}
+
+	ct := ContentType{}
+	// TODO: can probably also reject the request body if it doesn't include a CT
+	ctRaw := reqHdrs["Content-Type"]
+	if ptcl.mthd != GET && ptcl.mthd != HEAD {
+		ct = parseContentType(ctRaw)
+	}
+
+	req := Request{mthd: ptcl.mthd, uri: uri, headers: reqHdrs, body: body, ct: ct}
 	return &req, nil
 }
 
@@ -172,6 +181,14 @@ func (req *Request) BodyToJson(to any) error {
 		panic(fmt.Sprintf("BodyToJson requires a non-nil pointer destination, got %T", to))
 	}
 	return json.Unmarshal([]byte(req.body), to)
+}
+
+// Access the content type of the request body. Does not return a meaningful
+// value for requests without the Content-Type header, or requests that should
+// not contain a body, such as GET. The ContentType.Equals method can be used
+// to perform equality checks.
+func (req *Request) ContentType() ContentType {
+	return req.ct
 }
 
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {

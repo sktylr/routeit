@@ -84,7 +84,7 @@ func TestRequestFromRawOneHeader(t *testing.T) {
 	if err != nil {
 		t.Errorf("requestFromRaw one header unexpected error %s", err)
 	}
-	// Unparsed since there is no Content-Type header
+	// Unparsed since there is no Content-Length header
 	expectBody(t, "one header", req.body, "")
 	expectUrl(t, "one header", req, "/")
 	if len(req.headers) != 1 {
@@ -97,11 +97,11 @@ func TestRequestFromRawOneHeader(t *testing.T) {
 func TestRequestFromRawMultipleHeaders(t *testing.T) {
 	in := []byte("POST / HTTP/1.1\r\nContent-Length: 8\r\nContent-Type: text/plain\r\nHost: localhost\r\n\r\nthe body")
 	wantCl := "8"
-	wantCt := "text/plain"
+	wantCtRaw := "text/plain"
 	wantHost := "localhost"
 	wantHdrs := map[string]string{
 		"Content-Length": wantCl,
-		"Content-Type":   wantCt,
+		"Content-Type":   wantCtRaw,
 		"Host":           wantHost,
 	}
 
@@ -114,10 +114,13 @@ func TestRequestFromRawMultipleHeaders(t *testing.T) {
 	if len(req.headers) != len(wantHdrs) {
 		t.Errorf(`requestFromRaw multiple headers headers = %q, wanted %#q`, req.headers, wantHdrs)
 	}
-	expectHeader(t, "multiple headers", "Content-Type", req.headers, wantCt)
+	expectHeader(t, "multiple headers", "Content-Type", req.headers, wantCtRaw)
 	expectHeader(t, "multiple headers", "Content-Length", req.headers, wantCl)
 	expectHeader(t, "multiple headers", "Host", req.headers, wantHost)
 	expectMethod(t, "multiple headers", req.mthd, POST)
+	if req.ContentType() != CTTextPlain {
+		t.Errorf(`req.ContentType() = %#q, wanted text/plain`, req.ContentType().string())
+	}
 }
 
 func TestRequestFromRawOnlyConsumesContentLength(t *testing.T) {

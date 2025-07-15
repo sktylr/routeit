@@ -168,6 +168,15 @@ func TestPostRoot(t *testing.T) {
 	}
 }
 
+func TestPostRootUnsupportedMediaType(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	res := client.PostText("/", "this will not be supported")
+
+	res.AssertStatusCode(t, routeit.StatusUnsupportedMediaType)
+	res.AssertHeaderMatches(t, "Accept", "application/json")
+}
+
 func TestGetMulti(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 	wantBody := Example{

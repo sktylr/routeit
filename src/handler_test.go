@@ -32,6 +32,55 @@ func TestPost(t *testing.T) {
 	}
 }
 
+func TestMultiMethodOnlyGet(t *testing.T) {
+	h := MultiMethod(MultiMethodHandler{
+		Get: func(rw *ResponseWriter, req *Request) error { return nil },
+	})
+
+	if h.get == nil {
+		t.Error("did not expect handler.get() to be nil")
+	}
+	if h.head == nil {
+		t.Error("did not expect handler.head() to be nil")
+	}
+	if h.post != nil {
+		t.Error("expected handler.post() to be nil")
+	}
+}
+
+func TestMultiMethodOnlyPost(t *testing.T) {
+	h := MultiMethod(MultiMethodHandler{
+		Post: func(rw *ResponseWriter, req *Request) error { return nil },
+	})
+
+	if h.post == nil {
+		t.Error("did not expect handler.post() to be nil")
+	}
+	if h.get != nil {
+		t.Error("expected handler.get() to be nil")
+	}
+	if h.head != nil {
+		t.Error("expected handler.head() to be nil")
+	}
+}
+
+func TestMultiMethod(t *testing.T) {
+	h := MultiMethod(MultiMethodHandler{
+		Get:  func(rw *ResponseWriter, req *Request) error { return nil },
+		Post: func(rw *ResponseWriter, req *Request) error { return nil },
+	})
+
+	if h.get == nil {
+		t.Error("did not expect handler.get() to be nil")
+	}
+	if h.head == nil {
+		t.Error("did not expect handler.head() to be nil")
+	}
+	if h.post == nil {
+		t.Error("did not expect handler.post() to be nil")
+	}
+}
+
 func TestHandleGet(t *testing.T) {
 	h := Get(func(rw *ResponseWriter, req *Request) error {
 		rw.Text("From inside the handler")

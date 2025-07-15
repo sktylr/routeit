@@ -167,3 +167,44 @@ func TestPostRoot(t *testing.T) {
 		t.Errorf(`Json response = %#v, wanted %#v`, actual, wantBody)
 	}
 }
+
+func TestGetMulti(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+	wantBody := Example{
+		Name: "From GET",
+		Nested: Nested{
+			Age:    100,
+			Height: 2.0,
+		},
+	}
+
+	res := client.Get("/multi")
+
+	res.AssertStatusCode(t, routeit.StatusOK)
+	var body Example
+	res.BodyToJson(t, &body)
+	if !reflect.DeepEqual(body, wantBody) {
+		t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
+	}
+}
+
+func TestPostMulti(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+	inBody := Nested{
+		Age:    25,
+		Height: 1.95,
+	}
+	wantBody := Example{
+		Name:   "From POST",
+		Nested: inBody,
+	}
+
+	res := client.PostJson("/multi", inBody)
+
+	res.AssertStatusCode(t, routeit.StatusOK)
+	var body Example
+	res.BodyToJson(t, &body)
+	if !reflect.DeepEqual(body, wantBody) {
+		t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
+	}
+}

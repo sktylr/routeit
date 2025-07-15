@@ -62,8 +62,8 @@ func (tc TestClient) PostJson(path string, body any, h ...string) *TestResponse 
 		panic(err)
 	}
 	headers := tc.constructHeaders(h...)
-	headers.set("Content-Type", CTApplicationJson.string())
-	headers.set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
+	headers.Set("Content-Type", CTApplicationJson.string())
+	headers.Set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
 	req := testRequest{
 		path:    path,
 		method:  POST,
@@ -79,8 +79,8 @@ func (tc TestClient) PostJson(path string, body any, h ...string) *TestResponse 
 func (tc TestClient) PostText(path string, text string, h ...string) *TestResponse {
 	raw := []byte(text)
 	headers := tc.constructHeaders(h...)
-	headers.set("Content-Type", CTTextPlain.string())
-	headers.set("Content-Length", fmt.Sprintf("%d", len(raw)))
+	headers.Set("Content-Type", CTTextPlain.string())
+	headers.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
 	req := testRequest{
 		path:    path,
 		method:  POST,
@@ -96,10 +96,10 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	}
 
 	if _, found := req.headers["Host"]; !found {
-		req.headers.set("Host", "routeit")
+		req.headers.Set("Host", "routeit")
 	}
 	if _, found := req.headers["User-Agent"]; !found {
-		req.headers.set("User-Agent", "test-client")
+		req.headers.Set("User-Agent", "test-client")
 	}
 
 	var rb bytes.Buffer
@@ -118,7 +118,7 @@ func (tc TestClient) constructHeaders(h ...string) headers {
 	total := len(h)
 	headers := headers{}
 	for i < total-1 {
-		headers.set(h[i], h[i+1])
+		headers.Set(h[i], h[i+1])
 		i++
 	}
 	return headers

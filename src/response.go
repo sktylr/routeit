@@ -76,7 +76,7 @@ func (rw *ResponseWriter) write() []byte {
 	// TODO: we should probs set the content length header here to avoid it being overwritten
 	now := time.Now().UTC()
 	rw.hdrs["Date"] = now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
-	rw.hdrs.writeTo(&sb)
+	rw.hdrs.WriteTo(&sb)
 
 	// CRLF between headers and the response
 	sb.WriteString("\r\n")

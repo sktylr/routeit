@@ -94,37 +94,39 @@ func TestNewResponseHeaders(t *testing.T) {
 	verifyPresentAndMatches(t, h, "Server", "routeit")
 }
 
-func TestSetOverwrites(t *testing.T) {
-	keys := []string{
-		"Content-Length",
-		"content-length",
-		"content-Length",
-		"cOntent-LEngTh",
-		"Content-length",
-	}
+func TestHeadersSet(t *testing.T) {
+	t.Run("inserts cases insensitive", func(t *testing.T) {
+		keys := []string{
+			"Content-Length",
+			"content-length",
+			"content-Length",
+			"cOntent-LEngTh",
+			"Content-length",
+		}
 
-	for _, k := range keys {
-		t.Run(k, func(t *testing.T) {
-			h := headers{}
-			h.Set("Content-Length", "15")
+		for _, k := range keys {
+			t.Run(k, func(t *testing.T) {
+				h := headers{}
+				h.Set("Content-Length", "15")
 
-			h.Set(k, "16")
+				h.Set(k, "16")
 
-			verifyPresentAndMatches(t, h, "Content-Length", "16")
-			if len(h) != 1 {
-				t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
-			}
-		})
-	}
-}
+				verifyPresentAndMatches(t, h, "Content-Length", "16")
+				if len(h) != 1 {
+					t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
+				}
+			})
+		}
+	})
 
-func TestSetSanitises(t *testing.T) {
-	h := headers{}
+	t.Run("sanitises", func(t *testing.T) {
+		h := headers{}
 
-	h.Set("Content\r\n-Length", "16\n\n\t")
-	want := "16\t"
+		h.Set("Content\r\n-Length", "16\n\n\t")
+		want := "16\t"
 
-	verifyPresentAndMatches(t, h, "Content-Length", want)
+		verifyPresentAndMatches(t, h, "Content-Length", want)
+	})
 }
 
 func TestHeadersFromRaw(t *testing.T) {
@@ -198,25 +200,27 @@ func TestContentLength(t *testing.T) {
 	}
 }
 
-func TestHeadersLookupCaseInsensitive(t *testing.T) {
-	base := newResponseHeaders()
-	base.Set("Key", "val")
-	tests := []string{
-		"key",
-		"Key",
-		"kEy",
-		"keY",
-		"KEy",
-		"KeY",
-		"kEY",
-		"KEY",
-	}
+func TestHeadersGet(t *testing.T) {
+	t.Run("case insensitive", func(t *testing.T) {
+		base := newResponseHeaders()
+		base.Set("Key", "val")
+		tests := []string{
+			"key",
+			"Key",
+			"kEy",
+			"keY",
+			"KEy",
+			"KeY",
+			"kEY",
+			"KEY",
+		}
 
-	for _, tc := range tests {
-		t.Run(tc, func(t *testing.T) {
-			verifyPresentAndMatches(t, base, tc, "val")
-		})
-	}
+		for _, tc := range tests {
+			t.Run(tc, func(t *testing.T) {
+				verifyPresentAndMatches(t, base, tc, "val")
+			})
+		}
+	})
 }
 
 func verifyPresentAndMatches(t *testing.T, h headers, key string, want string) {

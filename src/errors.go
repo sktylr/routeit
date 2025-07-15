@@ -21,6 +21,10 @@ func BadRequestError() *HttpError {
 	return &HttpError{status: StatusBadRequest, headers: headers{}}
 }
 
+func UnauthorizedError() *HttpError {
+	return &HttpError{status: StatusUnauthorized, headers: headers{}}
+}
+
 func ForbiddenError() *HttpError {
 	return &HttpError{status: StatusForbidden, headers: headers{}}
 }

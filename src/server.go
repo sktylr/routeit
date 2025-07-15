@@ -3,7 +3,9 @@ package routeit
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
+	"os"
 	"time"
 )
 
@@ -43,6 +45,7 @@ type ServerConfig struct {
 type Server struct {
 	conf   ServerConfig
 	router *router
+	log    *slog.Logger
 }
 
 func NewServer(conf ServerConfig) *Server {
@@ -61,7 +64,8 @@ func NewServer(conf ServerConfig) *Server {
 	router := newRouter()
 	router.globalNamespace(conf.Namespace)
 	router.newStaticDir(conf.StaticDir)
-	return &Server{conf: conf, router: router}
+	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
+	return &Server{conf: conf, router: router, log: slog.New(jsonHandler)}
 }
 
 // Register all routes in the provided registry to the router on the server.
@@ -105,27 +109,27 @@ func (s *Server) StartOrPanic() {
 // would come into affect on the live server once the scheduler gave thread B
 // priority.
 func (s *Server) Start() error {
-	fmt.Printf("Starting server on port %d\n", s.conf.Port)
+	s.log.Info("Starting server, binding to port", "port", s.conf.Port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
 	if err != nil {
-		fmt.Printf("Failed to establish connection on port %d\n", s.conf.Port)
+		s.log.Error("Failed to establish connection", "port", s.conf.Port, "err", err)
 		return err
 	}
-	fmt.Print("Server started, ready for requests...\n")
+	s.log.Info("Server started, ready for requests")
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			fmt.Println(err)
+			s.log.Warn("Failed to accept incoming connection", "err", err)
 			continue
 		}
 
 		now := time.Now()
 		if err = conn.SetReadDeadline(now.Add(s.conf.ReadDeadline)); err != nil {
-			fmt.Println(err)
+			s.log.Warn("Failed to set read deadline for incoming connection", "deadline", s.conf.ReadDeadline, "err", err)
 		}
 		if err = conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline)); err != nil {
-			fmt.Println(err)
+			s.log.Warn("Failed to set write deadline for incoming connection", "deadline", s.conf.WriteDeadline, "err", err)
 		}
 
 		go s.handleNewConnection(conn)
@@ -136,28 +140,36 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 	// TODO: need to choose between strings and bytes here!
 	defer func() {
 		conn.Close()
-		fmt.Println("Response dispatched")
 	}()
 
 	buf := make([]byte, s.conf.RequestSize)
 	_, err := conn.Read(buf)
 	if err != nil {
 		// TODO: should handle read timeouts here and return 408 Request Timeout
-		fmt.Println(err)
+		s.log.Warn("Failed to read request from connection", "err", err)
 		return
 	}
 
+	// TODO: remove
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
 	res := s.handleNewRequest(buf)
 	_, err = conn.Write(res.write())
 
 	if err != nil {
-		fmt.Printf("Error while responding to client: %s", err)
+		s.log.Error("Failed to respond to client", "err", err)
 	}
 }
 
 func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
+	req, httpErr := requestFromRaw(raw)
+	if httpErr != nil {
+		return httpErr.toResponse()
+	}
+
+	// This comes after the parsing of the request, since the parsing cannot
+	// panic. By doing this, it means that we have access to the parsed request
+	// when handling application panics.
 	defer func() {
 		// Prevent panics in the application code from crashing the
 		// server entirely. We recover the panic and return a generic
@@ -173,11 +185,6 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 			}
 		}
 	}()
-
-	req, httpErr := requestFromRaw(raw)
-	if httpErr != nil {
-		return httpErr.toResponse()
-	}
 
 	// Default to a 200 OK status code
 	rw = newResponse(StatusOK)

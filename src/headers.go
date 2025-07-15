@@ -6,8 +6,17 @@ import (
 	"strings"
 )
 
-// TODO: need to make this work for case insensitive lookup
-type headers map[string]string
+// RFC-2616 states that headers may have case insensitive keys. This is
+// modelled within routeit by using a map that uses lower case keys. To
+// preserve the original case of the (first appearance of) the key, the value
+// of the map is a structure containing the value string and the original key
+// string.
+type headerVal struct {
+	val      string
+	original string
+}
+
+type headers map[string]headerVal
 
 func newResponseHeaders() headers {
 	h := headers{}
@@ -43,23 +52,41 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 	return h, nil
 }
 
+// Writes the headers to the given string builder. Sanitises the keys and
+// values before writing.
 func (h headers) WriteTo(sb *strings.Builder) {
-	for k, v := range h {
-		key := strings.Map(sanitiseHeader, strings.TrimSpace(k))
-		val := strings.Map(sanitiseHeader, v)
+	for _, v := range h {
+		key := strings.Map(sanitiseHeader, strings.TrimSpace(v.original))
+		val := strings.Map(sanitiseHeader, v.val)
 		fmt.Fprintf(sb, "%s: %s\r\n", key, val)
 	}
 }
 
+// Sets a key-value pair in the headers. This is a case insensitive operation
+// that will create a new entry in the map if needed or update an existing
+// entry if already present.
 func (h headers) Set(key string, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)
-	h[sKey] = sVal
+	sKeyLower := strings.ToLower(sKey)
+	actual, exists := h[sKeyLower]
+	if !exists {
+		h[sKeyLower] = headerVal{
+			val:      sVal,
+			original: sKey,
+		}
+	} else if actual.val != sVal {
+		actual.val = sVal
+		h[sKeyLower] = actual
+	}
 }
 
+// Performs a case insensitive retrieval of the value associated with the given
+// key, indicating a success or failure in the second return value.
 func (h headers) Get(key string) (string, bool) {
-	val, found := h[key]
-	return val, found
+	lower := strings.ToLower(key)
+	val, found := h[lower]
+	return val.val, found
 }
 
 // Extract the content length field from the header map, defaulting to 0 if not

@@ -31,13 +31,13 @@ This also helps me understand how I should design my interfaces, as I get hands 
 | TRACE       | ❌         |                                                                                      |
 | PATCH       | ❌         |                                                                                      |
 
-If the server has a valid route for the request, but the route does not respond to the request method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
+If the server has a valid route for the request, but the route does not respond to the requested method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
 
-| Content Types      | Request supported? | Response supported? |
-| ------------------ | ------------------ | ------------------- |
-| `application/json` | ✅                 | ✅                  |
-| `text/plain`       | ❌                 | ✅                  |
-| ...                | ❌                 | ❌                  |
+| Content Types      | Request supported? | Response supported? | Notes                                                                                                                                                 |
+| ------------------ | ------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `application/json` | ✅                 | ✅                  | Parsing and encoding is handled automatically by `routeit`                                                                                            |
+| `text/plain`       | ❌                 | ✅                  |                                                                                                                                                       |
+| ...                | ❌                 | ✅                  | Any response type can be supported, but the integrator must convert the response body to bytes and use the `ResponseWriter.RawWithContentType` method |
 
 #### Status codes
 

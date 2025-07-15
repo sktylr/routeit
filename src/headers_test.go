@@ -85,13 +85,13 @@ func TestHeadersWriteTo(t *testing.T) {
 	}
 }
 
-func TestNewResponseHeadersDefaultsServer(t *testing.T) {
+func TestNewResponseHeaders(t *testing.T) {
 	h := newResponseHeaders()
 
 	if len(h) != 1 {
 		t.Errorf(`len(h) = %q, want match for %#q`, len(h), 1)
 	}
-	verifyPresentAndMatches(t, h, "newResponseHeaders defaults server", "Server", "routeit")
+	verifyPresentAndMatches(t, h, "Server", "routeit")
 }
 
 func TestSetOverwrites(t *testing.T) {
@@ -110,7 +110,7 @@ func TestSetOverwrites(t *testing.T) {
 
 			h.Set(k, "16")
 
-			verifyPresentAndMatches(t, h, "set overwrites", "Content-Length", "16")
+			verifyPresentAndMatches(t, h, "Content-Length", "16")
 			if len(h) != 1 {
 				t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
 			}
@@ -124,33 +124,44 @@ func TestSetSanitises(t *testing.T) {
 	h.Set("Content\r\n-Length", "16\n\n\t")
 	want := "16\t"
 
-	verifyPresentAndMatches(t, h, "set sanitises", "Content-Length", want)
+	verifyPresentAndMatches(t, h, "Content-Length", want)
 }
 
 func TestHeadersFromRaw(t *testing.T) {
-	raw := [][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")}
-
-	h, err := headersFromRaw(raw)
-
-	if err != nil {
-		t.Errorf("expected error to be nil: %s", err)
+	tests := []struct {
+		name string
+		raw  [][]byte
+		want map[string]string
+	}{
+		{
+			"multi header",
+			[][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")},
+			map[string]string{
+				"Host":         "localhost",
+				"Content-Type": "application/json",
+			},
+		},
+		{
+			"exits after empty lines",
+			[][]byte{[]byte(""), []byte("Host: localhost")},
+			map[string]string{},
+		},
 	}
-	if len(h) != 2 {
-		t.Errorf(`headers from raw len(h) = %d, want match for 2`, len(h))
-	}
-	verifyPresentAndMatches(t, h, "headers from raw", "Host", "localhost")
-	verifyPresentAndMatches(t, h, "headers from raw", "Content-Type", "application/json")
-}
 
-func TestHeadersFromRawExitsAfterEmptyLines(t *testing.T) {
-	raw := [][]byte{[]byte(""), []byte("Host: localhost")}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h, err := headersFromRaw(tc.raw)
 
-	h, err := headersFromRaw(raw)
-	if err != nil {
-		t.Errorf("expected error to be nil: %s", err)
-	}
-	if len(h) != 0 {
-		t.Errorf(`headers from raw empty line len(h) = %d, wanted 0`, len(h))
+			if err != nil {
+				t.Errorf("expected error to be nil: %v", err)
+			}
+			if len(h) != len(tc.want) {
+				t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
+			}
+			for k, v := range tc.want {
+				verifyPresentAndMatches(t, h, k, v)
+			}
+		})
 	}
 }
 
@@ -203,18 +214,18 @@ func TestHeadersLookupCaseInsensitive(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc, func(t *testing.T) {
-			verifyPresentAndMatches(t, base, "case insensitive", tc, "val")
+			verifyPresentAndMatches(t, base, tc, "val")
 		})
 	}
 }
 
-func verifyPresentAndMatches(t *testing.T, h headers, msg string, key string, want string) {
+func verifyPresentAndMatches(t *testing.T, h headers, key string, want string) {
 	t.Helper()
 	got, exists := h.Get(key)
 	if !exists {
-		t.Errorf("%s, wanted %q to be present", msg, key)
+		t.Errorf("wanted %q to be present", key)
 	}
 	if got != want {
-		t.Errorf(`%s h[%q] = %q, want %#q`, msg, key, got, want)
+		t.Errorf(`h[%q] = %q, want %#q`, key, got, want)
 	}
 }

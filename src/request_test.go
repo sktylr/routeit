@@ -257,7 +257,7 @@ func expectUrl(t *testing.T, msg string, got *Request, want string) {
 
 func expectHeader(t *testing.T, msg string, key string, hdrs headers, want string) {
 	t.Helper()
-	got, exists := hdrs[key]
+	got, exists := hdrs.Get(key)
 	if !exists {
 		t.Errorf(`requestFromRaw %s expected header %#q to exist`, msg, key)
 	}

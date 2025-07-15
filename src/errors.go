@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"strings"
 )
 
@@ -46,7 +47,7 @@ func UnsupportedMediaTypeError(accepted ...ContentType) *HttpError {
 			sb.WriteString(", ")
 			sb.WriteString(accept.string())
 		}
-		headers["Accept"] = sb.String()
+		headers.Set("Accept", sb.String())
 	}
 	return &HttpError{status: StatusUnsupportedMediaType, headers: headers}
 }
@@ -97,14 +98,12 @@ func (e *HttpError) Error() string {
 }
 
 func (he *HttpError) header(k string, v string) {
-	he.headers[k] = v
+	he.headers.Set(k, v)
 }
 
 func (e *HttpError) toResponse() *ResponseWriter {
 	rw := newResponse(e.status)
 	rw.Text(e.Error())
-	for k, v := range e.headers {
-		rw.hdrs.Set(k, v)
-	}
+	maps.Copy(rw.hdrs, e.headers)
 	return rw
 }

@@ -98,7 +98,7 @@ func TestHandleGet(t *testing.T) {
 	if string(rw.bdy) != wantMsg {
 		t.Errorf(`body = %#q, wanted %#q`, string(rw.bdy), wantMsg)
 	}
-	cType, found := rw.hdrs["Content-Type"]
+	cType, found := rw.hdrs.Get("Content-Type")
 	if !found {
 		t.Error("expected Content-Type header to be present")
 	}
@@ -128,7 +128,7 @@ func TestHandleHead(t *testing.T) {
 	if cLen != wantLen {
 		t.Errorf("content length = %d, wanted %d", cLen, wantLen)
 	}
-	cType, found := rw.hdrs["Content-Type"]
+	cType, found := rw.hdrs.Get("Content-Type")
 	if !found {
 		t.Error("expected Content-Type header to be present")
 	}
@@ -154,7 +154,7 @@ func TestHandlePost(t *testing.T) {
 	if string(rw.bdy) != wantMsg {
 		t.Errorf(`body = %#q, wanted %#q`, string(rw.bdy), wantMsg)
 	}
-	cType, found := rw.hdrs["Content-Type"]
+	cType, found := rw.hdrs.Get("Content-Type")
 	if !found {
 		t.Error("expected Content-Type header to be present")
 	}
@@ -183,7 +183,7 @@ func TestHandleUnsupportedMethod(t *testing.T) {
 	if hErr.status != StatusMethodNotAllowed {
 		t.Errorf(`status = %v, wanted "405: Method Not Allowed"`, hErr.status)
 	}
-	allow, found := hErr.headers["Allow"]
+	allow, found := hErr.headers.Get("Allow")
 	if !found {
 		t.Error(`expected "Allow" header to be present, was not found`)
 	}

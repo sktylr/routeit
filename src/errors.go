@@ -33,6 +33,20 @@ func MethodNotAllowedError() *HttpError {
 	return &HttpError{status: StatusMethodNotAllowed, headers: headers{}}
 }
 
+func UnsupportedMediaTypeError(accepted ...ContentType) *HttpError {
+	headers := headers{}
+	if len(accepted) != 0 {
+		var sb strings.Builder
+		sb.WriteString(accepted[0].string())
+		for _, accept := range accepted[1:] {
+			sb.WriteString(", ")
+			sb.WriteString(accept.string())
+		}
+		headers["Accept"] = sb.String()
+	}
+	return &HttpError{status: StatusUnsupportedMediaType, headers: headers}
+}
+
 /*
  * 5xx Errors
  */

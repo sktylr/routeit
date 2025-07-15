@@ -53,7 +53,7 @@ func (tc TestClient) PostJson(path string, body any) *TestResponse {
 		panic(err)
 	}
 	headers := headers{
-		"Content-Type":   "application/json",
+		"Content-Type":   CTApplicationJson.string(),
 		"Content-Length": fmt.Sprintf("%d", len(bodyJson)),
 	}
 	req := testRequest{
@@ -61,6 +61,21 @@ func (tc TestClient) PostJson(path string, body any) *TestResponse {
 		method:  POST,
 		headers: headers,
 		body:    bodyJson,
+	}
+	return tc.makeRequest(req)
+}
+
+func (tc TestClient) PostText(path string, text string) *TestResponse {
+	raw := []byte(text)
+	headers := headers{
+		"Content-Type":   CTTextPlain.string(),
+		"Content-Length": fmt.Sprintf("%d", len(raw)),
+	}
+	req := testRequest{
+		path:    path,
+		method:  POST,
+		headers: headers,
+		body:    raw,
 	}
 	return tc.makeRequest(req)
 }

@@ -169,10 +169,22 @@ func (req *Request) QueryParam(key string) (string, bool) {
 	return val, found
 }
 
-// TODO: improve this in the future to provide an additional method that confirms the content type of the request and makes sure it is application/json
 // TODO: should look into prohibiting (via a panic or error) this method for GET or HEAD requests, since they should not contain a req body and if they do the server shouldn't read it
-// Parses the Json response body into the destination
+// Parses the Json request body into the destination. Ensures that the
+// Content-Type header is application/json and will return a 415: Unsupported
+// Media Type error if this is not the case. Will panic if the destination is
+// not a pointer.
 func (req *Request) BodyToJson(to any) error {
+	if !req.ContentType().Equals(CTApplicationJson) {
+		return UnsupportedMediaTypeError(CTApplicationJson)
+	}
+	return req.UnsafeBodyToJson(to)
+}
+
+// Parses the Json request body into the destination. Does not check the
+// Content-Type header to confirm that the request body has application/json
+// type body. Will panic if the destination is not a pointer.
+func (req *Request) UnsafeBodyToJson(to any) error {
 	v := reflect.ValueOf(to)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
 		// We panic for now, this may change. This is due to an issue introduced

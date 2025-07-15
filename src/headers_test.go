@@ -6,6 +6,53 @@ import (
 	"testing"
 )
 
+func TestNewResponseHeaders(t *testing.T) {
+	h := newResponseHeaders()
+
+	if len(h) != 1 {
+		t.Errorf(`len(h) = %q, want match for %#q`, len(h), 1)
+	}
+	verifyPresentAndMatches(t, h, "Server", "routeit")
+}
+
+func TestHeadersFromRaw(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  [][]byte
+		want map[string]string
+	}{
+		{
+			"multi header",
+			[][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")},
+			map[string]string{
+				"Host":         "localhost",
+				"Content-Type": "application/json",
+			},
+		},
+		{
+			"exits after empty lines",
+			[][]byte{[]byte(""), []byte("Host: localhost")},
+			map[string]string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h, err := headersFromRaw(tc.raw)
+
+			if err != nil {
+				t.Errorf("expected error to be nil: %v", err)
+			}
+			if len(h) != len(tc.want) {
+				t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
+			}
+			for k, v := range tc.want {
+				verifyPresentAndMatches(t, h, k, v)
+			}
+		})
+	}
+}
+
 func TestHeadersWriteTo(t *testing.T) {
 	tests := []struct {
 		name string
@@ -85,15 +132,6 @@ func TestHeadersWriteTo(t *testing.T) {
 	}
 }
 
-func TestNewResponseHeaders(t *testing.T) {
-	h := newResponseHeaders()
-
-	if len(h) != 1 {
-		t.Errorf(`len(h) = %q, want match for %#q`, len(h), 1)
-	}
-	verifyPresentAndMatches(t, h, "Server", "routeit")
-}
-
 func TestHeadersSet(t *testing.T) {
 	t.Run("inserts cases insensitive", func(t *testing.T) {
 		keys := []string{
@@ -129,42 +167,27 @@ func TestHeadersSet(t *testing.T) {
 	})
 }
 
-func TestHeadersFromRaw(t *testing.T) {
-	tests := []struct {
-		name string
-		raw  [][]byte
-		want map[string]string
-	}{
-		{
-			"multi header",
-			[][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")},
-			map[string]string{
-				"Host":         "localhost",
-				"Content-Type": "application/json",
-			},
-		},
-		{
-			"exits after empty lines",
-			[][]byte{[]byte(""), []byte("Host: localhost")},
-			map[string]string{},
-		},
-	}
+func TestHeadersGet(t *testing.T) {
+	t.Run("case insensitive", func(t *testing.T) {
+		base := newResponseHeaders()
+		base.Set("Key", "val")
+		tests := []string{
+			"key",
+			"Key",
+			"kEy",
+			"keY",
+			"KEy",
+			"KeY",
+			"kEY",
+			"KEY",
+		}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			h, err := headersFromRaw(tc.raw)
-
-			if err != nil {
-				t.Errorf("expected error to be nil: %v", err)
-			}
-			if len(h) != len(tc.want) {
-				t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
-			}
-			for k, v := range tc.want {
-				verifyPresentAndMatches(t, h, k, v)
-			}
-		})
-	}
+		for _, tc := range tests {
+			t.Run(tc, func(t *testing.T) {
+				verifyPresentAndMatches(t, base, tc, "val")
+			})
+		}
+	})
 }
 
 func TestContentLength(t *testing.T) {
@@ -198,29 +221,6 @@ func TestContentLength(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestHeadersGet(t *testing.T) {
-	t.Run("case insensitive", func(t *testing.T) {
-		base := newResponseHeaders()
-		base.Set("Key", "val")
-		tests := []string{
-			"key",
-			"Key",
-			"kEy",
-			"keY",
-			"KEy",
-			"KeY",
-			"kEY",
-			"KEY",
-		}
-
-		for _, tc := range tests {
-			t.Run(tc, func(t *testing.T) {
-				verifyPresentAndMatches(t, base, tc, "val")
-			})
-		}
-	})
 }
 
 func verifyPresentAndMatches(t *testing.T, h headers, key string, want string) {

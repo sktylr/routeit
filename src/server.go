@@ -43,9 +43,10 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	conf   ServerConfig
-	router *router
-	log    *slog.Logger
+	conf       ServerConfig
+	router     *router
+	log        *slog.Logger
+	middleware middlewareRegistry
 }
 
 func NewServer(conf ServerConfig) *Server {
@@ -65,7 +66,7 @@ func NewServer(conf ServerConfig) *Server {
 	router.globalNamespace(conf.Namespace)
 	router.newStaticDir(conf.StaticDir)
 	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
-	return &Server{conf: conf, router: router, log: slog.New(jsonHandler)}
+	return &Server{conf: conf, router: router, log: slog.New(jsonHandler), middleware: middlewareRegistry{}}
 }
 
 // Register all routes in the provided registry to the router on the server.
@@ -92,6 +93,13 @@ func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 // The route will be registered under /foo/bar/baz
 func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
 	s.router.registerRoutesUnderNamespace(namespace, rreg)
+}
+
+// Registers middleware to the server. The order of registration matters, where
+// the first middleware registered will be the first middleware called in the
+// chain, the second will be the second and so on.
+func (s *Server) RegisterMiddleware(ms ...Middleware) {
+	s.middleware = append(s.middleware, ms...)
 }
 
 // Attempts to start the server, panicking if that fails
@@ -188,14 +196,20 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 
 	// Default to a 200 OK status code
 	rw = newResponse(StatusOK)
-	handler, found := s.router.route(req)
-	if !found {
-		return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Url())).toResponse()
+	var err error
+	if len(s.middleware) > 0 {
+		chain := newChain(&s.middleware)
+		err = chain.Proceed(rw, req)
 	}
-	err := handler.handle(rw, req)
 
 	if err == nil {
-		return rw
+		handler, found := s.router.route(req)
+		if !found {
+			return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Url())).toResponse()
+		}
+		if err = handler.handle(rw, req); err == nil {
+			return rw
+		}
 	}
 
 	if errors.As(err, &httpErr) {

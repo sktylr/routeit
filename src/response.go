@@ -27,7 +27,7 @@ func (rw *ResponseWriter) Json(v any) error {
 	if err != nil {
 		return err
 	}
-	rw.RawWithContentType(b, "application/json")
+	rw.RawWithContentType(b, CTApplicationJson)
 	return nil
 }
 
@@ -35,7 +35,7 @@ func (rw *ResponseWriter) Json(v any) error {
 // Content-Length and Content-Type headers. This is a destructive operation,
 // meaning repeated calls to Text(...) only preserve the last invocation.
 func (rw *ResponseWriter) Text(text string) {
-	rw.RawWithContentType([]byte(text), "text/plain")
+	rw.RawWithContentType([]byte(text), CTTextPlain)
 }
 
 // Shorthand for the Text function using a format string.
@@ -50,15 +50,14 @@ func (rw *ResponseWriter) Textf(format string, a ...any) {
 // mimetype of the body is inferred from its content.
 func (rw *ResponseWriter) Raw(raw []byte) {
 	cType := http.DetectContentType(raw)
-	rw.RawWithContentType(raw, cType)
+	rw.RawWithContentType(raw, parseContentType(cType))
 }
 
 // Destructively sets the body of the response and updates headers accordingly
-func (rw *ResponseWriter) RawWithContentType(raw []byte, contentType string) {
+func (rw *ResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
 	rw.bdy = raw
 	rw.hdrs["Content-Length"] = fmt.Sprintf("%d", len(raw))
-	// TODO: should define an enum type thing for this!
-	rw.hdrs["Content-Type"] = contentType
+	rw.hdrs["Content-Type"] = ct.string()
 }
 
 // Sets the status of the response. Only required when the default status of

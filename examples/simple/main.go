@@ -80,8 +80,41 @@ func GetServer() *routeit.Server {
 				},
 			}
 
-			rw.Json(res)
-			return nil
+			return rw.Json(res)
+		}),
+		"/multi": routeit.MultiMethod(routeit.MultiMethodHandler{
+			// The MultiMethod handler allows multiple HTTP method handlers to
+			// be registered to a single route. An example would be /api/orders
+			// which would respond to a GET request by listing all orders, but
+			// would also respond to a POST request to create a new order. The
+			// integrator does not have to provide implementations for all
+			// methods and any others will by default return a 405: Method Not
+			// Supported if the requested method does not have a corresponding
+			// handler.
+			Get: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+				body := Example{
+					Name: "From GET",
+					Nested: Nested{
+						Age:    100,
+						Height: 2.0,
+					},
+				}
+				rw.Json(body)
+				return nil
+			},
+			Post: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+				var in Nested
+				err := req.BodyToJson(&in)
+				if err != nil {
+					return routeit.BadRequestError()
+				}
+
+				res := Example{
+					Name:   "From POST",
+					Nested: in,
+				}
+				return rw.Json(res)
+			},
 		}),
 	})
 	return srv

@@ -1,6 +1,6 @@
 ### examples/simple
 
-This example is a simple example that exposes 6 endpoints.
+This example is a simple example that exposes 7 endpoints.
 Due to the different HTTP methods supported by `routeit`, the server will only respond to the correct HTTP method in the request.
 If a route exists but it does not support the method, the server will respond with a `405: Method Not Allowed` response and include the allowed methods in the `Allow` header.
 The application can be run using `go run main.go`.
@@ -42,4 +42,16 @@ $ curl http://localhost:8080/panic
 ```bash
 $ curl http://localhost:8080/ -H "Content-Type: application/json" -d '{"name": "Foo Bar", "nested": {"age": 19, "height": 1.45}}'
 {"from":{"name":"Foo Bar","nested":{"age":19,"height":1.45}},"to":{"name":"Jane Doe","nested":{"age":29,"height":1.62}}}
+```
+
+`/multi`. This endpoint is an example of a URI that responds to multiple HTTP methods.
+In this case, the endpoint supports `GET` and `POST` methods (and `HEAD` implicitly due to supporting `GET`).
+```bash
+# GET request
+$ curl http://localhost:8080/multi
+{"name":"From GET","nested":{"age":100,"height":2}}
+
+# POST request
+$ curl http://localhost:8080/multi -H "Content-Type: application/json" -d '{"age": 23, "height": 1.75}'
+{"name":"From POST","nested":{"age":23,"height":1.75}}
 ```

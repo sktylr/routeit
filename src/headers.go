@@ -10,7 +10,9 @@ import (
 type headers map[string]string
 
 func newResponseHeaders() headers {
-	return headers{"Server": "routeit"}
+	h := headers{}
+	h.Set("Server", "routeit")
+	return h
 }
 
 // Parses a slice of byte slices into the headers type.
@@ -35,7 +37,8 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 			fmt.Printf("Malformed header: [%s]\n", string(line))
 			return h, BadRequestError()
 		}
-		h[kvp[0]] = strings.TrimPrefix(kvp[1], " ")
+		// TODO: might not need the TrimPrefix here?
+		h.Set(kvp[0], strings.TrimPrefix(kvp[1], " "))
 	}
 	return h, nil
 }
@@ -54,10 +57,15 @@ func (h headers) Set(key string, val string) {
 	h[sKey] = sVal
 }
 
+func (h headers) Get(key string) (string, bool) {
+	val, found := h[key]
+	return val, found
+}
+
 // Extract the content length field from the header map, defaulting to 0 if not
 // present
 func (h headers) ContentLength() uint {
-	cLenRaw, found := h["Content-Length"]
+	cLenRaw, found := h.Get("Content-Length")
 	if !found {
 		return 0
 	}

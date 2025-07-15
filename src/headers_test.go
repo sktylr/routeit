@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
+// TODO: can simplify these write to tests!
 func TestHeadersWriteTo(t *testing.T) {
-	h := headers{
-		"Content-Type":   "application/json",
-		"Date":           "Fri, 13 Jun 2025 19:35:42 GMT",
-		"Content-Length": "85",
-	}
-	want := "Content-Type: application/json\r\nDate: Fri, 13 Jun 2025 19:35:42 GMT\r\nContent-Length: 85\r\n"
+	h := headers{}
+	h.Set("Content-Type", "application/json")
+	h.Set("date", "Fri, 13 Jun 2025 19:35:42 GMT")
+	h.Set("Content-length", "85")
+	want := "Content-Type: application/json\r\ndate: Fri, 13 Jun 2025 19:35:42 GMT\r\nContent-length: 85\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.WriteTo")
 }
@@ -25,36 +25,32 @@ func TestHeadersWriteToEmpty(t *testing.T) {
 }
 
 func TestHeadersWriteToClearsNewlines(t *testing.T) {
-	h := headers{
-		"Content-Length": "1\n5\n",
-	}
+	h := headers{}
+	h.Set("Content-Length", "1\n5\n")
 	want := "Content-Length: 15\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.WriteTo clears new lines")
 }
 
 func TestHeadersWriteToClearsInternalCarriageReturn(t *testing.T) {
-	h := headers{
-		"Content-Type": "application/\r\njson",
-	}
+	h := headers{}
+	h.Set("Content-Type", "application/\r\njson")
 	want := "Content-Type: application/json\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.WriteTo clears internal carriage return")
 }
 
 func TestHeadersWriteToDoesNotClearInteriorWhitespace(t *testing.T) {
-	h := headers{
-		"Content-Type": "application/json; charset=utf-8",
-	}
+	h := headers{}
+	h.Set("Content-Type", "application/json; charset=utf-8")
 	want := "Content-Type: application/json; charset=utf-8\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.WriteTo does not clear interior whitespace")
 }
 
 func TestHeadersWriteToAllowsHTab(t *testing.T) {
-	h := headers{
-		"Content-Type": "application/json\tcharset=utf-8",
-	}
+	h := headers{}
+	h.Set("Content-Type", "application/json\tcharset=utf-8")
 	want := "Content-Type: application/json\tcharset=utf-8\r\n"
 
 	verifyWriteToOutput(t, h, want, "h.WriteTo allows tabs")
@@ -70,9 +66,8 @@ func TestNewResponseHeadersDefaultsServer(t *testing.T) {
 }
 
 func TestSetOverwrites(t *testing.T) {
-	h := headers{
-		"Content-Length": "15",
-	}
+	h := headers{}
+	h.Set("Content-Length", "15")
 
 	h.Set("Content-Length", "16")
 
@@ -180,7 +175,7 @@ func verifyWriteToOutput(t *testing.T, h headers, want string, msg string) {
 
 func verifyPresentAndMatches(t *testing.T, h headers, msg string, key string, want string) {
 	t.Helper()
-	got, exists := h[key]
+	got, exists := h.Get(key)
 	if !exists {
 		t.Errorf("%s, wanted %q to be present", msg, key)
 	}

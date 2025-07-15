@@ -74,7 +74,7 @@ func (tr *TestResponse) AssertBodyStartsWithString(t *testing.T, want string) {
 // Assert that a header is present and matches the given string
 func (tr *TestResponse) AssertHeaderMatches(t *testing.T, header string, want string) {
 	t.Helper()
-	val, found := tr.rw.hdrs[header]
+	val, found := tr.rw.hdrs.Get(header)
 	if !found {
 		t.Errorf(`expected %#q header to be present`, header)
 	}

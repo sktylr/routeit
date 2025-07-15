@@ -56,8 +56,8 @@ func (rw *ResponseWriter) Raw(raw []byte) {
 // Destructively sets the body of the response and updates headers accordingly
 func (rw *ResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
 	rw.bdy = raw
-	rw.hdrs["Content-Length"] = fmt.Sprintf("%d", len(raw))
-	rw.hdrs["Content-Type"] = ct.string()
+	rw.hdrs.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
+	rw.hdrs.Set("Content-Type", ct.string())
 }
 
 // Sets the status of the response. Only required when the default status of
@@ -75,7 +75,7 @@ func (rw *ResponseWriter) write() []byte {
 	// Headers
 	// TODO: we should probs set the content length header here to avoid it being overwritten
 	now := time.Now().UTC()
-	rw.hdrs["Date"] = now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
+	rw.hdrs.Set("Date", now.Format("Mon, 02 Jan 2006 15:04:05 GMT"))
 	rw.hdrs.WriteTo(&sb)
 
 	// CRLF between headers and the response

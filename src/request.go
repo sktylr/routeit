@@ -100,7 +100,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 
 	// TODO: in future, we should verify that this is an allowed host
 	// TODO: this is not being parsed properly due to the : in the port
-	_, hasHost := reqHdrs["Host"]
+	_, hasHost := reqHdrs.Get("Host")
 	if !hasHost {
 		// The Host header is required as part of HTTP/1.1
 		return nil, BadRequestError()
@@ -133,8 +133,8 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 
 	ct := ContentType{}
 	// TODO: can probably also reject the request body if it doesn't include a CT
-	ctRaw := reqHdrs["Content-Type"]
-	if ptcl.mthd != GET && ptcl.mthd != HEAD {
+	ctRaw, hasCType := reqHdrs.Get("Content-Type")
+	if hasCType && ptcl.mthd != GET && ptcl.mthd != HEAD {
 		ct = parseContentType(ctRaw)
 	}
 
@@ -159,7 +159,7 @@ func (req *Request) PathParam(param string) (string, bool) {
 
 // Access a header value, if present
 func (req *Request) Header(key string) (string, bool) {
-	val, found := req.headers[key]
+	val, found := req.headers.Get(key)
 	return val, found
 }
 

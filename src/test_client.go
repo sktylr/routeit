@@ -95,10 +95,10 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 		req.path = "/" + req.path
 	}
 
-	if _, found := req.headers["Host"]; !found {
+	if _, found := req.headers.Get("Host"); !found {
 		req.headers.Set("Host", "routeit")
 	}
-	if _, found := req.headers["User-Agent"]; !found {
+	if _, found := req.headers.Get("User-Agent"); !found {
 		req.headers.Set("User-Agent", "test-client")
 	}
 

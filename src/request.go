@@ -99,6 +99,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	}
 
 	// TODO: in future, we should verify that this is an allowed host
+	// TODO: this is not being parsed properly due to the : in the port
 	_, hasHost := reqHdrs["Host"]
 	if !hasHost {
 		// The Host header is required as part of HTTP/1.1

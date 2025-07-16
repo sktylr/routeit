@@ -48,17 +48,17 @@ $ /abs/path/to/godoc -http=:3000
 
 **HTTP Version Support**: Only HTTP/1.1 is supported. My implementation is mostly based off https://httpwg.org/specs/rfc9112.html and [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference) developer specs.
 
-| HTTP Method | Supported? | Notes                                                                                |
-| ----------- | ---------- | ------------------------------------------------------------------------------------ |
-| GET         | ✅         |                                                                                      |
-| HEAD        | ✅         | Cannot be implemented by the integrator, it is baked into the server implementation. |
-| POST        | ✅         |                                                                                      |
-| PUT         | ✅         |                                                                                      |
-| DELETE      | ❌         |                                                                                      |
-| CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                             |
-| OPTIONS     | ❌         |                                                                                      |
-| TRACE       | ❌         |                                                                                      |
-| PATCH       | ❌         |                                                                                      |
+| HTTP Method | Supported? | Notes                                                                                                      |
+| ----------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
+| GET         | ✅         |                                                                                                            |
+| HEAD        | ✅         | Cannot be implemented by the integrator, it is baked into the server implementation.                       |
+| POST        | ✅         |                                                                                                            |
+| PUT         | ✅         |                                                                                                            |
+| DELETE      | ❌         |                                                                                                            |
+| CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                                                   |
+| OPTIONS     | ⏳         | Baked into the server implementation. Currently only supports single endpoints, not global server options. |
+| TRACE       | ❌         |                                                                                                            |
+| PATCH       | ❌         |                                                                                                            |
 
 If the server has a valid route for the request, but the route does not respond to the requested method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
 

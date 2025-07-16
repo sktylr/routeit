@@ -53,7 +53,7 @@ $ /abs/path/to/godoc -http=:3000
 | GET         | ✅         |                                                                                      |
 | HEAD        | ✅         | Cannot be implemented by the integrator, it is baked into the server implementation. |
 | POST        | ✅         |                                                                                      |
-| PUT         | ❌         |                                                                                      |
+| PUT         | ✅         |                                                                                      |
 | DELETE      | ❌         |                                                                                      |
 | CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                             |
 | OPTIONS     | ❌         |                                                                                      |

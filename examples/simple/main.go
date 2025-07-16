@@ -118,6 +118,19 @@ func GetServer() *routeit.Server {
 				return rw.Json(res)
 			},
 		}),
+		"/modify": routeit.Put(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			// This simple PUT endpoint just echoes the client's text/plain
+			// request body back in response. It provides an example of how to
+			// safely parse the text/plain request body and respond with
+			// text/plain content.
+			body, err := req.BodyToText()
+			if err != nil {
+				return err
+			}
+
+			rw.Text(body)
+			return nil
+		}),
 	})
 	return srv
 }

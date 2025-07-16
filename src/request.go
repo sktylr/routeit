@@ -10,15 +10,17 @@ import (
 )
 
 var (
-	GET  = HttpMethod{"GET"}
-	HEAD = HttpMethod{"HEAD"}
-	POST = HttpMethod{"POST"}
+	GET  = HttpMethod{name: "GET"}
+	HEAD = HttpMethod{name: "HEAD"}
+	POST = HttpMethod{name: "POST"}
+	PUT  = HttpMethod{name: "PUT"}
 )
 
 var methodLookup = map[string]HttpMethod{
 	"GET":  GET,
 	"HEAD": HEAD,
 	"POST": POST,
+	"PUT":  PUT,
 }
 
 type Request struct {
@@ -195,6 +197,16 @@ func (req *Request) UnsafeBodyToJson(to any) error {
 		panic(fmt.Sprintf("BodyToJson requires a non-nil pointer destination, got %T", to))
 	}
 	return json.Unmarshal([]byte(req.body), to)
+}
+
+// Parses the text/plain content from the request. This method checks that the
+// Content-Type header is set to text/plain, returning a 415: Unsupported Media
+// Type error if that is not the case.
+func (req *Request) BodyToText() (string, error) {
+	if !req.ContentType().Equals(CTTextPlain) {
+		return "", UnsupportedMediaTypeError(CTTextPlain)
+	}
+	return req.body, nil
 }
 
 // Access the content type of the request body. Does not return a meaningful

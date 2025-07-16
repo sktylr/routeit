@@ -215,3 +215,31 @@ func TestPostMulti(t *testing.T) {
 		t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
 	}
 }
+
+func TestModify(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	t.Run("accepts PUT with text/plain", func(t *testing.T) {
+		res := client.PutText("/modify", "Hello!")
+
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertBodyMatchesString(t, "Hello!")
+	})
+
+	t.Run("rejects PUT with application/json", func(t *testing.T) {
+		in := Nested{
+			Age: 28,
+		}
+		res := client.PutJson("/modify", in)
+
+		res.AssertStatusCode(t, routeit.StatusUnsupportedMediaType)
+		res.AssertHeaderMatches(t, "Accept", "text/plain")
+	})
+
+	t.Run("rejects POST", func(t *testing.T) {
+		res := client.PostText("/modify", "Hello!")
+
+		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
+		res.AssertHeaderMatches(t, "Allow", "PUT")
+	})
+}

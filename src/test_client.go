@@ -56,6 +56,31 @@ func (tc TestClient) Head(path string, h ...string) *TestResponse {
 // after the request body. Keys and values of headers should be individual
 // arguments.
 func (tc TestClient) PostJson(path string, body any, h ...string) *TestResponse {
+	return tc.xJson(path, body, POST, h...)
+}
+
+// Makes a POST request against the specified path, using a text request body.
+// Can include an arbitrary number of headers, specified after the request body.
+// Keys and values of headers should be individual arguments.
+func (tc TestClient) PostText(path string, text string, h ...string) *TestResponse {
+	return tc.xText(path, text, POST, h...)
+}
+
+// Makes a PUT request against the specified path, using a Json request body.
+// Will panic if the Json marshalling fails. Can include an arbitrary number of
+// headers, specified as key, value pairs after the request body.
+func (tc TestClient) PutJson(path string, body any, h ...string) *TestResponse {
+	return tc.xJson(path, body, PUT, h...)
+}
+
+// Makes a PUT request against the specified path, using a text request body.
+// Allows for inclusion of an arbitrary number of headers, specified in key,
+// value format after the body.
+func (tc TestClient) PutText(path string, text string, h ...string) *TestResponse {
+	return tc.xText(path, text, PUT, h...)
+}
+
+func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string) *TestResponse {
 	bodyJson, err := json.Marshal(body)
 	if err != nil {
 		// We panic here since this is inside a test and expected to be correct
@@ -66,24 +91,21 @@ func (tc TestClient) PostJson(path string, body any, h ...string) *TestResponse 
 	headers.Set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
 	req := testRequest{
 		path:    path,
-		method:  POST,
+		method:  method,
 		headers: headers,
 		body:    bodyJson,
 	}
 	return tc.makeRequest(req)
 }
 
-// Makes a POST request against the specified path, using a text request body.
-// Can include an arbitrary number of headers, specific after the request body.
-// Keys and values of headers should be individual arguments.
-func (tc TestClient) PostText(path string, text string, h ...string) *TestResponse {
+func (tc TestClient) xText(path string, text string, method HttpMethod, h ...string) *TestResponse {
 	raw := []byte(text)
 	headers := tc.constructHeaders(h...)
 	headers.Set("Content-Type", CTTextPlain.string())
 	headers.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
 	req := testRequest{
 		path:    path,
-		method:  POST,
+		method:  method,
 		headers: headers,
 		body:    raw,
 	}

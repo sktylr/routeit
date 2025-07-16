@@ -66,6 +66,16 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 	rw.s = s
 }
 
+// Sets a header with the corresponding value. This is destructive, meaning
+// repeated calls using the same key will preserve the last key. Header key and
+// values will be sanitised per HTTP spec before being added to the server's
+// response.
+func (rw *ResponseWriter) Header(key string, val string) {
+	// TODO: errors should use this!
+	// TODO: probably want to define some allow list (e.g. to avoid overwriting Content-Length etc.)
+	rw.hdrs.Set(key, val)
+}
+
 func (rw *ResponseWriter) write() []byte {
 	var sb strings.Builder
 

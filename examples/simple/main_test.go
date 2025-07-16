@@ -133,7 +133,7 @@ func TestGetRootMethodNotAllowed(t *testing.T) {
 	res := client.Get("/")
 
 	res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-	res.AssertHeaderMatches(t, "Allow", "POST")
+	res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
 }
 
 func TestPostRoot(t *testing.T) {
@@ -240,6 +240,6 @@ func TestModify(t *testing.T) {
 		res := client.PostText("/modify", "Hello!")
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-		res.AssertHeaderMatches(t, "Allow", "PUT")
+		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS")
 	})
 }

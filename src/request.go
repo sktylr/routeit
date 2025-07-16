@@ -10,17 +10,19 @@ import (
 )
 
 var (
-	GET  = HttpMethod{name: "GET"}
-	HEAD = HttpMethod{name: "HEAD"}
-	POST = HttpMethod{name: "POST"}
-	PUT  = HttpMethod{name: "PUT"}
+	GET     = HttpMethod{name: "GET"}
+	HEAD    = HttpMethod{name: "HEAD"}
+	POST    = HttpMethod{name: "POST"}
+	PUT     = HttpMethod{name: "PUT"}
+	OPTIONS = HttpMethod{name: "OPTIONS"}
 )
 
 var methodLookup = map[string]HttpMethod{
-	"GET":  GET,
-	"HEAD": HEAD,
-	"POST": POST,
-	"PUT":  PUT,
+	"GET":     GET,
+	"HEAD":    HEAD,
+	"POST":    POST,
+	"PUT":     PUT,
+	"OPTIONS": OPTIONS,
 }
 
 type Request struct {

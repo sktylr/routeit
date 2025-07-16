@@ -19,6 +19,9 @@ func TestGet(t *testing.T) {
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
 	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
+	}
 }
 
 func TestPost(t *testing.T) {
@@ -35,6 +38,9 @@ func TestPost(t *testing.T) {
 	}
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
+	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
 	}
 }
 
@@ -53,6 +59,9 @@ func TestPut(t *testing.T) {
 	if h.post != nil {
 		t.Error("expected handler.post() to be nil")
 	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
+	}
 }
 
 func TestMultiMethodOnlyGet(t *testing.T) {
@@ -68,6 +77,12 @@ func TestMultiMethodOnlyGet(t *testing.T) {
 	}
 	if h.post != nil {
 		t.Error("expected handler.post() to be nil")
+	}
+	if h.put != nil {
+		t.Error("expected handler.put() to be nil")
+	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
 	}
 }
 
@@ -85,6 +100,12 @@ func TestMultiMethodOnlyPost(t *testing.T) {
 	if h.head != nil {
 		t.Error("expected handler.head() to be nil")
 	}
+	if h.put != nil {
+		t.Error("expected handler.put() to be nil")
+	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
+	}
 }
 
 func TestMultiMethod(t *testing.T) {
@@ -101,6 +122,12 @@ func TestMultiMethod(t *testing.T) {
 	}
 	if h.post == nil {
 		t.Error("did not expect handler.post() to be nil")
+	}
+	if h.put != nil {
+		t.Error("expected handler.put() to be nil")
+	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
 	}
 }
 
@@ -186,6 +213,30 @@ func TestHandlePost(t *testing.T) {
 	}
 }
 
+func TestHandleOptions(t *testing.T) {
+	h := Post(func(rw *ResponseWriter, req *Request) error {
+		return nil
+	})
+	req := requestWithUrlAndMethod("/foo", OPTIONS)
+	rw := newResponse(StatusNoContent)
+
+	err := h.handle(rw, req)
+
+	if err != nil {
+		t.Errorf("did not want error to be present, was %#q", err.Error())
+	}
+	if len(rw.bdy) != 0 {
+		t.Errorf(`body = %#q, wanted ""`, string(rw.bdy))
+	}
+	allow, found := rw.hdrs.Get("Allow")
+	if !found {
+		t.Error("expected Allow header to be present")
+	}
+	if allow != "POST, OPTIONS" {
+		t.Errorf(`Allow = %#q, wanted "POST, OPTIONS"`, allow)
+	}
+}
+
 func TestHandleUnsupportedMethod(t *testing.T) {
 	h := Get(func(rw *ResponseWriter, req *Request) error {
 		rw.Text("From inside the handler")
@@ -210,7 +261,7 @@ func TestHandleUnsupportedMethod(t *testing.T) {
 	if !found {
 		t.Error(`expected "Allow" header to be present, was not found`)
 	}
-	if allow != "GET, HEAD" {
+	if allow != "GET, HEAD, OPTIONS" {
 		t.Errorf(`headers["Allow"] = %#q, wanted "GET, HEAD"`, allow)
 	}
 }

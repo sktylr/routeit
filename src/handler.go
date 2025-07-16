@@ -12,10 +12,12 @@ type HandlerFunc func(rw *ResponseWriter, req *Request) error
 // TODO: could look into consolidating Handler and MultiMethodHandler, maybe only exposing the public methods that should be settable?
 
 type Handler struct {
-	get  HandlerFunc
-	head HandlerFunc
-	post HandlerFunc
-	put  HandlerFunc
+	get     HandlerFunc
+	head    HandlerFunc
+	post    HandlerFunc
+	put     HandlerFunc
+	options HandlerFunc
+	allowed []HttpMethod
 }
 
 type MultiMethodHandler struct {
@@ -64,6 +66,35 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 			return err
 		}
 	}
+
+	allow := make([]HttpMethod, 0, 6)
+	if h.get != nil {
+		allow = append(allow, GET)
+	}
+	if h.head != nil {
+		allow = append(allow, HEAD)
+	}
+	if h.post != nil {
+		allow = append(allow, POST)
+	}
+	if h.put != nil {
+		allow = append(allow, PUT)
+	}
+	h.allowed = allow
+
+	if len(allow) != 0 {
+		h.allowed = append(h.allowed, OPTIONS)
+		h.options = func(rw *ResponseWriter, req *Request) error {
+			// TODO:
+			allowS := make([]string, 0, len(h.allowed))
+			for _, allow := range h.allowed {
+				allowS = append(allowS, allow.name)
+			}
+			rw.Status(StatusNoContent)
+			rw.Header("Allow", strings.Join(allowS, ", "))
+			return nil
+		}
+	}
 	return h
 }
 
@@ -80,23 +111,11 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	if req.Method() == PUT && h.put != nil {
 		return h.put(rw, req)
 	}
+	if req.Method() == OPTIONS && h.options != nil {
+		return h.options(rw, req)
+	}
 
-	err := MethodNotAllowedError()
-	allow := make([]string, 0, 6)
-	if h.get != nil {
-		allow = append(allow, GET.name)
-	}
-	if h.head != nil {
-		allow = append(allow, HEAD.name)
-	}
-	if h.post != nil {
-		allow = append(allow, POST.name)
-	}
-	if h.put != nil {
-		allow = append(allow, PUT.name)
-	}
-	err.header("Allow", strings.Join(allow, ", "))
-	return err
+	return MethodNotAllowedError(h.allowed...)
 }
 
 // Dynamically loads static assets from disk.

@@ -16,41 +16,85 @@ func TestNewResponseHeaders(t *testing.T) {
 }
 
 func TestHeadersFromRaw(t *testing.T) {
-	tests := []struct {
-		name string
-		raw  [][]byte
-		want map[string]string
-	}{
-		{
-			"multi header",
-			[][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")},
-			map[string]string{
-				"Host":         "localhost",
-				"Content-Type": "application/json",
+	t.Run("valid inputs", func(t *testing.T) {
+		tests := []struct {
+			name string
+			raw  [][]byte
+			want map[string]string
+		}{
+			{
+				"multi header",
+				[][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json")},
+				map[string]string{
+					"Host":         "localhost",
+					"Content-Type": "application/json",
+				},
 			},
-		},
-		{
-			"exits after empty lines",
-			[][]byte{[]byte(""), []byte("Host: localhost")},
-			map[string]string{},
-		},
-	}
+			{
+				"excessive leading and trailing whitespace",
+				[][]byte{[]byte("X-My-Header:    value    ")},
+				map[string]string{"X-My-Header": "value"},
+			},
+			{
+				"exits after empty lines",
+				[][]byte{[]byte(""), []byte("Host: localhost")},
+				map[string]string{},
+			},
+			{
+				`allows multi ":" characters`,
+				[][]byte{[]byte("Host: localhost:433")},
+				map[string]string{"Host": "localhost:433"},
+			},
+		}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			h, err := headersFromRaw(tc.raw)
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				h, err := headersFromRaw(tc.raw)
 
-			if err != nil {
-				t.Errorf("expected error to be nil: %v", err)
-			}
-			if len(h) != len(tc.want) {
-				t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
-			}
-			for k, v := range tc.want {
-				verifyPresentAndMatches(t, h, k, v)
-			}
-		})
-	}
+				if err != nil {
+					t.Errorf("expected error to be nil: %v", err)
+				}
+				if len(h) != len(tc.want) {
+					t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
+				}
+				for k, v := range tc.want {
+					verifyPresentAndMatches(t, h, k, v)
+				}
+			})
+		}
+	})
+
+	t.Run("errors", func(t *testing.T) {
+		tests := []struct {
+			name string
+			raw  [][]byte
+		}{
+			{
+				"does not allow leading whitespace in keys",
+				[][]byte{[]byte(" My-Header: Value")},
+			},
+			{
+				"does not allow trailing whitespace in keys",
+				[][]byte{[]byte("My-Header : Value")},
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				h, err := headersFromRaw(tc.raw)
+
+				if err == nil {
+					t.Fatal("expected error but got nil")
+				}
+				if h != nil {
+					t.Fatal("expected headers to be nil")
+				}
+				if err.Error() != "400: Bad Request" {
+					t.Errorf(`error = %q, wanted "400: Bad Request"`, err.Error())
+				}
+			})
+		}
+	})
 }
 
 func TestHeadersWriteTo(t *testing.T) {

@@ -38,16 +38,14 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 			return h, nil
 		}
 
-		// TODO: also need to ensure exactly 1 :
-		// TODO: improve this properly
-		kvp := strings.Split(string(line), ": ")
-		if len(kvp) != 2 {
-			// TODO: this should use structured logging
-			fmt.Printf("Malformed header: [%s]\n", string(line))
-			return h, BadRequestError()
+		kvp := strings.SplitN(string(line), ":", 2)
+		k, v := kvp[0], kvp[1]
+		if strings.TrimSpace(k) != k {
+			// The key cannot contain any leading nor trailing whitespace per
+			// RFC-9112
+			return nil, BadRequestError()
 		}
-		// TODO: might not need the TrimPrefix here?
-		h.Set(kvp[0], strings.TrimPrefix(kvp[1], " "))
+		h.Set(k, strings.TrimSpace(v))
 	}
 	return h, nil
 }

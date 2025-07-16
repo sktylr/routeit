@@ -83,6 +83,15 @@ func (tr *TestResponse) AssertHeaderMatches(t *testing.T, header string, want st
 	}
 }
 
+// Asserts that a header key is not present in the response
+func (tr *TestResponse) RefuteHeaderPresent(t *testing.T, header string) {
+	t.Helper()
+	val, found := tr.rw.hdrs.Get(header)
+	if found {
+		t.Errorf(`Headers[%#q] = %#q, did not expect to be present`, header, val)
+	}
+}
+
 // Assert that the status code of the response matches
 func (tr *TestResponse) AssertStatusCode(t *testing.T, want HttpStatus) {
 	t.Helper()

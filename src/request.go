@@ -239,6 +239,7 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 }
 
 func parseUri(raw string) (uri, *HttpError) {
+	// TODO: this should allow the `*` URI ONLY when the request method is OPTIONS
 	split := strings.Split(raw, "?")
 
 	endpoint := split[0]

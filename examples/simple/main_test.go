@@ -242,4 +242,12 @@ func TestModify(t *testing.T) {
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS")
 	})
+
+	t.Run("OPTIONS", func(t *testing.T) {
+		res := client.Options("/modify")
+
+		res.AssertStatusCode(t, routeit.StatusNoContent)
+		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS")
+		res.AssertBodyMatchesString(t, "")
+	})
 }

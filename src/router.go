@@ -22,7 +22,9 @@ func newRouter() *router {
 	return &router{routes: newTrie[Handler]()}
 }
 
-func (r *router) registerRoutes(rreg RouteRegistry) {
+// Registers the routes to the router. Uses the keys of the map as the path,
+// and the value as the handler for the given path.
+func (r *router) RegisterRoutes(rreg RouteRegistry) {
 	// To save on depth of the trie, we don't need to use the global namespace
 	// (if set) when registering routes. We must make sure that lookup accounts
 	//  for this namespace however.
@@ -35,7 +37,8 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 	}
 }
 
-func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
+// Registers routes under a namespace (e.g. /api)
+func (r *router) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
 	namespace = r.trimRouteForInsert(namespace)
 	for path, handler := range rreg {
 		if !strings.HasPrefix(path, "/") {
@@ -46,14 +49,14 @@ func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegist
 }
 
 // Registers a global namespace to all routes
-func (r *router) globalNamespace(namespace string) {
+func (r *router) GlobalNamespace(namespace string) {
 	r.namespace = r.trimRouteForInsert(namespace)
 }
 
 // Sets the static directory that files are loaded from. Panics whenever the
 // directory is not a subdirectory of the project root but does not require the
 // directory to exist when setting it.
-func (r *router) newStaticDir(s string) {
+func (r *router) NewStaticDir(s string) {
 	if s == "" {
 		return
 	}
@@ -72,7 +75,7 @@ func (r *router) newStaticDir(s string) {
 // Routes a request to the corresponding handler. A handler may support multiple
 // methods, or may not support the method of the request at all, however the
 // handler found is known to be the correct handler for the given request URI.
-func (r *router) route(req *Request) (*Handler, bool) {
+func (r *router) Route(req *Request) (*Handler, bool) {
 	// TODO: need to improve the string manipulation here - it looks expensive!
 	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Path(), "/"), "/")
 	if !strings.HasPrefix(sanitised, r.namespace) {

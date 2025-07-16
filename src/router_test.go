@@ -14,7 +14,7 @@ func TestRouteEmpty(t *testing.T) {
 
 func TestRouteOneRoute(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(RouteRegistry{
+	router.RegisterRoutes(RouteRegistry{
 		"/want": Get(wantHandler),
 	})
 	req := requestWithUrlAndMethod("/want", GET)
@@ -24,7 +24,7 @@ func TestRouteOneRoute(t *testing.T) {
 
 func TestRouteValidRoute(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
+	router.RegisterRoutes(defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -32,7 +32,7 @@ func TestRouteValidRoute(t *testing.T) {
 
 func TestRouteHandlesRepeatedSlashes(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
+	router.RegisterRoutes(defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/some//route", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -40,8 +40,8 @@ func TestRouteHandlesRepeatedSlashes(t *testing.T) {
 
 func TestRouteWithGlobalNamespaceFound(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
-	router.globalNamespace("/api")
+	router.RegisterRoutes(defaultRouteRegistry())
+	router.GlobalNamespace("/api")
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -49,8 +49,8 @@ func TestRouteWithGlobalNamespaceFound(t *testing.T) {
 
 func TestRouteWithMultiTieredGlobalNamespace(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
-	router.globalNamespace("/api/foo")
+	router.RegisterRoutes(defaultRouteRegistry())
+	router.GlobalNamespace("/api/foo")
 	req := requestWithUrlAndMethod("/api/foo/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -58,8 +58,8 @@ func TestRouteWithMultiTieredGlobalNamespace(t *testing.T) {
 
 func TestRouteWithGlobalNamespaceNotFound(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
-	router.globalNamespace("/api")
+	router.RegisterRoutes(defaultRouteRegistry())
+	router.GlobalNamespace("/api")
 	req := requestWithUrlAndMethod("/want", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -67,7 +67,7 @@ func TestRouteWithGlobalNamespaceNotFound(t *testing.T) {
 
 func TestRouteLocalNamespaceFound(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api", defaultRouteRegistry())
+	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -75,7 +75,7 @@ func TestRouteLocalNamespaceFound(t *testing.T) {
 
 func TestRouteWithMultiTieredLocalNamespace(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api/foo", defaultRouteRegistry())
+	router.RegisterRoutesUnderNamespace("/api/foo", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/api/foo/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -83,7 +83,7 @@ func TestRouteWithMultiTieredLocalNamespace(t *testing.T) {
 
 func TestRouteLocalNamespaceNotFound(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api", defaultRouteRegistry())
+	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/want", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -91,8 +91,8 @@ func TestRouteLocalNamespaceNotFound(t *testing.T) {
 
 func TestRouteGlobalAndLocalNamespaceFound(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api", defaultRouteRegistry())
-	router.globalNamespace("/foo")
+	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
+	router.GlobalNamespace("/foo")
 	req := requestWithUrlAndMethod("/foo/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -100,8 +100,8 @@ func TestRouteGlobalAndLocalNamespaceFound(t *testing.T) {
 
 func TestRouteGlobalAndLocalNamespaceNotFound(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api", defaultRouteRegistry())
-	router.globalNamespace("/foo")
+	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
+	router.GlobalNamespace("/foo")
 
 	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/api/foo/want", GET))
 	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/api/want", GET))
@@ -110,7 +110,7 @@ func TestRouteGlobalAndLocalNamespaceNotFound(t *testing.T) {
 
 func TestRegistrationEnsuresLeadingSlash(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(RouteRegistry{
+	router.RegisterRoutes(RouteRegistry{
 		"some/route":    Get(doNotWantHandler),
 		"another/route": Get(doNotWantHandler),
 		"want":          Get(wantHandler),
@@ -122,7 +122,7 @@ func TestRegistrationEnsuresLeadingSlash(t *testing.T) {
 
 func TestLookupEnsuresLeadingSlash(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
+	router.RegisterRoutes(defaultRouteRegistry())
 	req := requestWithUrlAndMethod("want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -130,7 +130,7 @@ func TestLookupEnsuresLeadingSlash(t *testing.T) {
 
 func TestRegistrationIgnoresTrailingSlash(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(RouteRegistry{
+	router.RegisterRoutes(RouteRegistry{
 		"/some/route/":    Get(doNotWantHandler),
 		"/another/route/": Get(doNotWantHandler),
 		"/want/":          Get(wantHandler),
@@ -142,7 +142,7 @@ func TestRegistrationIgnoresTrailingSlash(t *testing.T) {
 
 func TestLookupIgnoresTrailingSlash(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
+	router.RegisterRoutes(defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/want/", GET)
 
 	verifyRouteFound(t, router, req)
@@ -150,8 +150,8 @@ func TestLookupIgnoresTrailingSlash(t *testing.T) {
 
 func TestGlobalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
-	router.globalNamespace("api")
+	router.RegisterRoutes(defaultRouteRegistry())
+	router.GlobalNamespace("api")
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -159,12 +159,12 @@ func TestGlobalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
 
 func TestGlobalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(RouteRegistry{
+	router.RegisterRoutes(RouteRegistry{
 		"some/route":    Get(doNotWantHandler),
 		"another/route": Get(doNotWantHandler),
 		"want":          Get(wantHandler),
 	})
-	router.globalNamespace("/api")
+	router.GlobalNamespace("/api")
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -172,7 +172,7 @@ func TestGlobalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
 
 func TestLocalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("api", defaultRouteRegistry())
+	router.RegisterRoutesUnderNamespace("api", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -180,7 +180,7 @@ func TestLocalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
 
 func TestLocalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api", RouteRegistry{
+	router.RegisterRoutesUnderNamespace("/api", RouteRegistry{
 		"some/route":    Get(doNotWantHandler),
 		"another/route": Get(doNotWantHandler),
 		"want":          Get(wantHandler),
@@ -192,8 +192,8 @@ func TestLocalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
 
 func TestGlobalNamespaceIgnoresTrailingSlash(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
-	router.globalNamespace("/api/")
+	router.RegisterRoutes(defaultRouteRegistry())
+	router.GlobalNamespace("/api/")
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -201,7 +201,7 @@ func TestGlobalNamespaceIgnoresTrailingSlash(t *testing.T) {
 
 func TestLocalNamespaceIgnoresTrailingSlash(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api/", defaultRouteRegistry())
+	router.RegisterRoutesUnderNamespace("/api/", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -209,8 +209,8 @@ func TestLocalNamespaceIgnoresTrailingSlash(t *testing.T) {
 
 func TestGlobalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 	router := newRouter()
-	router.registerRoutes(defaultRouteRegistry())
-	router.globalNamespace("/api//")
+	router.RegisterRoutes(defaultRouteRegistry())
+	router.GlobalNamespace("/api//")
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -218,7 +218,7 @@ func TestGlobalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 
 func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 	router := newRouter()
-	router.registerRoutesUnderNamespace("/api//", defaultRouteRegistry())
+	router.RegisterRoutesUnderNamespace("/api//", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/api/want", GET)
 
 	verifyRouteFound(t, router, req)
@@ -226,14 +226,14 @@ func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
 
 func TestStaticRoutingFound(t *testing.T) {
 	router := newRouter()
-	router.newStaticDir("static")
+	router.NewStaticDir("static")
 	req := requestWithUrlAndMethod("/static", GET)
 
 	// We don't want to actually load the file from disk in the test, so we
 	// only assert on the presence of the routing. This works for these tests
 	// since we have no other handlers registered, meaning that if we found
 	// this one it must be the static loader.
-	_, found := router.route(req)
+	_, found := router.Route(req)
 	if !found {
 		t.Error("expected to find static router")
 	}
@@ -241,15 +241,15 @@ func TestStaticRoutingFound(t *testing.T) {
 
 func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
 	router := newRouter()
-	router.globalNamespace("/api")
-	router.newStaticDir("static")
+	router.GlobalNamespace("/api")
+	router.NewStaticDir("static")
 	req := requestWithUrlAndMethod("/api/static", GET)
 
 	// We don't want to actually load the file from disk in the test, so we
 	// only assert on the presence of the routing. This works for these tests
 	// since we have no other handlers registered, meaning that if we found
 	// this one it must be the static loader.
-	_, found := router.route(req)
+	_, found := router.Route(req)
 	if !found {
 		t.Error("expected to find static router")
 	}
@@ -257,7 +257,7 @@ func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
 
 func TestStaticRoutingNotFoundBacktracking(t *testing.T) {
 	router := newRouter()
-	router.newStaticDir("static")
+	router.NewStaticDir("static")
 	req := requestWithUrlAndMethod("/static/../main.go", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -265,8 +265,8 @@ func TestStaticRoutingNotFoundBacktracking(t *testing.T) {
 
 func TestStaticRoutingGlobalNamespaceNotFoundBacktracking(t *testing.T) {
 	router := newRouter()
-	router.globalNamespace("/api")
-	router.newStaticDir("static")
+	router.GlobalNamespace("/api")
+	router.NewStaticDir("static")
 	req := requestWithUrlAndMethod("/api/static/../main.go", GET)
 
 	verifyRouteNotFound(t, router, req)
@@ -301,7 +301,7 @@ func TestStaticDirEnforcesSubdirectory(t *testing.T) {
 				}
 			}()
 
-			router.newStaticDir(tc.in)
+			router.NewStaticDir(tc.in)
 		})
 	}
 }
@@ -335,7 +335,7 @@ func TestStaticDirSimplifiesExpressions(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			router := newRouter()
-			router.newStaticDir(tc.in)
+			router.NewStaticDir(tc.in)
 			if router.staticDir != tc.want {
 				t.Errorf(`router.static = %q, wanted %#q`, router.staticDir, tc.want)
 			}
@@ -368,7 +368,7 @@ func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
 
 func verifyRouteFound(t *testing.T, router *router, req *Request) {
 	t.Helper()
-	got, found := router.route(req)
+	got, found := router.Route(req)
 	if !found {
 		t.Error("expected route to be found")
 	}
@@ -379,7 +379,7 @@ func verifyRouteFound(t *testing.T, router *router, req *Request) {
 }
 
 func verifyRouteNotFound(t *testing.T, router *router, req *Request) {
-	_, found := router.route(req)
+	_, found := router.Route(req)
 	if found {
 		t.Errorf("did not expect to find a route for [url=%s, method=%s]", req.Path(), req.Method().name)
 	}

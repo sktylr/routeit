@@ -69,8 +69,8 @@ func NewServer(conf ServerConfig) *Server {
 		conf.WriteDeadline = 10 * time.Second
 	}
 	router := newRouter()
-	router.globalNamespace(conf.Namespace)
-	router.newStaticDir(conf.StaticDir)
+	router.GlobalNamespace(conf.Namespace)
+	router.NewStaticDir(conf.StaticDir)
 	logOpts := slog.HandlerOptions{}
 	if conf.Debug {
 		logOpts.Level = slog.LevelDebug
@@ -86,7 +86,7 @@ func NewServer(conf ServerConfig) *Server {
 // a destructive operation, meaning that if there are multiple calls to
 // RegisterRoutes with overlapping values, the latest value takes precedence.
 func (s *Server) RegisterRoutes(rreg RouteRegistry) {
-	s.router.registerRoutes(rreg)
+	s.router.RegisterRoutes(rreg)
 }
 
 // RegisterRoutesUnderNamespace registers all routes in the registry under a
@@ -107,7 +107,7 @@ func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 //	RegisterRoutesUnderNamespace("/foo/bar", {"/baz": ...})
 //	The route will be registered under /foo/bar/baz
 func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
-	s.router.registerRoutesUnderNamespace(namespace, rreg)
+	s.router.RegisterRoutesUnderNamespace(namespace, rreg)
 }
 
 // Registers middleware to the server. The order of registration matters, where
@@ -229,7 +229,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	}
 
 	if err == nil {
-		handler, found := s.router.route(req)
+		handler, found := s.router.Route(req)
 		if !found {
 			return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path())).toResponse()
 		}

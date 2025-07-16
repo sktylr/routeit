@@ -88,7 +88,9 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 	if r.staticDir != "" && strings.HasPrefix(trimmed, r.staticDir) {
 		if strings.Contains(trimmed, "..") {
 			// We want to prohibit back-tracking, even if it is technically safe
-			// (e.g. /foo/bar/../bar/image.png)
+			// (e.g. /foo/bar/../bar/image.png is safe since it can be simplified
+			// to /foo/bar/image.png but we don't want to allow back-tracking of
+			// any sort)
 			return nil, false
 		}
 		return r.staticLoader, true

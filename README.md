@@ -24,7 +24,7 @@ Documentation for this package can be generated using [`godoc`](https://pkg.go.d
 $ go install golang.org/x/tools/cmd/godoc@latest
 
 # Change to the source directory
-cd src
+$ cd src
 
 # Run the documentation server on port 3000
 $ godoc -http=:3000

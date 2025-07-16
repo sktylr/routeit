@@ -1,29 +1,47 @@
 package routeit
 
-type middlewareRegistry []Middleware
+type middleware struct {
+	mwares []Middleware
+	last   Middleware
+}
 
 // The chain manages the arrangement of middleware and can be used to invoke
 // the next piece of middleware.
 type Chain struct {
-	i   uint
-	reg *middlewareRegistry
+	i uint
+	m *middleware
 }
 
-func newChain(reg *middlewareRegistry) *Chain {
-	return &Chain{i: 0, reg: reg}
+func newMiddleware(last Middleware) *middleware {
+	return &middleware{last: last, mwares: []Middleware{}}
+}
+
+func (m *middleware) NewChain() *Chain {
+	return &Chain{i: 0, m: m}
+}
+
+// Register new middleware handlers to the middleware. The order of insertion
+// matches the execution order when the middleware is invoked.
+func (m *middleware) Register(ms ...Middleware) {
+	m.mwares = append(m.mwares, ms...)
 }
 
 // Passes the request and response to the next piece of middleware in the
 // chain. Should be called whenever the middleware does not wish to block the
 // incoming request.
 func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
-	if c.i >= uint(len(*c.reg)) {
+	length := uint(len(c.m.mwares))
+	if c.i > length {
 		return nil
 	}
 
+	if c.i == length {
+		return c.m.last(c, rw, req)
+	}
+
+	next := c.m.mwares[c.i]
 	c.i++
-	err := (*c.reg)[c.i-1](c, rw, req)
-	return err
+	return next(c, rw, req)
 }
 
 // A middleware function is called for all incoming requests that reach the

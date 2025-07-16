@@ -158,7 +158,7 @@ func TestPostRoot(t *testing.T) {
 
 	res := client.PostJson("/", inBody)
 
-	res.AssertStatusCode(t, routeit.StatusOK)
+	res.AssertStatusCode(t, routeit.StatusCreated)
 	var actual Greeting
 	res.BodyToJson(t, &actual)
 	if !reflect.DeepEqual(actual, wantBody) {
@@ -208,7 +208,7 @@ func TestPostMulti(t *testing.T) {
 
 	res := client.PostJson("/multi", inBody)
 
-	res.AssertStatusCode(t, routeit.StatusOK)
+	res.AssertStatusCode(t, routeit.StatusCreated)
 	var body Example
 	res.BodyToJson(t, &body)
 	if !reflect.DeepEqual(body, wantBody) {

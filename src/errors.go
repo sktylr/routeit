@@ -34,8 +34,14 @@ func NotFoundError() *HttpError {
 	return &HttpError{status: StatusNotFound, headers: headers{}}
 }
 
-func MethodNotAllowedError() *HttpError {
-	return &HttpError{status: StatusMethodNotAllowed, headers: headers{}}
+func MethodNotAllowedError(allowed ...HttpMethod) *HttpError {
+	allow := make([]string, 0, len(allowed))
+	for _, m := range allowed {
+		allow = append(allow, m.name)
+	}
+	headers := headers{}
+	headers.Set("Allow", strings.Join(allow, ", "))
+	return &HttpError{status: StatusMethodNotAllowed, headers: headers}
 }
 
 func UnsupportedMediaTypeError(accepted ...ContentType) *HttpError {

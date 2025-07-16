@@ -27,7 +27,7 @@ func newTrie[T any]() *trie[T] {
 }
 
 // TODO: can probably move this to its own package
-func (t *trie[T]) find(path string) (*T, bool) {
+func (t *trie[T]) Find(path string) (*T, bool) {
 	if t.root == nil {
 		return nil, false
 	}
@@ -50,7 +50,7 @@ func (t *trie[T]) find(path string) (*T, bool) {
 	return current.value, current.value != nil
 }
 
-func (t *trie[T]) insert(path string, value *T) {
+func (t *trie[T]) Insert(path string, value *T) {
 	if t.root == nil {
 		t.root = &node[T]{}
 	}

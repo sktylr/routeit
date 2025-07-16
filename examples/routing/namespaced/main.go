@@ -30,8 +30,8 @@ func main() {
 
 func EchoUrlHandler() routeit.Handler {
 	return routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-		url := req.Url()
-		rw.Text(fmt.Sprintf(`Hello from "%s"`, url))
+		path := req.Path()
+		rw.Text(fmt.Sprintf(`Hello from "%s"`, path))
 		return nil
 	})
 }

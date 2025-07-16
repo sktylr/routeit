@@ -5,7 +5,7 @@ import "testing"
 func TestTrieLookupEmpty(t *testing.T) {
 	trie := newTrie[int]()
 
-	val, found := trie.find("/foo")
+	val, found := trie.Find("/foo")
 	if found {
 		t.Error("did not expect to find element")
 	}
@@ -17,19 +17,19 @@ func TestTrieLookupEmpty(t *testing.T) {
 func TestTrieLookupOneElement(t *testing.T) {
 	val := 13
 	trie := newTrie[int]()
-	trie.insert("/foo", &val)
+	trie.Insert("/foo", &val)
 
 	verifyTrieElementPresent(t, trie, "/foo", val)
 }
 
 func TestTrieLookupPopulatedNotPresent(t *testing.T) {
 	trie := newTrie[int]()
-	trie.insert("/foo", ptr(13))
-	trie.insert("/foo/bar", ptr(42))
-	trie.insert("/foo/baz", ptr(19))
-	trie.insert("/foo/bar/qux", ptr(10))
+	trie.Insert("/foo", ptr(13))
+	trie.Insert("/foo/bar", ptr(42))
+	trie.Insert("/foo/baz", ptr(19))
+	trie.Insert("/foo/bar/qux", ptr(10))
 
-	actual, found := trie.find("/foo/bar/baz")
+	actual, found := trie.Find("/foo/bar/baz")
 	if found {
 		t.Error("did not expect to find element")
 	}
@@ -40,11 +40,11 @@ func TestTrieLookupPopulatedNotPresent(t *testing.T) {
 
 func TestTrieLookupNonLeafPresent(t *testing.T) {
 	trie := newTrie[int]()
-	trie.insert("/foo/bar/baz", ptr(42))
-	trie.insert("/foo/baz", ptr(19))
-	trie.insert("/foo/bar/qux", ptr(10))
+	trie.Insert("/foo/bar/baz", ptr(42))
+	trie.Insert("/foo/baz", ptr(19))
+	trie.Insert("/foo/bar/qux", ptr(10))
 
-	actual, found := trie.find("/foo/bar")
+	actual, found := trie.Find("/foo/bar")
 	if found {
 		t.Error("did not expect to find element")
 	}
@@ -55,7 +55,7 @@ func TestTrieLookupNonLeafPresent(t *testing.T) {
 
 func verifyTrieElementPresent(t *testing.T, trie *trie[int], key string, want int) {
 	t.Helper()
-	actual, found := trie.find(key)
+	actual, found := trie.Find(key)
 	if !found {
 		t.Error("expected to find element")
 	}

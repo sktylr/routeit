@@ -27,24 +27,16 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 	// (if set) when registering routes. We must make sure that lookup accounts
 	//  for this namespace however.
 	for path, handler := range rreg {
-		// TODO: need to improve the string manipulation here - it looks expensive!
 		// When registering routes, we ignore **all* trailing slashes and remove
 		// the leading slash. This is different to lookup, where we only ignore
 		// the **last** trailing slash if present.
-		path = strings.TrimPrefix(path, "/")
-		for strings.HasSuffix(path, "/") {
-			path = strings.TrimSuffix(path, "/")
-		}
+		path = r.trimRouteForInsert(path)
 		r.routes.Insert(path, &handler)
 	}
 }
 
 func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
-	// TODO: need to improve the string manipulation here - it looks expensive!
-	namespace = strings.TrimPrefix(namespace, "/")
-	for strings.HasSuffix(namespace, "/") {
-		namespace = strings.TrimSuffix(namespace, "/")
-	}
+	namespace = r.trimRouteForInsert(namespace)
 	for path, handler := range rreg {
 		if !strings.HasPrefix(path, "/") {
 			path = "/" + path
@@ -55,12 +47,7 @@ func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegist
 
 // Registers a global namespace to all routes
 func (r *router) globalNamespace(namespace string) {
-	// TODO: need to improve the string manipulation here - it looks expensive!
-	namespace = strings.TrimPrefix(namespace, "/")
-	for strings.HasSuffix(namespace, "/") {
-		namespace = strings.TrimSuffix(namespace, "/")
-	}
-	r.namespace = namespace
+	r.namespace = r.trimRouteForInsert(namespace)
 }
 
 // Sets the static directory that files are loaded from. Panics whenever the
@@ -109,4 +96,14 @@ func (r *router) route(req *Request) (*Handler, bool) {
 		return route, true
 	}
 	return nil, false
+}
+
+// Removes a single leading slash and any trailing slashes that a route has.
+// This method should be used to prepare a route for insertion into a Trie.
+func (r *router) trimRouteForInsert(s string) string {
+	s = strings.TrimPrefix(s, "/")
+	for strings.HasSuffix(s, "/") {
+		s = strings.TrimSuffix(s, "/")
+	}
+	return s
 }

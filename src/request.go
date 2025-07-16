@@ -69,6 +69,7 @@ type protocolLine struct {
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
 func requestFromRaw(raw []byte) (*Request, *HttpError) {
+	// TODO: need to add support for all request-target forms (origin-form, absolute-form, authority-form, asterisk-form) that should be accepted by a HTTP only server.
 	sections := bytes.Split(raw, []byte("\r\n"))
 
 	// We are expecting 1 carriage return after the protocol line, 1 carriage

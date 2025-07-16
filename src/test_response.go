@@ -28,11 +28,11 @@ func (tr *TestResponse) BodyToJson(t *testing.T, to any) {
 	}
 }
 
-// Assert that the response body is nil or empty
-func (tr *TestResponse) AssertBodyNilOrEmpty(t *testing.T) {
+// Assert that the response body is empty
+func (tr *TestResponse) AssertBodyEmpty(t *testing.T) {
 	t.Helper()
 	if len(tr.rw.bdy) != 0 {
-		t.Errorf(`expected nil or empty body, got %#q`, tr.rw.bdy)
+		t.Errorf(`expected empty body, got %#q`, tr.rw.bdy)
 	}
 }
 

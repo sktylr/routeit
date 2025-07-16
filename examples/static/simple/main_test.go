@@ -30,7 +30,7 @@ func TestAbout(t *testing.T) {
 		res := client.Head("/static/about.html")
 
 		verifyMeta(t, res)
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }
 
@@ -54,7 +54,7 @@ func TestGopher(t *testing.T) {
 		res := client.Head("/static/gopher.png")
 
 		verifyMeta(t, res)
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }
 
@@ -78,7 +78,7 @@ func TestHello(t *testing.T) {
 		res := client.Head("/static/hello.txt")
 
 		verifyMeta(t, res)
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }
 
@@ -104,7 +104,7 @@ func TestIndex(t *testing.T) {
 		res := client.Head("/static/index.html")
 
 		verifyMeta(t, res)
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }
 
@@ -129,7 +129,7 @@ func TestStyles(t *testing.T) {
 		res := client.Head("/static/styles.css")
 
 		verifyMeta(t, res)
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }
 
@@ -167,7 +167,7 @@ func TestGetNotFound(t *testing.T) {
 			t.Run("HEAD", func(t *testing.T) {
 				res := client.Head(tc.path)
 				verify(t, res)
-				res.AssertBodyMatchesString(t, "")
+				res.AssertBodyEmpty(t)
 			})
 		})
 	}

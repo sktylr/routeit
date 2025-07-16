@@ -6,59 +6,131 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-func TestGetAbout(t *testing.T) {
+// TODO: routeit cType comparison is case sensitive!
+
+func TestAbout(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
+	verifyMeta := func(t *testing.T, res *routeit.TestResponse) {
+		t.Helper()
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
+		res.AssertHeaderMatches(t, "Content-Length", "650")
+	}
 
-	res := client.Get("/static/about.html")
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/static/about.html")
 
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
-	res.AssertBodyStartsWithString(t, "<!DOCTYPE html>")
-	res.AssertBodyContainsString(t, "<title>About - My Server</title>")
-	res.AssertBodyContainsString(t, "<h1>About This Server</h1>")
+		verifyMeta(t, res)
+		res.AssertBodyStartsWithString(t, "<!DOCTYPE html>")
+		res.AssertBodyContainsString(t, "<title>About - My Server</title>")
+		res.AssertBodyContainsString(t, "<h1>About This Server</h1>")
+	})
+
+	t.Run("HEAD", func(t *testing.T) {
+		res := client.Head("/static/about.html")
+
+		verifyMeta(t, res)
+		res.AssertBodyMatchesString(t, "")
+	})
 }
 
-func TestGetGopher(t *testing.T) {
+func TestGopher(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
+	verifyMeta := func(t *testing.T, res *routeit.TestResponse) {
+		t.Helper()
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Type", "image/png")
+		res.AssertHeaderMatches(t, "Content-Length", "70548")
+	}
 
-	res := client.Get("/static/gopher.png")
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/static/gopher.png")
 
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertHeaderMatches(t, "Content-Type", "image/png")
-	res.AssertBodyStartsWithString(t, "\x89PNG")
+		verifyMeta(t, res)
+		res.AssertBodyStartsWithString(t, "\x89PNG")
+	})
+
+	t.Run("HEAD", func(t *testing.T) {
+		res := client.Head("/static/gopher.png")
+
+		verifyMeta(t, res)
+		res.AssertBodyMatchesString(t, "")
+	})
 }
 
-func TestGetHello(t *testing.T) {
+func TestHello(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
+	verifyMeta := func(t *testing.T, res *routeit.TestResponse) {
+		t.Helper()
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Type", "text/plain; charset=utf-8")
+		res.AssertHeaderMatches(t, "Content-Length", "13")
+	}
 
-	res := client.Get("/static/hello.txt")
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/static/hello.txt")
 
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertHeaderMatches(t, "Content-Type", "text/plain; charset=utf-8")
-	res.AssertBodyMatchesString(t, "Hello World!\n")
+		verifyMeta(t, res)
+		res.AssertBodyMatchesString(t, "Hello World!\n")
+	})
+
+	t.Run("HEAD", func(t *testing.T) {
+		res := client.Head("/static/hello.txt")
+
+		verifyMeta(t, res)
+		res.AssertBodyMatchesString(t, "")
+	})
 }
 
-func TestGetIndex(t *testing.T) {
+func TestIndex(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
+	verifyMeta := func(t *testing.T, res *routeit.TestResponse) {
+		t.Helper()
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
+		res.AssertHeaderMatches(t, "Content-Length", "579")
+	}
 
-	res := client.Get("/static/index.html")
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/static/index.html")
 
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
-	res.AssertBodyStartsWithString(t, "<!DOCTYPE html>")
-	res.AssertBodyContainsString(t, "<title>Home - My Server</title>")
-	res.AssertBodyContainsString(t, "<h1>Welcome to the Home Page</h1>")
+		verifyMeta(t, res)
+		res.AssertBodyStartsWithString(t, "<!DOCTYPE html>")
+		res.AssertBodyContainsString(t, "<title>Home - My Server</title>")
+		res.AssertBodyContainsString(t, "<h1>Welcome to the Home Page</h1>")
+	})
+
+	t.Run("HEAD", func(t *testing.T) {
+		res := client.Head("/static/index.html")
+
+		verifyMeta(t, res)
+		res.AssertBodyMatchesString(t, "")
+	})
 }
 
-func TestGetStyles(t *testing.T) {
+func TestStyles(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
+	verifyMeta := func(t *testing.T, res *routeit.TestResponse) {
+		t.Helper()
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Type", "text/css; charset=utf-8")
+		res.AssertHeaderMatches(t, "Content-Length", "868")
+	}
 
-	res := client.Get("/static/styles.css")
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/static/styles.css")
 
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertHeaderMatches(t, "Content-Type", "text/css; charset=utf-8")
-	res.AssertBodyContainsString(t, `font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;`)
-	res.AssertBodyContainsString(t, "box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);\n")
+		verifyMeta(t, res)
+		res.AssertBodyContainsString(t, `font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;`)
+		res.AssertBodyContainsString(t, "box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);\n")
+	})
+
+	t.Run("HEAD", func(t *testing.T) {
+		res := client.Head("/static/styles.css")
+
+		verifyMeta(t, res)
+		res.AssertBodyMatchesString(t, "")
+	})
 }
 
 func TestGetNotFound(t *testing.T) {
@@ -78,14 +150,25 @@ func TestGetNotFound(t *testing.T) {
 		{"incorrect extension", "/static/about.txt"},
 	}
 	client := routeit.NewTestClient(GetServer())
+	verify := func(t *testing.T, res *routeit.TestResponse) {
+		t.Helper()
+		res.AssertStatusCode(t, routeit.StatusNotFound)
+		res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			res := client.Get(tc.path)
+			t.Run("GET", func(t *testing.T) {
+				res := client.Get(tc.path)
+				verify(t, res)
+				res.AssertBodyStartsWithString(t, "404: Not Found")
+			})
 
-			res.AssertStatusCode(t, routeit.StatusNotFound)
-			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-			res.AssertBodyStartsWithString(t, "404: Not Found")
+			t.Run("HEAD", func(t *testing.T) {
+				res := client.Head(tc.path)
+				verify(t, res)
+				res.AssertBodyMatchesString(t, "")
+			})
 		})
 	}
 }

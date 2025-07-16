@@ -101,7 +101,7 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 
 // Dynamically loads static assets from disk.
 func staticLoader(namespace string) *Handler {
-	return &Handler{get: func(rw *ResponseWriter, req *Request) error {
+	h := Get(func(rw *ResponseWriter, req *Request) error {
 		// TODO: need more generic handling of this "with namespace", "without namespace" stuff
 		// TODO: probably best to actually store that on the router.
 		url := req.Path()
@@ -136,5 +136,6 @@ func staticLoader(namespace string) *Handler {
 		rw.RawWithContentType(data, cType)
 
 		return nil
-	}}
+	})
+	return &h
 }

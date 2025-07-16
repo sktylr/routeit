@@ -1,6 +1,6 @@
 ### examples/simple
 
-This example is a simple example that exposes 7 endpoints.
+This example is a simple example that exposes 8 endpoints.
 Due to the different HTTP methods supported by `routeit`, the server will only respond to the correct HTTP method in the request.
 If a route exists but it does not support the method, the server will respond with a `405: Method Not Allowed` response and include the allowed methods in the `Allow` header.
 The application can be run using `go run main.go`.
@@ -54,4 +54,11 @@ $ curl http://localhost:8080/multi
 # POST request
 $ curl http://localhost:8080/multi -H "Content-Type: application/json" -d '{"age": 23, "height": 1.75}'
 {"name":"From POST","nested":{"age":23,"height":1.75}}
+```
+
+`/modify`. This is an example `PUT` endpoint.
+For simplicity it just echoes the request body back to the client.
+```bash
+$ curl http://localhost:8080/modify -X PUT -H "Content-Type: text/plain" -d 'Hello /modify endpoint!'
+Hello /modify endpoint!
 ```

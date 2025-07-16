@@ -16,6 +16,9 @@ func TestGet(t *testing.T) {
 	if h.post != nil {
 		t.Error("expected handler.post() to be nil")
 	}
+	if h.put != nil {
+		t.Error("expected handler.put() to be nil")
+	}
 }
 
 func TestPost(t *testing.T) {
@@ -29,6 +32,26 @@ func TestPost(t *testing.T) {
 	}
 	if h.head != nil {
 		t.Error("expected handler.head() to be nil")
+	}
+	if h.put != nil {
+		t.Error("expected handler.put() to be nil")
+	}
+}
+
+func TestPut(t *testing.T) {
+	h := Put(func(rw *ResponseWriter, req *Request) error { return nil })
+
+	if h.put == nil {
+		t.Error("did not expect handler.put() to be nil")
+	}
+	if h.get != nil {
+		t.Error("expected handler.get() to be nil")
+	}
+	if h.head != nil {
+		t.Error("expected handler.head() to be nil")
+	}
+	if h.post != nil {
+		t.Error("expected handler.post() to be nil")
 	}
 }
 

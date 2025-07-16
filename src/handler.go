@@ -9,15 +9,19 @@ import (
 
 type HandlerFunc func(rw *ResponseWriter, req *Request) error
 
+// TODO: could look into consolidating Handler and MultiMethodHandler, maybe only exposing the public methods that should be settable?
+
 type Handler struct {
 	get  HandlerFunc
 	head HandlerFunc
 	post HandlerFunc
+	put  HandlerFunc
 }
 
 type MultiMethodHandler struct {
 	Get  HandlerFunc
 	Post HandlerFunc
+	Put  HandlerFunc
 }
 
 // Creates a handler that will handle GET request. Internally this will also
@@ -33,6 +37,11 @@ func Post(fn HandlerFunc) Handler {
 	return MultiMethod(MultiMethodHandler{Post: fn})
 }
 
+// Creates a handler that responds to PUT requests
+func Put(fn HandlerFunc) Handler {
+	return MultiMethod(MultiMethodHandler{Put: fn})
+}
+
 // Creates a handler that responds to multiple HTTP methods (e.g. GET and POST
 // on the same route). The router internally will decide which handler to
 // invoke depending on the method of the request. An implementation does not
@@ -41,7 +50,7 @@ func Post(fn HandlerFunc) Handler {
 // to. The handler will ensure that any non-implemented methods return a 405:
 // Method Not Allowed response.
 func MultiMethod(mmh MultiMethodHandler) Handler {
-	h := Handler{get: mmh.Get, post: mmh.Post}
+	h := Handler{get: mmh.Get, post: mmh.Post, put: mmh.Put}
 	if mmh.Get != nil {
 		h.head = func(rw *ResponseWriter, req *Request) error {
 			// The HEAD method is the same as GET, except it does not return a
@@ -68,6 +77,9 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	if req.Method() == POST && h.post != nil {
 		return h.post(rw, req)
 	}
+	if req.Method() == PUT && h.put != nil {
+		return h.put(rw, req)
+	}
 
 	err := MethodNotAllowedError()
 	allow := make([]string, 0, 6)
@@ -79,6 +91,9 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	}
 	if h.post != nil {
 		allow = append(allow, POST.name)
+	}
+	if h.put != nil {
+		allow = append(allow, PUT.name)
 	}
 	err.header("Allow", strings.Join(allow, ", "))
 	return err

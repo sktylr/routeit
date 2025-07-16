@@ -33,7 +33,7 @@ func TestHeadHello(t *testing.T) {
 
 	res := client.Head("/hello")
 
-	res.AssertBodyNilOrEmpty(t)
+	res.AssertBodyEmpty(t)
 	res.AssertStatusCode(t, routeit.StatusOK)
 	res.AssertHeaderMatches(t, "Content-Type", "application/json")
 }
@@ -56,7 +56,7 @@ func TestHeadEchoNoQueryParams(t *testing.T) {
 	res := client.Head("/echo")
 
 	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertBodyNilOrEmpty(t)
+	res.AssertBodyEmpty(t)
 	bodyLen := len("Looks like you didn't want me to echo anything!\n")
 	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", bodyLen))
 	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
@@ -81,7 +81,7 @@ func TestHeadEchoWithQueryParam(t *testing.T) {
 
 	res.AssertStatusCode(t, routeit.StatusOK)
 	bodyLen := len("Received message to echo: hello\n")
-	res.AssertBodyNilOrEmpty(t)
+	res.AssertBodyEmpty(t)
 	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", bodyLen))
 	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 }
@@ -119,7 +119,7 @@ func TestHeadInternalServerError(t *testing.T) {
 		t.Run(tc, func(t *testing.T) {
 			res := client.Head(tc)
 
-			res.AssertBodyNilOrEmpty(t)
+			res.AssertBodyEmpty(t)
 			res.AssertStatusCode(t, routeit.StatusInternalServerError)
 			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 			res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len("500: Internal Server Error")))
@@ -248,6 +248,6 @@ func TestModify(t *testing.T) {
 
 		res.AssertStatusCode(t, routeit.StatusNoContent)
 		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS")
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }

@@ -98,6 +98,6 @@ func TestOptions(t *testing.T) {
 	t.Run("authorised", func(t *testing.T) {
 		res := client.Options("/hello", "Authorization", "LET ME IN")
 		res.AssertStatusCode(t, routeit.StatusNoContent)
-		res.AssertBodyMatchesString(t, "")
+		res.AssertBodyEmpty(t)
 	})
 }

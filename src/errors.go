@@ -103,10 +103,6 @@ func (e *HttpError) Error() string {
 	return sb.String()
 }
 
-func (he *HttpError) header(k string, v string) {
-	he.headers.Set(k, v)
-}
-
 func (e *HttpError) toResponse() *ResponseWriter {
 	rw := newResponse(e.status)
 	rw.Text(e.Error())

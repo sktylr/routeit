@@ -12,46 +12,78 @@ func TestChainProceed(t *testing.T) {
 	bad := middlewareReturning(errShouldNotHappen)
 	tests := []struct {
 		name    string
-		m       middlewareRegistry
+		mwares  []Middleware
+		last    Middleware
 		start   uint
 		wantErr error
 	}{
 		{
-			name:    "empty chain",
-			m:       middlewareRegistry{},
-			wantErr: nil,
-		},
-		{
-			name:    "singleton with error",
-			m:       middlewareRegistry{good},
+			name:    "empty chain, last only with error",
+			mwares:  []Middleware{},
+			last:    good,
+			start:   0,
 			wantErr: errShouldHappen,
 		},
 		{
-			name:    "singleton at capacity",
-			m:       middlewareRegistry{bad},
+			name:    "empty, over capacity",
+			mwares:  []Middleware{},
+			last:    bad,
 			start:   1,
 			wantErr: nil,
 		},
 		{
+			name:    "singleton with error",
+			mwares:  []Middleware{good},
+			last:    bad,
+			wantErr: errShouldHappen,
+			start:   0,
+		},
+		{
+			name:    "singleton chain, at last",
+			mwares:  []Middleware{bad},
+			last:    good,
+			wantErr: errShouldHappen,
+			start:   1,
+		},
+		{
+			name:    "singleton chain, at first",
+			mwares:  []Middleware{good},
+			last:    bad,
+			wantErr: errShouldHappen,
+			start:   0,
+		},
+		{
+			name:    "singleton, over capacity",
+			mwares:  []Middleware{bad},
+			last:    bad,
+			wantErr: nil,
+			start:   2,
+		},
+		{
 			name:    "multiple, first returns error",
-			m:       middlewareRegistry{good, bad},
+			mwares:  []Middleware{good, bad},
+			last:    bad,
+			start:   0,
 			wantErr: errShouldHappen,
 		},
 		{
 			name:    "multiple, middle returns error",
-			m:       middlewareRegistry{bad, good, bad},
+			mwares:  []Middleware{bad, good},
+			last:    bad,
 			start:   1,
 			wantErr: errShouldHappen,
 		},
 		{
 			name:    "multiple, last returns error",
-			m:       middlewareRegistry{bad, bad, good},
+			mwares:  []Middleware{bad, bad},
+			last:    good,
 			start:   2,
 			wantErr: errShouldHappen,
 		},
 		{
 			name:    "multiple at capacity",
-			m:       middlewareRegistry{bad, bad, bad},
+			mwares:  []Middleware{bad, bad},
+			last:    bad,
 			start:   3,
 			wantErr: nil,
 		},
@@ -59,8 +91,9 @@ func TestChainProceed(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			c := newChain(&middlewareRegistry{})
-			*c.reg = append(*c.reg, tc.m...)
+			mware := newMiddleware(tc.last)
+			mware.Register(tc.mwares...)
+			c := mware.NewChain()
 			c.i = tc.start
 
 			err := c.Proceed(nil, nil)

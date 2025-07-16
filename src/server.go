@@ -50,7 +50,7 @@ type Server struct {
 	conf       ServerConfig
 	router     *router
 	log        *slog.Logger
-	middleware middlewareRegistry
+	middleware *middleware
 }
 
 // Constructs a new server given the config. Defaults are provided for all
@@ -78,7 +78,9 @@ func NewServer(conf ServerConfig) *Server {
 		logOpts.Level = slog.LevelInfo
 	}
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &logOpts)
-	return &Server{conf: conf, router: router, log: slog.New(jsonHandler), middleware: middlewareRegistry{}}
+	s := &Server{conf: conf, router: router, log: slog.New(jsonHandler)}
+	s.middleware = newMiddleware(s.handlingMiddleware)
+	return s
 }
 
 // Register all routes in the provided registry to the router on the server.
@@ -114,7 +116,7 @@ func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegist
 // the first middleware registered will be the first middleware called in the
 // chain, the second will be the second and so on.
 func (s *Server) RegisterMiddleware(ms ...Middleware) {
-	s.middleware = append(s.middleware, ms...)
+	s.middleware.Register(ms...)
 }
 
 // Attempts to start the server, panicking if that fails
@@ -223,19 +225,11 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	// Default to a 200 OK status code
 	rw = newResponse(StatusOK)
 	var err error
-	if len(s.middleware) > 0 {
-		chain := newChain(&s.middleware)
-		err = chain.Proceed(rw, req)
-	}
+	chain := s.middleware.NewChain()
+	err = chain.Proceed(rw, req)
 
 	if err == nil {
-		handler, found := s.router.Route(req)
-		if !found {
-			return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path())).toResponse()
-		}
-		if err = handler.handle(rw, req); err == nil {
-			return rw
-		}
+		return rw
 	}
 
 	if errors.As(err, &httpErr) {
@@ -246,4 +240,16 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	// the type of Http error it corresponds to, falling back to 500: Internal
 	// Server Error if that fails.
 	return toHttpError(err).toResponse()
+}
+
+// After all middleware is processed, the last piece is for the server to
+// handle the request itself, such as routing. To simplify the logic, this is
+// done using middleware. We force the last piece of middleware to always be a
+// handler that routes the request and returns the response.
+func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) error {
+	handler, found := s.router.Route(req)
+	if !found {
+		return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
+	}
+	return handler.handle(rw, req)
 }

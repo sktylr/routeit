@@ -114,10 +114,12 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	cLen := reqHdrs.ContentLength()
 	var body string
 	// TODO: make the buffer size also depend on the server max allowed request
-	if cLen <= 0 || ptcl.mthd == GET || ptcl.mthd == HEAD {
-		// For GET or HEAD requests, the request body should be ignored even if
-		// provided. Where we are consuming the body, we should only look for
-		// Content-Length bytes and no more.
+	if cLen <= 0 || ptcl.mthd == GET || ptcl.mthd == HEAD || ptcl.mthd == OPTIONS {
+		// For GET, HEAD or OPTIONS requests, the request body should be
+		// ignored even if provided. Servers can technically accept request
+		// bodies for OPTIONS requests, however it is up to the server
+		// implementation, and routeit chooses not to. Where we are consuming
+		// the body, we should only look for Content-Length bytes and no more.
 		body = ""
 	} else {
 		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds
@@ -233,13 +235,23 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	if prtcl != "HTTP/1.1" {
 		return protocolLine{}, HttpVersionNotSupportedError()
 	}
+	if path == "*" && mthd != OPTIONS {
+		// TODO: check error message
+		return protocolLine{}, BadRequestError()
+	}
 
 	// TODO: need to return 414: URI Too Long if URI is too long
 	return protocolLine{mthd, path, prtcl}, nil
 }
 
 func parseUri(raw string) (uri, *HttpError) {
-	// TODO: this should allow the `*` URI ONLY when the request method is OPTIONS
+	// When the raw URI is "*", this means that the request is an OPTIONS
+	// request for the whole server. At this point we know that if the URI is
+	// "*", then it is a valid request. We can skip the rest of the parsing.
+	if raw == "*" {
+		return uri{path: "*"}, nil
+	}
+
 	split := strings.Split(raw, "?")
 
 	endpoint := split[0]

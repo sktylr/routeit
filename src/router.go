@@ -76,6 +76,14 @@ func (r *router) NewStaticDir(s string) {
 // methods, or may not support the method of the request at all, however the
 // handler found is known to be the correct handler for the given request URI.
 func (r *router) Route(req *Request) (*Handler, bool) {
+	if req.Method() == OPTIONS && req.Path() == "*" {
+		// The server can respond to OPTIONS * requests, which ask the entire
+		// server for options. At this point, the parsed request is guaranteed
+		// to only have a path of "*" if the request method is OPTIONS, so we
+		// are safe to return the options handler early.
+		return globalOptionsHandler(), true
+	}
+
 	// TODO: need to improve the string manipulation here - it looks expensive!
 	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Path(), "/"), "/")
 	if !strings.HasPrefix(sanitised, r.namespace) {
@@ -111,4 +119,18 @@ func (r *router) trimRouteForInsert(s string) string {
 		s = strings.TrimSuffix(s, "/")
 	}
 	return s
+}
+
+// This handler responds to global `OPTIONS *` requests that are asking the
+// server for information about the whole server. In this simple solution, we
+// just respond with the supported methods for the server through the Allow
+// header
+func globalOptionsHandler() *Handler {
+	return &Handler{options: func(rw *ResponseWriter, req *Request) error {
+		// TODO: for testability, this constructs the list deterministically, since map looping is designed to be non-deterministic in go. This should be made more robust
+		allowed := []string{GET.name, HEAD.name, POST.name, PUT.name, OPTIONS.name}
+		rw.Status(StatusNoContent)
+		rw.Header("Allow", strings.Join(allowed, ", "))
+		return nil
+	}}
 }

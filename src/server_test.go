@@ -1,6 +1,8 @@
 package routeit
 
 import (
+	"context"
+	"log/slog"
 	"testing"
 	"time"
 )
@@ -13,6 +15,7 @@ func TestNewServerDefaults(t *testing.T) {
 	verifyDefaultReadTimeout(t, srv.conf)
 	verifyDefaultWriteTimeout(t, srv.conf)
 	verifyDefaultNamespace(t, srv.conf)
+	verifyDefaultDebugLevel(t, srv)
 }
 
 func TestNewServerOnlyPort(t *testing.T) {
@@ -26,6 +29,7 @@ func TestNewServerOnlyPort(t *testing.T) {
 	verifyDefaultReadTimeout(t, srv.conf)
 	verifyDefaultWriteTimeout(t, srv.conf)
 	verifyDefaultNamespace(t, srv.conf)
+	verifyDefaultDebugLevel(t, srv)
 }
 
 func TestNewServerOnlyRequestBufferSize(t *testing.T) {
@@ -39,6 +43,7 @@ func TestNewServerOnlyRequestBufferSize(t *testing.T) {
 	verifyDefaultReadTimeout(t, srv.conf)
 	verifyDefaultWriteTimeout(t, srv.conf)
 	verifyDefaultNamespace(t, srv.conf)
+	verifyDefaultDebugLevel(t, srv)
 }
 
 func TestNewServerOnlyReadTimeout(t *testing.T) {
@@ -52,6 +57,7 @@ func TestNewServerOnlyReadTimeout(t *testing.T) {
 	}
 	verifyDefaultWriteTimeout(t, srv.conf)
 	verifyDefaultNamespace(t, srv.conf)
+	verifyDefaultDebugLevel(t, srv)
 }
 
 func TestNewServerOnlyWriteTimeout(t *testing.T) {
@@ -65,6 +71,7 @@ func TestNewServerOnlyWriteTimeout(t *testing.T) {
 		t.Errorf(`custom write timeout = %d, want %d`, srv.conf.WriteDeadline, wantWriteTmo)
 	}
 	verifyDefaultNamespace(t, srv.conf)
+	verifyDefaultDebugLevel(t, srv)
 }
 
 func TestNewServerOnlyNamespace(t *testing.T) {
@@ -76,6 +83,23 @@ func TestNewServerOnlyNamespace(t *testing.T) {
 	verifyDefaultWriteTimeout(t, srv.conf)
 	if srv.conf.Namespace != "/api" {
 		t.Errorf(`custom namespace = %q, wanted "/api"`, srv.conf.Namespace)
+	}
+	verifyDefaultDebugLevel(t, srv)
+}
+
+func TestNewServerOnlyDebug(t *testing.T) {
+	srv := NewServer(ServerConfig{Debug: true})
+
+	verifyDefaultPort(t, srv.conf)
+	verifyDefaultRequestSize(t, srv.conf)
+	verifyDefaultReadTimeout(t, srv.conf)
+	verifyDefaultWriteTimeout(t, srv.conf)
+	verifyDefaultNamespace(t, srv.conf)
+	if !srv.conf.Debug {
+		t.Error("expected Debug to be true")
+	}
+	if !srv.log.Enabled(context.TODO(), slog.LevelDebug) {
+		t.Error("expected DEBUG logging to be enabled")
 	}
 }
 
@@ -116,5 +140,15 @@ func verifyDefaultNamespace(t *testing.T, conf ServerConfig) {
 	// structure will handle the routing beyond that.
 	if conf.Namespace != "" {
 		t.Errorf(`default namespace = %q, want ""`, conf.Namespace)
+	}
+}
+
+func verifyDefaultDebugLevel(t *testing.T, srv *Server) {
+	t.Helper()
+	if srv.conf.Debug {
+		t.Error("did not expect Debug to be true")
+	}
+	if srv.log.Enabled(context.TODO(), slog.LevelDebug) {
+		t.Error("did not expect DEBUG logging to be enabled")
 	}
 }

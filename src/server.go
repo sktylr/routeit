@@ -40,6 +40,10 @@ type ServerConfig struct {
 	// there, though this is discouraged. The path is interpreted as a relative
 	// path, not an absolute path, regardless of the presence of a leading slash.
 	StaticDir string
+	// Enables debug information, such as logs. Do not enable for production
+	// servers. Example behaviour includes logging request bodies for 4xx or
+	// 5xx responses.
+	Debug bool
 }
 
 type Server struct {
@@ -67,7 +71,13 @@ func NewServer(conf ServerConfig) *Server {
 	router := newRouter()
 	router.globalNamespace(conf.Namespace)
 	router.newStaticDir(conf.StaticDir)
-	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
+	logOpts := slog.HandlerOptions{}
+	if conf.Debug {
+		logOpts.Level = slog.LevelDebug
+	} else {
+		logOpts.Level = slog.LevelInfo
+	}
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &logOpts)
 	return &Server{conf: conf, router: router, log: slog.New(jsonHandler), middleware: middlewareRegistry{}}
 }
 

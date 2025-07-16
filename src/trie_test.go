@@ -2,68 +2,90 @@ package routeit
 
 import "testing"
 
-func TestTrieLookupEmpty(t *testing.T) {
-	trie := newTrie[int]()
+func TestTrieLookup(t *testing.T) {
+	t.Run("not found", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			in     map[string]int
+			search string
+		}{
+			{
+				"empty",
+				map[string]int{},
+				"/foo",
+			},
+			{
+				"multiple populated",
+				map[string]int{"/foo": 13, "/foo/bar": 0, "/foo/baz": 9, "/foo/bar/qux": 17},
+				"/foo/bar/baz",
+			},
+			{
+				"present but non value",
+				map[string]int{"/foo/bar/baz": 42, "/foo/baz": 19, "/foo/bar/qux": 13},
+				"/foo/bar",
+			},
+		}
 
-	val, found := trie.Find("/foo")
-	if found {
-		t.Error("did not expect to find element")
-	}
-	if val != nil {
-		t.Errorf("expected value to be nil")
-	}
-}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				trie := newTrie[int]()
+				for k, v := range tc.in {
+					trie.Insert(k, &v)
+				}
 
-func TestTrieLookupOneElement(t *testing.T) {
-	val := 13
-	trie := newTrie[int]()
-	trie.Insert("/foo", &val)
+				val, found := trie.Find(tc.search)
+				if found {
+					t.Errorf(`Trie.Find(%#q), did not expect to find element`, tc.search)
+				}
+				if val != nil {
+					t.Errorf(`Trie.Find(%#q) = %d, expected value to be nil`, tc.search, *val)
+				}
+			})
+		}
+	})
 
-	verifyTrieElementPresent(t, trie, "/foo", val)
-}
+	t.Run("found", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			in     map[string]int
+			search string
+			want   int
+		}{
+			{
+				"one element",
+				map[string]int{"/foo": 13},
+				"/foo",
+				13,
+			},
+			{
+				"multiple elements leaf",
+				map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
+				"/foo/bar/baz",
+				15,
+			},
+			{
+				"multiple elements non-leaf",
+				map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
+				"/foo/bar",
+				42,
+			},
+		}
 
-func TestTrieLookupPopulatedNotPresent(t *testing.T) {
-	trie := newTrie[int]()
-	trie.Insert("/foo", ptr(13))
-	trie.Insert("/foo/bar", ptr(42))
-	trie.Insert("/foo/baz", ptr(19))
-	trie.Insert("/foo/bar/qux", ptr(10))
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				trie := newTrie[int]()
+				for k, v := range tc.in {
+					trie.Insert(k, &v)
+				}
 
-	actual, found := trie.Find("/foo/bar/baz")
-	if found {
-		t.Error("did not expect to find element")
-	}
-	if actual != nil {
-		t.Errorf("expected value to be nil")
-	}
-}
-
-func TestTrieLookupNonLeafPresent(t *testing.T) {
-	trie := newTrie[int]()
-	trie.Insert("/foo/bar/baz", ptr(42))
-	trie.Insert("/foo/baz", ptr(19))
-	trie.Insert("/foo/bar/qux", ptr(10))
-
-	actual, found := trie.Find("/foo/bar")
-	if found {
-		t.Error("did not expect to find element")
-	}
-	if actual != nil {
-		t.Errorf("expected value to be nil")
-	}
-}
-
-func verifyTrieElementPresent(t *testing.T, trie *trie[int], key string, want int) {
-	t.Helper()
-	actual, found := trie.Find(key)
-	if !found {
-		t.Error("expected to find element")
-	}
-	if *actual != want {
-		t.Errorf(`trie["%s"] = %d, wanted %d`, key, actual, want)
-	}
-}
-
-func ptr[T any](v T) *T {
-	return &v
+				actual, found := trie.Find(tc.search)
+				if !found {
+					t.Errorf("Trie.Find(%#q) expected to find element", tc.search)
+				}
+				if *actual != tc.want {
+					t.Errorf(`trie["%s"] = %d, wanted %d`, tc.search, actual, tc.want)
+				}
+			})
+		}
+	})
 }

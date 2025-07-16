@@ -107,7 +107,6 @@ func TestGetInternalServerError(t *testing.T) {
 }
 
 func TestHeadInternalServerError(t *testing.T) {
-	t.Skip("HEAD error parsing is not yet fixed")
 	tests := []string{
 		"/error",
 		"/crash",
@@ -120,7 +119,6 @@ func TestHeadInternalServerError(t *testing.T) {
 		t.Run(tc, func(t *testing.T) {
 			res := client.Head(tc)
 
-			// TODO: currently errors bypass the response body stripping logic
 			res.AssertBodyNilOrEmpty(t)
 			res.AssertStatusCode(t, routeit.StatusInternalServerError)
 			res.AssertHeaderMatches(t, "Content-Type", "text/plain")

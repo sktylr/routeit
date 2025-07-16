@@ -211,6 +211,10 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 				rw = InternalServerError().toResponse()
 			}
 		}
+		// TODO: need improved error handling semantics here!
+		if req.mthd == HEAD {
+			rw.bdy = []byte{}
+		}
 	}()
 
 	// Default to a 200 OK status code

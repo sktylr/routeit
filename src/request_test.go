@@ -248,8 +248,8 @@ func expectBody(t *testing.T, got, want string) {
 
 func expectUrl(t *testing.T, got *Request, want string) {
 	t.Helper()
-	if got.Url() != want {
-		t.Errorf(`requestFromRaw url = %q, wanted %#q`, got.Url(), want)
+	if got.Path() != want {
+		t.Errorf(`requestFromRaw Path() = %q, wanted %#q`, got.Path(), want)
 	}
 }
 

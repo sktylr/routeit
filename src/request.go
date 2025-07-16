@@ -44,7 +44,7 @@ type queryParameters map[string]string
 // with a leading slash. Query parameters are extracted into a separate property
 // and path parameters may be populated by the router.
 type uri struct {
-	url         string
+	path        string
 	pathParams  pathParameters
 	queryParams queryParameters
 }
@@ -149,8 +149,8 @@ func (req *Request) Method() HttpMethod {
 }
 
 // The request's URL excluding the host. Does not include query parameters.
-func (req *Request) Url() string {
-	return req.uri.url
+func (req *Request) Path() string {
+	return req.uri.path
 }
 
 func (req *Request) PathParam(param string) (string, bool) {
@@ -237,7 +237,7 @@ func parseUri(raw string) (uri, *HttpError) {
 	}
 
 	queryParams := queryParameters{}
-	uri := uri{url: endpoint, queryParams: queryParams}
+	uri := uri{path: endpoint, queryParams: queryParams}
 
 	if len(split) == 1 {
 		// No query string present

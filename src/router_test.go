@@ -363,7 +363,7 @@ func doNotWantHandler(rw *ResponseWriter, req *Request) error {
 }
 
 func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
-	return &Request{uri: uri{url: url}, mthd: method}
+	return &Request{uri: uri{path: url}, mthd: method}
 }
 
 func verifyRouteFound(t *testing.T, router *router, req *Request) {
@@ -381,6 +381,6 @@ func verifyRouteFound(t *testing.T, router *router, req *Request) {
 func verifyRouteNotFound(t *testing.T, router *router, req *Request) {
 	_, found := router.route(req)
 	if found {
-		t.Errorf("did not expect to find a route for [url=%s, method=%s]", req.Url(), req.Method().name)
+		t.Errorf("did not expect to find a route for [url=%s, method=%s]", req.Path(), req.Method().name)
 	}
 }

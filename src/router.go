@@ -35,7 +35,7 @@ func (r *router) registerRoutes(rreg RouteRegistry) {
 		for strings.HasSuffix(path, "/") {
 			path = strings.TrimSuffix(path, "/")
 		}
-		r.routes.insert(path, &handler)
+		r.routes.Insert(path, &handler)
 	}
 }
 
@@ -49,7 +49,7 @@ func (r *router) registerRoutesUnderNamespace(namespace string, rreg RouteRegist
 		if !strings.HasPrefix(path, "/") {
 			path = "/" + path
 		}
-		r.routes.insert(namespace+path, &handler)
+		r.routes.Insert(namespace+path, &handler)
 	}
 }
 
@@ -87,7 +87,7 @@ func (r *router) newStaticDir(s string) {
 // handler found is known to be the correct handler for the given request URI.
 func (r *router) route(req *Request) (*Handler, bool) {
 	// TODO: need to improve the string manipulation here - it looks expensive!
-	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Url(), "/"), "/")
+	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Path(), "/"), "/")
 	if !strings.HasPrefix(sanitised, r.namespace) {
 		// The route is not under the global namespace so we know it isn't valid
 		return nil, false
@@ -104,7 +104,7 @@ func (r *router) route(req *Request) (*Handler, bool) {
 		return r.staticLoader, true
 	}
 
-	route, found := r.routes.find(trimmed)
+	route, found := r.routes.Find(trimmed)
 	if route != nil && found {
 		return route, true
 	}

@@ -89,20 +89,23 @@ func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 	s.router.registerRoutes(rreg)
 }
 
-// Register all routes in the registry under a specific namespace. All routes
-// already obey the global namespace (if configured). This is a destructive
-// operation. For example, if the /api/foo route has already been registered,
-// and this function is called with the /api namespace and the registry contains
-// a /foo route, this function will overwrite the original routing entry.
+// RegisterRoutesUnderNamespace registers all routes in the registry under a
+// specific namespace. All routes already obey the global namespace (if
+// configured). This is a destructive operation.
+//
+// For example, if the /api/foo route has already been registered, and this
+// function is called with the /api namespace and the registry contains a /foo
+// route, this function will overwrite the original routing entry.
 //
 // Examples:
-// Namespace = /api
-// RegisterRoutesUnderNamespace("/foo", {"/bar": ...})
-// The route registered will be /api/foo/bar
 //
-// Namespace = <not initialised>
-// RegisterRoutesUnderNamespace("/foo/bar", {"/baz": ...})
-// The route will be registered under /foo/bar/baz
+//	Namespace = /api
+//	RegisterRoutesUnderNamespace("/foo", {"/bar": ...})
+//	The route registered will be /api/foo/bar
+//
+//	Namespace = <not initialised>
+//	RegisterRoutesUnderNamespace("/foo/bar", {"/baz": ...})
+//	The route will be registered under /foo/bar/baz
 func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
 	s.router.registerRoutesUnderNamespace(namespace, rreg)
 }
@@ -228,7 +231,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	if err == nil {
 		handler, found := s.router.route(req)
 		if !found {
-			return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Url())).toResponse()
+			return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path())).toResponse()
 		}
 		if err = handler.handle(rw, req); err == nil {
 			return rw

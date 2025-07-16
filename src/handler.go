@@ -89,7 +89,7 @@ func staticLoader(namespace string) *Handler {
 	return &Handler{get: func(rw *ResponseWriter, req *Request) error {
 		// TODO: need more generic handling of this "with namespace", "without namespace" stuff
 		// TODO: probably best to actually store that on the router.
-		url := req.Url()
+		url := req.Path()
 		if namespace != "" {
 			url = strings.TrimPrefix(url, namespace+"/")
 		}

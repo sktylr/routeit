@@ -80,6 +80,17 @@ func (tc TestClient) PutText(path string, text string, h ...string) *TestRespons
 	return tc.xText(path, text, PUT, h...)
 }
 
+// Makes an OPTIONS request against the specified endpoint. Can include key,
+// value pairs representing the headers of the request.
+func (tc TestClient) Options(path string, h ...string) *TestResponse {
+	req := testRequest{
+		path:    path,
+		method:  OPTIONS,
+		headers: tc.constructHeaders(h...),
+	}
+	return tc.makeRequest(req)
+}
+
 func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string) *TestResponse {
 	bodyJson, err := json.Marshal(body)
 	if err != nil {

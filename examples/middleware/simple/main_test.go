@@ -79,3 +79,25 @@ func TestGetNotFoundUnauthorised(t *testing.T) {
 	// client, ensuring that as little as possible is revealed to the client.
 	res.AssertStatusCode(t, routeit.StatusUnauthorized)
 }
+
+func TestOptions(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	t.Run("unauthorised", func(t *testing.T) {
+		res := client.Options("/hello")
+		res.AssertStatusCode(t, routeit.StatusUnauthorized)
+		res.RefuteHeaderPresent(t, "Allow")
+	})
+
+	t.Run("authorised not found", func(t *testing.T) {
+		res := client.Options("/goodbye", "Authorization", "LET ME IN")
+		res.AssertStatusCode(t, routeit.StatusNotFound)
+		res.RefuteHeaderPresent(t, "Allow")
+	})
+
+	t.Run("authorised", func(t *testing.T) {
+		res := client.Options("/hello", "Authorization", "LET ME IN")
+		res.AssertStatusCode(t, routeit.StatusNoContent)
+		res.AssertBodyMatchesString(t, "")
+	})
+}

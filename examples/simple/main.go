@@ -80,6 +80,7 @@ func GetServer() *routeit.Server {
 				},
 			}
 
+			rw.Status(routeit.StatusCreated)
 			return rw.Json(res)
 		}),
 		"/multi": routeit.MultiMethod(routeit.MultiMethodHandler{
@@ -109,6 +110,7 @@ func GetServer() *routeit.Server {
 					return routeit.BadRequestError()
 				}
 
+				rw.Status(routeit.StatusCreated)
 				res := Example{
 					Name:   "From POST",
 					Nested: in,

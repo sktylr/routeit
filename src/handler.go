@@ -85,7 +85,11 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 	if len(allow) != 0 {
 		h.allowed = append(h.allowed, OPTIONS)
 		h.options = func(rw *ResponseWriter, req *Request) error {
-			// TODO:
+			// The OPTIONS request is used to ask the server what configuration
+			// it accepts. A simple implementation tells the client which
+			// request methods it can use on the given endpoint, through the
+			// Allow response header. If we have at least 1 method supported on
+			// this handler, then we add an OPTIONS handler to the endpoint.
 			allowS := make([]string, 0, len(h.allowed))
 			for _, allow := range h.allowed {
 				allowS = append(allowS, allow.name)

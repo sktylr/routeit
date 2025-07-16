@@ -67,6 +67,11 @@ func TestRequestFromRaw(t *testing.T) {
 				"GET /endpoint?q=foo?bar HTTP/1.1\r\nHost: localhost\r\n\r\n",
 				StatusBadRequest,
 			},
+			{
+				"* path and not OPTIONS",
+				"GET * HTTP/1.1\r\nHost: localhost\r\n\r\n",
+				StatusBadRequest,
+			},
 		}
 
 		for _, tc := range tests {
@@ -80,6 +85,21 @@ func TestRequestFromRaw(t *testing.T) {
 					t.Errorf("httpError status got [status=%d, msg=%s], wanted [status=%d, msg=%s]", err.status.code, err.status.msg, tc.wantStatus.code, tc.wantStatus.msg)
 				}
 			})
+		}
+	})
+
+	t.Run("allows OPTIONS * requests", func(t *testing.T) {
+		bts := []byte("OPTIONS * HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+		req, err := requestFromRaw(bts)
+		if err != nil {
+			t.Errorf(`Error() = %v, expected nil`, err)
+		}
+		if req.Path() != "*" {
+			t.Errorf(`Path() = %#q, wanted "*"`, req.Path())
+		}
+		if req.Method() != OPTIONS {
+			t.Errorf(`Method() = %#q, wanted OPTIONS`, req.Method().name)
 		}
 	})
 
@@ -155,7 +175,7 @@ func TestRequestFromRaw(t *testing.T) {
 		})
 
 		t.Run("does not consume body unless required by method", func(t *testing.T) {
-			methods := []string{"GET", "HEAD"}
+			methods := []string{"GET", "HEAD", "OPTIONS"}
 
 			for _, m := range methods {
 				t.Run(m, func(t *testing.T) {

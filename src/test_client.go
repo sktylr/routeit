@@ -124,7 +124,9 @@ func (tc TestClient) xText(path string, text string, method HttpMethod, h ...str
 }
 
 func (tc TestClient) makeRequest(req testRequest) *TestResponse {
-	if !strings.HasPrefix(req.path, "/") {
+	if !strings.HasPrefix(req.path, "/") &&
+		// Global OPTIONS requests are sent to "*"
+		req.method != OPTIONS && req.path != "*" {
 		req.path = "/" + req.path
 	}
 

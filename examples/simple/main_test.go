@@ -251,3 +251,13 @@ func TestModify(t *testing.T) {
 		res.AssertBodyEmpty(t)
 	})
 }
+
+func TestGlobalOptions(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	res := client.Options("*")
+
+	res.AssertStatusCode(t, routeit.StatusNoContent)
+	res.AssertBodyEmpty(t)
+	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, OPTIONS")
+}

@@ -15,6 +15,35 @@ Where possible I have written detailed comments explaining usage of framework's 
 I add to these as new features are built or improved upon, to showcase how the interfaces are intended to be used.
 This also helps me understand how I should design my interfaces, as I get hands on experience using them.
 
+### Documentation
+
+Documentation for this package can be generated using [`godoc`](https://pkg.go.dev/golang.org/x/tools/cmd/godoc). Steps for viewing the docs are below
+
+```bash
+# Install the package if not already installed
+$ go install golang.org/x/tools/cmd/godoc@latest
+
+# Change to the source directory
+cd src
+
+# Run the documentation server on port 3000
+$ godoc -http=:3000
+```
+
+The documentation can now be viewed at http://localhost:3000/pkg/github.com/sktylr/routeit/.
+
+If your `$GOPATH` is not set, this may fail to run. The `$GOPATH` defaults to `$HOME/go` but go can sometimes have difficulty due to `src` containing a go module. Wherever your go binaries are installed needs to be in your `$PATH`, or you can reference the absolute path when running `godoc -http=:3000`.
+
+```bash
+# Setting GOPATH explicitly
+$ export GOPATH=~/go
+$ export PATH="$PATH:$GOPATH/bin"
+$ godoc -http=:3000
+
+# Using absolute path
+$ /abs/path/to/godoc -http=:3000
+```
+
 ### Features
 
 **HTTP Version Support**: Only HTTP/1.1 is supported. My implementation is mostly based off https://httpwg.org/specs/rfc9112.html and [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference) developer specs.

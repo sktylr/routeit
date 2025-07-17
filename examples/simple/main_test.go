@@ -8,212 +8,212 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-func TestGetHello(t *testing.T) {
+func TestHello(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/hello")
-
-	res.AssertStatusCode(t, routeit.StatusOK)
-	var body Example
-	res.BodyToJson(t, &body)
-	want := Example{
-		Name: "John Doe",
-		Nested: Nested{
-			Age:    25,
-			Height: 1.82,
-		},
-	}
-	if !reflect.DeepEqual(body, want) {
-		t.Errorf(`Json response = %#v, wanted %#v`, body, want)
-	}
-}
-
-func TestHeadHello(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Head("/hello")
-
-	res.AssertBodyEmpty(t)
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertHeaderMatches(t, "Content-Type", "application/json")
-}
-
-func TestGetEchoNoQueryParams(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/echo")
-
-	res.AssertStatusCode(t, routeit.StatusOK)
-	wantBody := "Looks like you didn't want me to echo anything!\n"
-	res.AssertBodyMatchesString(t, wantBody)
-	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
-	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-}
-
-func TestHeadEchoNoQueryParams(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Head("/echo")
-
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertBodyEmpty(t)
-	bodyLen := len("Looks like you didn't want me to echo anything!\n")
-	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", bodyLen))
-	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-}
-
-func TestGetEchoWithQueryParam(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/echo?message=hello")
-
-	res.AssertStatusCode(t, routeit.StatusOK)
-	wantBody := "Received message to echo: hello\n"
-	res.AssertBodyMatchesString(t, wantBody)
-	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
-	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-}
-
-func TestHeadEchoWithQueryParam(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Head("/echo?message=hello")
-
-	res.AssertStatusCode(t, routeit.StatusOK)
-	bodyLen := len("Received message to echo: hello\n")
-	res.AssertBodyEmpty(t)
-	res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", bodyLen))
-	res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-}
-
-func TestGetInternalServerError(t *testing.T) {
-	tests := []string{
-		"/error",
-		"/crash",
-		"/panic",
+	verify := func(t *testing.T, res *routeit.TestResponse) {
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Type", "application/json")
+		res.AssertHeaderMatches(t, "Content-Length", "53")
 	}
 
-	client := routeit.NewTestClient(GetServer())
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/hello")
 
-	for _, tc := range tests {
-		t.Run(tc, func(t *testing.T) {
-			res := client.Get(tc)
-
-			res.AssertStatusCode(t, routeit.StatusInternalServerError)
-			res.AssertBodyMatchesString(t, "500: Internal Server Error")
-			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-		})
-	}
-}
-
-func TestHeadInternalServerError(t *testing.T) {
-	tests := []string{
-		"/error",
-		"/crash",
-		"/panic",
-	}
-
-	client := routeit.NewTestClient(GetServer())
-
-	for _, tc := range tests {
-		t.Run(tc, func(t *testing.T) {
-			res := client.Head(tc)
-
-			res.AssertBodyEmpty(t)
-			res.AssertStatusCode(t, routeit.StatusInternalServerError)
-			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-			res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len("500: Internal Server Error")))
-		})
-	}
-}
-
-func TestGetRootMethodNotAllowed(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/")
-
-	res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-	res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
-}
-
-func TestPostRoot(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-	inBody := Example{
-		Name: "Foo Bar",
-		Nested: Nested{
-			Age:    34,
-			Height: 1.89,
-		},
-	}
-	wantBody := Greeting{
-		From: inBody,
-		To: Example{
-			Name: "Jane Doe",
+		verify(t, res)
+		var body Example
+		res.BodyToJson(t, &body)
+		want := Example{
+			Name: "John Doe",
 			Nested: Nested{
-				Age:    29,
-				Height: 1.62,
+				Age:    25,
+				Height: 1.82,
 			},
+		}
+		if !reflect.DeepEqual(body, want) {
+			t.Errorf(`Json response = %#v, wanted %#v`, body, want)
+		}
+	})
+
+	t.Run("HEAD", func(t *testing.T) {
+		res := client.Head("/hello")
+
+		verify(t, res)
+		res.AssertBodyEmpty(t)
+	})
+}
+
+func TestEcho(t *testing.T) {
+	tests := []struct {
+		name     string
+		query    string
+		wantBody string
+	}{
+		{
+			"no query params",
+			"",
+			"Looks like you didn't want me to echo anything!\n",
+		},
+		{
+			"simple query param",
+			"?message=Hello",
+			"Received message to echo: Hello\n",
+		},
+		{
+			"escaped query param",
+			"?message=%22Hello%20there%21%20This%20is%20escaped%22",
+			"Received message to echo: \"Hello there! This is escaped\"\n",
 		},
 	}
+	verify := func(t *testing.T, res *routeit.TestResponse, wantLen int) {
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", wantLen))
+		res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+	}
+	client := routeit.NewTestClient(GetServer())
 
-	res := client.PostJson("/", inBody)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			endpoint := fmt.Sprintf("/echo%s", tc.query)
 
-	res.AssertStatusCode(t, routeit.StatusCreated)
-	var actual Greeting
-	res.BodyToJson(t, &actual)
-	if !reflect.DeepEqual(actual, wantBody) {
-		t.Errorf(`Json response = %#v, wanted %#v`, actual, wantBody)
+			t.Run("GET", func(t *testing.T) {
+				res := client.Get(endpoint)
+
+				verify(t, res, len(tc.wantBody))
+				res.AssertBodyMatchesString(t, tc.wantBody)
+			})
+
+			t.Run("HEAD", func(t *testing.T) {
+				res := client.Head(endpoint)
+
+				verify(t, res, len(tc.wantBody))
+				res.AssertBodyEmpty(t)
+			})
+		})
 	}
 }
 
-func TestPostRootUnsupportedMediaType(t *testing.T) {
+func TestInternalServerError(t *testing.T) {
+	tests := []string{
+		"/error",
+		"/crash",
+		"/panic",
+	}
+	verify := func(t *testing.T, res *routeit.TestResponse) {
+		res.AssertStatusCode(t, routeit.StatusInternalServerError)
+		res.AssertHeaderMatches(t, "Content-Length", "26")
+		res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+	}
 	client := routeit.NewTestClient(GetServer())
 
-	res := client.PostText("/", "this will not be supported")
+	for _, tc := range tests {
+		t.Run(tc, func(t *testing.T) {
+			t.Run("GET", func(t *testing.T) {
+				res := client.Get(tc)
 
-	res.AssertStatusCode(t, routeit.StatusUnsupportedMediaType)
-	res.AssertHeaderMatches(t, "Accept", "application/json")
+				verify(t, res)
+				res.AssertBodyMatchesString(t, "500: Internal Server Error")
+			})
+
+			t.Run("HEAD", func(t *testing.T) {
+				res := client.Head(tc)
+
+				verify(t, res)
+				res.AssertBodyEmpty(t)
+			})
+		})
+	}
 }
 
-func TestGetMulti(t *testing.T) {
+func TestRoot(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
-	wantBody := Example{
-		Name: "From GET",
-		Nested: Nested{
-			Age:    100,
-			Height: 2.0,
-		},
-	}
 
-	res := client.Get("/multi")
+	t.Run("POST", func(t *testing.T) {
+		t.Run("application/json", func(t *testing.T) {
+			inBody := Example{
+				Name: "Foo Bar",
+				Nested: Nested{
+					Age:    34,
+					Height: 1.89,
+				},
+			}
+			wantBody := Greeting{
+				From: inBody,
+				To: Example{
+					Name: "Jane Doe",
+					Nested: Nested{
+						Age:    29,
+						Height: 1.62,
+					},
+				},
+			}
 
-	res.AssertStatusCode(t, routeit.StatusOK)
-	var body Example
-	res.BodyToJson(t, &body)
-	if !reflect.DeepEqual(body, wantBody) {
-		t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
-	}
+			res := client.PostJson("/", inBody)
+
+			res.AssertStatusCode(t, routeit.StatusCreated)
+			var actual Greeting
+			res.BodyToJson(t, &actual)
+			if !reflect.DeepEqual(actual, wantBody) {
+				t.Errorf(`Json response = %#v, wanted %#v`, actual, wantBody)
+			}
+		})
+
+		t.Run("unsupported media type", func(t *testing.T) {
+			res := client.PostText("/", "this will not be supported")
+
+			res.AssertStatusCode(t, routeit.StatusUnsupportedMediaType)
+			res.AssertHeaderMatches(t, "Accept", "application/json")
+		})
+	})
+
+	t.Run("GET - not allowed", func(t *testing.T) {
+		res := client.Get("/")
+
+		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
+		res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
+	})
 }
 
-func TestPostMulti(t *testing.T) {
+func TestMulti(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
-	inBody := Nested{
-		Age:    25,
-		Height: 1.95,
-	}
-	wantBody := Example{
-		Name:   "From POST",
-		Nested: inBody,
-	}
 
-	res := client.PostJson("/multi", inBody)
+	t.Run("GET", func(t *testing.T) {
+		wantBody := Example{
+			Name: "From GET",
+			Nested: Nested{
+				Age:    100,
+				Height: 2.0,
+			},
+		}
 
-	res.AssertStatusCode(t, routeit.StatusCreated)
-	var body Example
-	res.BodyToJson(t, &body)
-	if !reflect.DeepEqual(body, wantBody) {
-		t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
-	}
+		res := client.Get("/multi")
+
+		res.AssertStatusCode(t, routeit.StatusOK)
+		var body Example
+		res.BodyToJson(t, &body)
+		if !reflect.DeepEqual(body, wantBody) {
+			t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
+		}
+	})
+
+	t.Run("POST", func(t *testing.T) {
+		inBody := Nested{
+			Age:    25,
+			Height: 1.95,
+		}
+		wantBody := Example{
+			Name:   "From POST",
+			Nested: inBody,
+		}
+
+		res := client.PostJson("/multi", inBody)
+
+		res.AssertStatusCode(t, routeit.StatusCreated)
+		var body Example
+		res.BodyToJson(t, &body)
+		if !reflect.DeepEqual(body, wantBody) {
+			t.Errorf(`Json response = %#v, wanted %#v`, body, wantBody)
+		}
+	})
 }
 
 func TestModify(t *testing.T) {

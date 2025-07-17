@@ -163,13 +163,6 @@ func (n *node[T]) GetOrCreateChild(key string) *node[T] {
 	return newChild
 }
 
-func (k *trieKey) Matches(cmp string) bool {
-	if k.wildcard {
-		return true
-	}
-	return k.exact == cmp
-}
-
 // Determines whether a node has strictly higher priority than another node. If
 // n is a static node (i.e. no parts of its path are dynamic), then it has
 // higher priority than anything else. If n is not static and other is, then
@@ -196,6 +189,13 @@ func (n *node[T]) HigherPriority(other *node[T]) bool {
 		return n.value.dm.first > other.value.dm.first
 	}
 	return false
+}
+
+func (k *trieKey) Matches(cmp string) bool {
+	if k.wildcard {
+		return true
+	}
+	return k.exact == cmp
 }
 
 // Collects the path parameters of the matched path

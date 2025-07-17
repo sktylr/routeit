@@ -8,7 +8,7 @@ import (
 
 // RFC-2616 states that headers may have case insensitive keys. This is
 // modelled within routeit by using a map that uses lower case keys. To
-// preserve the original case of the (first appearance of) the key, the value
+// preserve the original case of the (first appearance of the) key, the value
 // of the map is a structure containing the value string and the original key
 // string.
 type headerVal struct {

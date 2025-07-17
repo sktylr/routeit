@@ -151,7 +151,6 @@ func globalOptionsHandler() *Handler {
 	return &Handler{options: func(rw *ResponseWriter, req *Request) error {
 		// TODO: for testability, this constructs the list deterministically, since map looping is designed to be non-deterministic in go. This should be made more robust
 		allowed := []string{GET.name, HEAD.name, POST.name, PUT.name, OPTIONS.name}
-		rw.Status(StatusNoContent)
 		rw.Header("Allow", strings.Join(allowed, ", "))
 		return nil
 	}}

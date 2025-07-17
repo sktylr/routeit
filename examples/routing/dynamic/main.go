@@ -42,9 +42,7 @@ func GetServer() *routeit.Server {
 				From:    "routeit custom greeting route",
 				Message: greeting,
 			}
-			rw.Status(routeit.StatusCreated)
-			rw.Json(out)
-			return nil
+			return rw.Json(out)
 		}),
 	})
 	return srv
@@ -62,9 +60,7 @@ func HelloHandler(rw *routeit.ResponseWriter, req *routeit.Request, name string,
 		From:    from,
 		Message: in.Message,
 	}
-	rw.Status(routeit.StatusCreated)
-	rw.Json(out)
-	return nil
+	return rw.Json(out)
 }
 
 func main() {

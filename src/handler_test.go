@@ -137,7 +137,7 @@ func TestHandleGet(t *testing.T) {
 		return nil
 	})
 	req := requestWithUrlAndMethod("/foo", GET)
-	rw := newResponse(StatusOK)
+	rw := newResponseWithStatus(StatusOK)
 	wantMsg := "From inside the handler"
 
 	err := h.handle(rw, req)
@@ -163,7 +163,7 @@ func TestHandleHead(t *testing.T) {
 		return nil
 	})
 	req := requestWithUrlAndMethod("/foo", HEAD)
-	rw := newResponse(StatusOK)
+	rw := newResponseWithStatus(StatusOK)
 	wantLen := uint(len("From inside the handler"))
 
 	err := h.handle(rw, req)
@@ -193,7 +193,7 @@ func TestHandlePost(t *testing.T) {
 		return nil
 	})
 	req := requestWithUrlAndMethod("/foo", POST)
-	rw := newResponse(StatusOK)
+	rw := newResponseWithStatus(StatusOK)
 	wantMsg := "From inside the handler"
 
 	err := h.handle(rw, req)
@@ -218,7 +218,7 @@ func TestHandleOptions(t *testing.T) {
 		return nil
 	})
 	req := requestWithUrlAndMethod("/foo", OPTIONS)
-	rw := newResponse(StatusNoContent)
+	rw := newResponseWithStatus(StatusNoContent)
 
 	err := h.handle(rw, req)
 
@@ -243,7 +243,7 @@ func TestHandleUnsupportedMethod(t *testing.T) {
 		return nil
 	})
 	req := requestWithUrlAndMethod("/foo", POST)
-	rw := newResponse(StatusOK)
+	rw := newResponseWithStatus(StatusOK)
 
 	err := h.handle(rw, req)
 

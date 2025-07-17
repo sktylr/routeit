@@ -20,6 +20,7 @@ type uri struct {
 	queryParams queryParameters
 }
 
+// TODO: this doesn't enforce that all characters are legal
 func parseUri(uriRaw string) (*uri, *HttpError) {
 	// When the raw URI is "*", this means that the request is an OPTIONS
 	// request for the whole server. At this point we know that if the URI is

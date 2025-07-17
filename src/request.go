@@ -55,8 +55,8 @@ type uri struct {
 
 type protocolLine struct {
 	mthd  HttpMethod
-	path  string
 	prtcl string
+	uri   uri
 }
 
 // Parses the raw byte slice of the request into a more usable request structure
@@ -89,11 +89,6 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	bdyRaw := sections[len(sections)-1]
 
 	ptcl, err := parseProtocolLine(prtclRaw)
-	if err != nil {
-		return nil, err
-	}
-
-	uri, err := parseUri(ptcl.path)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +140,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		ct = parseContentType(ctRaw)
 	}
 
-	req := Request{mthd: ptcl.mthd, uri: uri, headers: reqHdrs, body: body, ct: ct}
+	req := Request{mthd: ptcl.mthd, uri: ptcl.uri, headers: reqHdrs, body: body, ct: ct}
 	return &req, nil
 }
 
@@ -222,12 +217,12 @@ func (req *Request) ContentType() ContentType {
 }
 
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
-	split := bytes.Split(raw, []byte(" "))
-	if len(split) != 3 {
+	startLineSplit := bytes.Split(raw, []byte(" "))
+	if len(startLineSplit) != 3 {
 		return protocolLine{}, BadRequestError()
 	}
 
-	mthdRaw, path, prtcl := split[0], string(split[1]), string(split[2])
+	mthdRaw, uriRaw, prtcl := startLineSplit[0], string(startLineSplit[1]), string(startLineSplit[2])
 	mthd, found := methodLookup[string(mthdRaw)]
 	if !found {
 		return protocolLine{}, NotImplementedError()
@@ -235,55 +230,55 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	if prtcl != "HTTP/1.1" {
 		return protocolLine{}, HttpVersionNotSupportedError()
 	}
-	if path == "*" && mthd != OPTIONS {
-		// TODO: check error message
+	if uriRaw == "*" && mthd != OPTIONS {
+		// TODO: check error message - should this be a 400 or something else?
 		return protocolLine{}, BadRequestError()
 	}
 
 	// TODO: need to return 414: URI Too Long if URI is too long
-	return protocolLine{mthd, path, prtcl}, nil
-}
 
-func parseUri(raw string) (uri, *HttpError) {
+	protocol := protocolLine{mthd: mthd, prtcl: prtcl}
+
 	// When the raw URI is "*", this means that the request is an OPTIONS
 	// request for the whole server. At this point we know that if the URI is
 	// "*", then it is a valid request. We can skip the rest of the parsing.
-	if raw == "*" {
-		return uri{path: "*"}, nil
+	if uriRaw == "*" {
+		protocol.uri = uri{path: "*"}
+		return protocol, nil
 	}
 
-	split := strings.Split(raw, "?")
+	uriSplit := strings.Split(uriRaw, "?")
 
-	endpoint := split[0]
-	if !strings.HasPrefix(endpoint, "/") {
+	path := uriSplit[0]
+	if !strings.HasPrefix(path, "/") {
 		// Per FRC-9112 Section 3.2.1 guidance, origin-form request targets
 		// must include a leading slash. This server adopts a lenient approach
 		// that will prefix this slash if not present. If the URI is invalid it
 		// will be found later by the router.
-		endpoint = "/" + endpoint
+		path = "/" + path
 	}
 
 	queryParams := queryParameters{}
-	uri := uri{path: endpoint, queryParams: queryParams}
+	protocol.uri = uri{path: path, queryParams: queryParams}
 
-	if len(split) == 1 {
+	if len(uriSplit) == 1 {
 		// No query string present
-		return uri, nil
+		return protocol, nil
 	}
 
-	if len(split) > 2 {
+	if len(uriSplit) > 2 {
 		// There should only be 1 `?`. Any `?` that feature as part of the
 		// query string should be URL encoded.
-		return uri, BadRequestError()
+		return protocol, BadRequestError()
 	}
 
-	for query := range strings.SplitSeq(split[1], "&") {
+	for query := range strings.SplitSeq(uriSplit[1], "&") {
 		kvp := strings.Split(query, "=")
 		if len(kvp) != 2 {
-			return uri, BadRequestError()
+			return protocol, BadRequestError()
 		}
 		queryParams[kvp[0]] = kvp[1]
 	}
 
-	return uri, nil
+	return protocol, nil
 }

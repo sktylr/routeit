@@ -98,9 +98,19 @@ func TestNewServerOnlyDebug(t *testing.T) {
 	if !srv.conf.Debug {
 		t.Error("expected Debug to be true")
 	}
-	if !srv.log.Enabled(context.TODO(), slog.LevelDebug) {
+	if !srv.log.Enabled(context.Background(), slog.LevelDebug) {
 		t.Error("expected DEBUG logging to be enabled")
 	}
+}
+
+func TestNewServerPanicsURLRewritePathNotConfFile(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected NewServer to panic, did not")
+		}
+	}()
+
+	NewServer(ServerConfig{URLRewritePath: "foo.bar"})
 }
 
 func verifyDefaultPort(t *testing.T, conf ServerConfig) {
@@ -148,7 +158,7 @@ func verifyDefaultDebugLevel(t *testing.T, srv *Server) {
 	if srv.conf.Debug {
 		t.Error("did not expect Debug to be true")
 	}
-	if srv.log.Enabled(context.TODO(), slog.LevelDebug) {
+	if srv.log.Enabled(context.Background(), slog.LevelDebug) {
 		t.Error("did not expect DEBUG logging to be enabled")
 	}
 }

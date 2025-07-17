@@ -401,6 +401,117 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
+func TestNewRewrite(t *testing.T) {
+	t.Run("panics", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			raw    string
+			before map[string]string
+		}{
+			{
+				"only one entry",
+				"/foo",
+				map[string]string{},
+			},
+			{
+				"missing leading slash",
+				"foo /bar",
+				map[string]string{},
+			},
+			{
+				"too many entries",
+				"/foo /bar /baz",
+				map[string]string{},
+			},
+			{
+				"conflicting duplication",
+				"/foo /bar",
+				map[string]string{"/foo": "/baz"},
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				router := newRouter()
+				router.rewrites = tc.before
+
+				defer func() {
+					if r := recover(); r == nil {
+						t.Error("expected panic, found none")
+					}
+				}()
+
+				router.NewRewrite(tc.raw)
+			})
+		}
+	})
+
+	t.Run("happy", func(t *testing.T) {
+		tests := []struct {
+			name string
+			raw  string
+			want map[string]string
+		}{
+			{
+				"empty line",
+				"",
+				map[string]string{},
+			},
+			{
+				"comment line",
+				"# This is a comment",
+				map[string]string{},
+			},
+			{
+				"comment with leading whitespace",
+				"      # Comment",
+				map[string]string{},
+			},
+			{
+				"simple rewrite",
+				"/foo /bar",
+				map[string]string{"/foo": "/bar"},
+			},
+			{
+				"skips equivalences",
+				"/foo /foo",
+				map[string]string{},
+			},
+			{
+				"comment after value",
+				"/foo/bar /baz # The comment",
+				map[string]string{"/foo/bar": "/baz"},
+			},
+			{
+				"comment immediately after value (no whitespace)",
+				"/foo/bar /baz# The comment",
+				map[string]string{"/foo/bar": "/baz"},
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				router := newRouter()
+
+				router.NewRewrite(tc.raw)
+
+				if len(router.rewrites) != len(tc.want) {
+					t.Errorf(`len(rewrites) = %d, wanted %d`, len(router.rewrites), len(tc.want))
+				}
+				for k, v := range tc.want {
+					actual, exists := router.rewrites[k]
+					if !exists {
+						t.Errorf("rewrites[%#q] not found, expected to find", k)
+					}
+					if actual != v {
+						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, actual, v)
+					}
+				}
+			})
+		}
+	})
+}
+
 func defaultRouteRegistry() RouteRegistry {
 	return RouteRegistry{
 		"/some/route":    Get(doNotWantHandler),

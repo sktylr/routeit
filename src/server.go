@@ -1,11 +1,14 @@
 package routeit
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -44,6 +47,17 @@ type ServerConfig struct {
 	// servers. Example behaviour includes logging request bodies for 4xx or
 	// 5xx responses.
 	Debug bool
+	// The path to the configuration file holding the URL rewrite information
+	// for the server. It may be anywhere on the system, but must exist and be
+	// readable by the server, otherwise the setup will panic. The file must be
+	// a .conf file following the URL rewrite syntax. If the rewrites are
+	// illegal (e.g. conflicting entries, invalid URI's or malformed in
+	// general), the server setup will panic. Rewriting is not recursive, i.e.
+	// if a server has rules /foo -> /bar and /bar -> /baz, an incoming request
+	// to /foo will only be rewritten to /bar, it will not take the second step
+	// to /baz. The [Request.Path] method always returns the request path
+	// **after** rewriting.
+	URLRewritePath string
 }
 
 type Server struct {
@@ -80,6 +94,7 @@ func NewServer(conf ServerConfig) *Server {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &logOpts)
 	s := &Server{conf: conf, router: router, log: slog.New(jsonHandler)}
 	s.middleware = newMiddleware(s.handlingMiddleware)
+	s.configureRewrites()
 	return s
 }
 
@@ -251,4 +266,32 @@ func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) 
 		return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
 	}
 	return handler.handle(rw, req)
+}
+
+// Parses the URL rewrite file, if provided, and adds all rewrite entries to
+// the router. Will panic if the input is malformed or invalid in any way.
+func (s *Server) configureRewrites() {
+	if s.conf.URLRewritePath == "" {
+		return
+	}
+
+	path := path.Clean(s.conf.URLRewritePath)
+	if !strings.HasPrefix(path, ".conf") {
+		panic(fmt.Errorf(`URL rewrite file %#q is not a ".conf" file`, s.conf.URLRewritePath))
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		panic(fmt.Errorf("unable to open URL rewrite file %v", err))
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		s.router.NewRewrite(scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		panic(fmt.Errorf(`error while parsing URL rewrite config %v`, err))
+	}
 }

@@ -10,6 +10,7 @@ package routeit
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -218,6 +219,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 
 	// TODO: some of the leading slash stuff makes this more confusing than it should be
 
+	frequencies := map[string]int{}
 	first, total := int(^uint(0)>>1), 0
 	var sb strings.Builder
 	for i, seg := range strings.Split(path, "/") {
@@ -234,13 +236,26 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			// We have a segment that is ":name". We want to convert this into
 			// a named character group that allows ASCII characters, stopping
 			// at the first /.
+			name := seg[1:]
 			sb.WriteString("(?P<")
-			sb.WriteString(seg[1:])
+			sb.WriteString(name)
 			sb.WriteString(">[^/]+)")
 			total++
 			if i < first {
 				first = i
 			}
+			count, exists := frequencies[name]
+			if !exists {
+				frequencies[name] = 1
+			} else {
+				frequencies[name] = count + 1
+			}
+		}
+	}
+
+	for k, v := range frequencies {
+		if v != 1 {
+			panic(fmt.Sprintf("duplicate entries in same route for name %#q", k))
 		}
 	}
 

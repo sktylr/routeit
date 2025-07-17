@@ -68,7 +68,10 @@ func (t *trie[T]) Find(path string) (*T, pathParameters, bool) {
 	}
 
 	eligible := []*node[T]{t.root}
-	for seg := range strings.SplitSeq(path, "/") {
+	for i, seg := range strings.Split(path, "/") {
+		if i == 0 && seg == "" {
+			continue
+		}
 		eligibleChildren := []*node[T]{}
 		found := false
 		for _, current := range eligible {
@@ -111,7 +114,10 @@ func (t *trie[T]) Insert(path string, value *T) {
 	}
 
 	current := t.root
-	for seg := range strings.SplitSeq(path, "/") {
+	for i, seg := range strings.Split(path, "/") {
+		if i == 0 && seg == "" {
+			continue
+		}
 		current = current.GetOrCreateChild(seg)
 	}
 

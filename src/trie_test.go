@@ -24,6 +24,11 @@ func TestTrieLookup(t *testing.T) {
 				map[string]int{"/foo/bar/baz": 42, "/foo/baz": 19, "/foo/bar/qux": 13},
 				"/foo/bar",
 			},
+			{
+				"dynamic present but non value",
+				map[string]int{"/foo/:bar/baz": 42},
+				"/foo/bar",
+			},
 		}
 
 		for _, tc := range tests {
@@ -69,6 +74,42 @@ func TestTrieLookup(t *testing.T) {
 				"/foo/bar",
 				42,
 			},
+			{
+				"dynamic leaf",
+				map[string]int{"/foo/:bar": 14},
+				"/foo/some-variable",
+				14,
+			},
+			{
+				"dynamic valid non-leaf",
+				map[string]int{"/foo/:bar": 15, "/foo/:bar/:baz": 13},
+				"/foo/some-variable",
+				15,
+			},
+			{
+				"prioritises exact match",
+				map[string]int{"/foo/bar": 13, "/foo/:var": 100, "/foo/baz": 42},
+				"/foo/baz",
+				42,
+			},
+			{
+				"handles complex dynamic matches",
+				map[string]int{"/foo/:bar": 15},
+				"/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
+				15,
+			},
+			{
+				"prioritises more specific dynamic matches",
+				map[string]int{"/foo/:bar": 17, "/:foo/bar": 13},
+				"/foo/bar",
+				17,
+			},
+			{
+				"prioritises dynamic nodes with more static components",
+				map[string]int{"/foo/:bar/:baz": 42, "/foo/:bar/baz": 13},
+				"/foo/bar/baz",
+				13,
+			},
 		}
 
 		for _, tc := range tests {
@@ -83,7 +124,7 @@ func TestTrieLookup(t *testing.T) {
 					t.Errorf("Trie.Find(%#q) expected to find element", tc.search)
 				}
 				if *actual != tc.want {
-					t.Errorf(`trie["%s"] = %d, wanted %d`, tc.search, actual, tc.want)
+					t.Errorf(`trie["%s"] = %d, wanted %d`, tc.search, *actual, tc.want)
 				}
 			})
 		}

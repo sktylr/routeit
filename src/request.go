@@ -150,7 +150,6 @@ func (req *Request) Header(key string) (string, bool) {
 	return val, found
 }
 
-// TODO: query params are currently not url decoded!
 // Access a query parameter if present
 func (req *Request) QueryParam(key string) (string, bool) {
 	val, found := req.uri.queryParams[key]

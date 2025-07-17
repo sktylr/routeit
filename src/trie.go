@@ -136,13 +136,27 @@ func (t *trie[T]) Insert(path string, value *T) {
 }
 
 func (n *node[T]) GetOrCreateChild(key string) *node[T] {
+	wildcard := strings.HasPrefix(key, ":")
+	var best *node[T]
 	for _, child := range n.children {
 		if child.key.exact == key {
 			// We don't use the wildcard comparison here, otherwise we would
 			// match all static paths against dynamic paths, causing some nodes
 			// to be overwritten depending on the order of insertions.
 			return child
+		} else if wildcard && child.key.wildcard {
+			// Doing this ensure that we only ever have 1 dynamic node per
+			// group of children. Since the name used for the dynamic segment
+			// is stored on the value, we can ignore it here. This keeps the
+			// trie leaner, but also means we don't end up with impossibly
+			// ambiguous inserts, such as /:foo/bar/:bar and /:foo/bar/:baz,
+			// where there is no sensible way to determine which to return
+			// given a string like /foo/bar/baz.
+			best = child
 		}
+	}
+	if best != nil {
+		return best
 	}
 	newChild := &node[T]{key: newKey(key)}
 	n.children = append(n.children, newChild)

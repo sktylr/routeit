@@ -164,6 +164,16 @@ func TestTrieInsertion(t *testing.T) {
 				"/:foo/bar/:foo",
 				newTrie[int](),
 			},
+			{
+				"conflicting dynamic",
+				"/:foo/bar/:bar",
+				func() *trie[int] {
+					trie := newTrie[int]()
+					v := 17
+					trie.Insert("/:foo/bar/:baz", &v)
+					return trie
+				}(),
+			},
 		}
 
 		for _, tc := range tests {

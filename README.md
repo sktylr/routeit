@@ -91,27 +91,11 @@ Dynamic handling is managed by extending the values stored in the value nodes of
 Dynamic components are registered to the trie with an empty key and a mark that they are dynamic.
 These dynamic components match against all inputs.
 
-When traversing the trie, eligible candidates are gathered into a slice and iterated over to perform a BFS.
-Eligible nodes are rejected if their children do not feature a valid node.
-Once all eligible value nodes are found, they are iterated to find the one of highest priority.
-
-Static matches have the highest priority.
-Dynamic matches are judged on their specificity.
-A dynamic route is more specific than another if it has strictly less dynamic components (where a dynamic component is a path segment that dynamically matches) than the other, or has the same number of dynamic components and features more leading static components in the URI.
-An example is shown in the table below.
-Dynamic components are denoted with a leading `:`.
-
-| A               | B                | Comparing      | More specific | Reason                                                            |
-| --------------- | ---------------- | -------------- | ------------- | ----------------------------------------------------------------- |
-| `/foo/bar`      | `/foo/:baz`      | `/foo/bar`     | A             | Static path                                                       |
-| `/:foo/bar`     | `/foo/:bar`      | `/foo/bar`     | B             | Same number of dynamic components, more leading static components |
-| `/foo/:bar/baz` | `/:foo/bar/:baz` | `/foo/bar/baz` | A             | Less dynamic components                                           |
-
 Dynamic components are denoted with a leading `:`, followed by the name they should be looked up by.
 The naming is case sensitive.
 Currently dynamic routing only supports full string matching and does not support any regex.
 ```golang
-"/:foo/bar/:baz": routeit.Get(func(rw *ResponseWriter, req *Request) error {
+"/:foo/bar/:baz": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 	foo, _ := req.PathParam("foo")
 	baz, _ := req.PathParam("baz")
 
@@ -121,6 +105,21 @@ Currently dynamic routing only supports full string matching and does not suppor
 ```
 
 A more comprehensive example can be found in [`examples/routing/dynamic`](/examples/routing/dynamic).
+
+When traversing the trie, eligible candidates are gathered into a slice and iterated over to perform a BFS.
+Eligible nodes are rejected if their children do not feature a valid node.
+Once all eligible value nodes are found, they are iterated to find the one of highest priority.
+
+Static matches have the highest priority.
+Dynamic matches are judged on their specificity.
+A dynamic route is more specific than another if it has strictly less dynamic components (where a dynamic component is a path segment that dynamically matches) than the other, or has the same number of dynamic components and features more leading static components in the URI.
+An example is shown in the table below.
+
+| A               | B                | Comparing      | More specific | Reason                                                            |
+| --------------- | ---------------- | -------------- | ------------- | ----------------------------------------------------------------- |
+| `/foo/bar`      | `/foo/:baz`      | `/foo/bar`     | A             | Static path                                                       |
+| `/:foo/bar`     | `/foo/:bar`      | `/foo/bar`     | B             | Same number of dynamic components, more leading static components |
+| `/foo/:bar/baz` | `/:foo/bar/:baz` | `/foo/bar/baz` | A             | Less dynamic components                                           |
 
 #### Testing
 

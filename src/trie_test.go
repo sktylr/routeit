@@ -151,3 +151,34 @@ func TestTrieLookup(t *testing.T) {
 		}
 	})
 }
+
+func TestTrieInsertion(t *testing.T) {
+	t.Run("bad inputs", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			in    string
+			start *trie[int]
+		}{
+			{
+				"duplicate names",
+				"/:foo/bar/:foo",
+				newTrie[int](),
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				trie := tc.start
+
+				defer func() {
+					if r := recover(); r == nil {
+						t.Error("trie invalid insertion, expected panic")
+					}
+				}()
+
+				val := 42
+				trie.Insert(tc.in, &val)
+			})
+		}
+	})
+}

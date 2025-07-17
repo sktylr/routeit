@@ -80,7 +80,6 @@ func GetServer() *routeit.Server {
 				},
 			}
 
-			rw.Status(routeit.StatusCreated)
 			return rw.Json(res)
 		}),
 		"/multi": routeit.MultiMethod(routeit.MultiMethodHandler{
@@ -100,8 +99,7 @@ func GetServer() *routeit.Server {
 						Height: 2.0,
 					},
 				}
-				rw.Json(body)
-				return nil
+				return rw.Json(body)
 			},
 			Post: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 				var in Nested
@@ -110,7 +108,6 @@ func GetServer() *routeit.Server {
 					return routeit.BadRequestError()
 				}
 
-				rw.Status(routeit.StatusCreated)
 				res := Example{
 					Name:   "From POST",
 					Nested: in,

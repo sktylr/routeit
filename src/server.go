@@ -222,8 +222,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		}
 	}()
 
-	// Default to a 200 OK status code
-	rw = newResponse(StatusOK)
+	rw = newResponseForMethod(req.mthd)
 	var err error
 	chain := s.middleware.NewChain()
 	err = chain.Proceed(rw, req)

@@ -14,7 +14,22 @@ type ResponseWriter struct {
 	hdrs headers
 }
 
-func newResponse(status HttpStatus) *ResponseWriter {
+// Sets a sensible default for the status code of the response depending on the
+// request method. For example, most POST requests return a 201: Created, while
+// many DELETE and OPTIONS requests return 204: No Content. This can be
+// overwritten by the integrator using [ResponseWriter.Status]
+func newResponseForMethod(method HttpMethod) *ResponseWriter {
+	switch method {
+	case POST:
+		return newResponseWithStatus(StatusCreated)
+	case OPTIONS:
+		return newResponseWithStatus(StatusNoContent)
+	default:
+		return newResponseWithStatus(StatusOK)
+	}
+}
+
+func newResponseWithStatus(status HttpStatus) *ResponseWriter {
 	headers := newResponseHeaders()
 	return &ResponseWriter{s: status, hdrs: headers}
 }
@@ -60,8 +75,10 @@ func (rw *ResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
 	rw.hdrs.Set("Content-Type", ct.string())
 }
 
-// Sets the status of the response. Only required when the default status of
-// 200: OK is not suitable.
+// Sets the status of the response. The server sets an opinionated default
+// depending on the incoming request. POST requests default to 201: Created and
+// DELETE requests default to 204: No Content. All other request methods
+// default to 200: OK.
 func (rw *ResponseWriter) Status(s HttpStatus) {
 	rw.s = s
 }

@@ -104,7 +104,7 @@ func (e *HttpError) Error() string {
 }
 
 func (e *HttpError) toResponse() *ResponseWriter {
-	rw := newResponse(e.status)
+	rw := newResponseWithStatus(e.status)
 	rw.Text(e.Error())
 	maps.Copy(rw.hdrs, e.headers)
 	return rw

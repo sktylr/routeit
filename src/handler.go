@@ -94,7 +94,6 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 			for _, allow := range h.allowed {
 				allowS = append(allowS, allow.name)
 			}
-			rw.Status(StatusNoContent)
 			rw.Header("Allow", strings.Join(allowS, ", "))
 			return nil
 		}

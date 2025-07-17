@@ -15,9 +15,13 @@ type queryParameters map[string]string
 // and path parameters may be populated by the router.
 type uri struct {
 	// TODO: could consider storing the raw values here as well
-	path        string
-	pathParams  pathParameters
-	queryParams queryParameters
+	// The edge path is the path that the request reaches the edge of the
+	// server with. This may be different to the rewritten path, if URL
+	// rewrites are configured for the server.
+	edgePath      string
+	rewrittenPath string
+	pathParams    pathParameters
+	queryParams   queryParameters
 }
 
 // TODO: this doesn't enforce that all characters are legal
@@ -26,7 +30,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 	// request for the whole server. At this point we know that if the URI is
 	// "*", then it is a valid request. We can skip the rest of the parsing.
 	if uriRaw == "*" {
-		return &uri{path: "*"}, nil
+		return &uri{edgePath: "*"}, nil
 	}
 
 	// The client (e.g. browsers) typically strips the fragment from the
@@ -58,7 +62,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 		path = "/" + path
 	}
 
-	uri := &uri{path: path, queryParams: queryParameters{}}
+	uri := &uri{edgePath: path, queryParams: queryParameters{}}
 
 	if hasQuery {
 		if err := parseQueryParams(rawQuery, &uri.queryParams); err != nil {

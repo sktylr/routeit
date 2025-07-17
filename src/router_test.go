@@ -354,6 +354,53 @@ func TestDynamicLookupIncludesPathParams(t *testing.T) {
 	verifyRouteFoundWithParams(t, router, req, wantParams)
 }
 
+func TestRewrite(t *testing.T) {
+	tests := []struct {
+		name    string
+		base    map[string]string
+		in      string
+		want    string
+		rewrite bool
+	}{
+		{
+			"empty",
+			map[string]string{},
+			"/foo/bar",
+			"/foo/bar",
+			false,
+		},
+		{
+			"1 element no match",
+			map[string]string{"/foo": "/bar"},
+			"/foo/bar",
+			"/foo/bar",
+			false,
+		},
+		{
+			"1 element match",
+			map[string]string{"/foo/bar": "/baz"},
+			"/foo/bar",
+			"/baz",
+			true,
+		},
+	}
+	router := newRouter()
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router.rewrites = tc.base
+
+			actual, rewrite := router.Rewrite(tc.in)
+			if rewrite != tc.rewrite {
+				t.Errorf(`Rewrite(%#q) didRewrite? = %t, wanted %t`, tc.in, rewrite, tc.rewrite)
+			}
+			if actual != tc.want {
+				t.Errorf(`Rewrite(%#q) rewritten = %s, wanted %s`, tc.in, actual, tc.want)
+			}
+		})
+	}
+}
+
 func defaultRouteRegistry() RouteRegistry {
 	return RouteRegistry{
 		"/some/route":    Get(doNotWantHandler),
@@ -374,7 +421,7 @@ func doNotWantHandler(rw *ResponseWriter, req *Request) error {
 }
 
 func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
-	return &Request{uri: uri{path: url}, mthd: method}
+	return &Request{uri: uri{edgePath: url}, mthd: method}
 }
 
 func verifyRouteFound(t *testing.T, router *router, req *Request) {

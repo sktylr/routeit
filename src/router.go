@@ -36,6 +36,7 @@ type router struct {
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticLoader *Handler
+	rewrites     map[string]string
 }
 
 func newRouter() *router {
@@ -131,6 +132,15 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 	}
 
 	return nil, false
+}
+
+// Passes the incoming URL through the router's rewrites.
+func (r *router) Rewrite(url string) (string, bool) {
+	rewrite, found := r.rewrites[url]
+	if !found {
+		return url, false
+	}
+	return rewrite, true
 }
 
 // Removes a single leading slash and any trailing slashes that a route has.

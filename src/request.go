@@ -135,8 +135,13 @@ func (req *Request) Method() HttpMethod {
 }
 
 // The request's URL excluding the host. Does not include query parameters.
+// Where the server has URL rewrites configured, this will be the rewritten URL.
 func (req *Request) Path() string {
-	return req.uri.path
+	uri := req.uri
+	if uri.rewrittenPath == "" {
+		return uri.edgePath
+	}
+	return uri.rewrittenPath
 }
 
 // TODO: rethink the API here - should it return a bool???

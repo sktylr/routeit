@@ -343,6 +343,17 @@ func TestStaticDirSimplifiesExpressions(t *testing.T) {
 	}
 }
 
+func TestDynamicLookupIncludesPathParams(t *testing.T) {
+	router := newRouter()
+	router.RegisterRoutes(RouteRegistry{
+		"/:funky/:dynamic/:route": Get(wantHandler),
+	})
+	req := requestWithUrlAndMethod("/awesome/dynamic/router-magic", GET)
+
+	wantParams := pathParameters{"funky": "awesome", "dynamic": "dynamic", "route": "router-magic"}
+	verifyRouteFoundWithParams(t, router, req, wantParams)
+}
+
 func defaultRouteRegistry() RouteRegistry {
 	return RouteRegistry{
 		"/some/route":    Get(doNotWantHandler),
@@ -368,6 +379,11 @@ func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
 
 func verifyRouteFound(t *testing.T, router *router, req *Request) {
 	t.Helper()
+	verifyRouteFoundWithParams(t, router, req, pathParameters{})
+}
+
+func verifyRouteFoundWithParams(t *testing.T, router *router, req *Request, wantParams pathParameters) {
+	t.Helper()
 	got, found := router.Route(req)
 	if !found {
 		t.Error("expected route to be found")
@@ -375,6 +391,15 @@ func verifyRouteFound(t *testing.T, router *router, req *Request) {
 	err := got.handle(&ResponseWriter{}, req)
 	if err != nil {
 		t.Errorf("did not expect handler to error: %s", err.Error())
+	}
+	params := req.uri.pathParams
+	if len(params) != len(wantParams) {
+		t.Errorf(`Route() returned %d length params, wanted %d`, len(params), len(wantParams))
+	}
+	for k, v := range wantParams {
+		if params[k] != v {
+			t.Errorf(`pathParams[%#q] = %s, wanted %s`, k, params[k], v)
+		}
 	}
 }
 

@@ -104,10 +104,12 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return r.staticLoader, true
 	}
 
-	route, found := r.routes.Find(trimmed)
+	route, params, found := r.routes.Find(trimmed)
 	if route != nil && found {
+		req.uri.pathParams = params
 		return route, true
 	}
+
 	return nil, false
 }
 

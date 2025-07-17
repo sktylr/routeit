@@ -62,9 +62,9 @@ func newTrie[T any]() *trie[T] {
 }
 
 // TODO: can probably move this to its own package
-func (t *trie[T]) Find(path string) (*T, bool) {
+func (t *trie[T]) Find(path string) (*T, pathParameters, bool) {
 	if t.root == nil {
-		return nil, false
+		return nil, pathParameters{}, false
 	}
 
 	eligible := []*node[T]{t.root}
@@ -80,7 +80,7 @@ func (t *trie[T]) Find(path string) (*T, bool) {
 			}
 		}
 		if !found {
-			return nil, false
+			return nil, pathParameters{}, false
 		}
 		eligible = eligibleChildren
 	}
@@ -97,12 +97,12 @@ func (t *trie[T]) Find(path string) (*T, bool) {
 	}
 
 	if found == nil || found.value == nil {
-		return nil, false
+		return nil, pathParameters{}, false
 	}
 
 	// We omit the nil check on the inner value since by construction it should
 	// always be populated.
-	return found.value.val, true
+	return found.value.val, found.value.PathParams(path), true
 }
 
 func (t *trie[T]) Insert(path string, value *T) {
@@ -177,6 +177,31 @@ func (n *node[T]) HigherPriority(other *node[T]) bool {
 	return false
 }
 
+// Collects the path parameters of the matched path
+func (v *trieValue[T]) PathParams(path string) pathParameters {
+	if v.dm == nil {
+		return pathParameters{}
+	}
+
+	params := pathParameters{}
+	names := v.dm.re.SubexpNames()
+	matches := v.dm.re.FindStringSubmatch(path)
+
+	if matches == nil {
+		// Indicates that something has gone wrong with the regex or searching.
+		return params
+	}
+
+	for i, name := range names {
+		if i == 0 || name == "" {
+			continue
+		}
+		params[name] = matches[i]
+	}
+
+	return params
+}
+
 // Constructs a dynamic matcher for a given path, returning nil if the path has
 // no dynamic components. This includes building a named regex that can be used
 // to extract the path parameters of the request once matched.
@@ -185,10 +210,18 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 		return nil
 	}
 
+	// TODO: some of the leading slash stuff makes this more confusing than it should be
+
 	first, total := int(^uint(0)>>1), 0
 	var sb strings.Builder
 	for i, seg := range strings.Split(path, "/") {
+		if i == 0 && seg == "" {
+			continue
+		}
 		sb.WriteRune('/')
+		if i == 0 {
+			sb.WriteRune('?')
+		}
 		if !strings.HasPrefix(seg, ":") {
 			sb.WriteString(seg)
 		} else {
@@ -197,7 +230,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			// at the first /.
 			sb.WriteString("(?P<")
 			sb.WriteString(seg[1:])
-			sb.WriteString(">[&/]+)")
+			sb.WriteString(">[^/]+)")
 			total++
 			if i < first {
 				first = i

@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var rewriteParseRe = regexp.MustCompile(`^(/[\w./-]*)\s+(/[\w./-]*)(?:\s*#.*)?$`)
+
 // The [RouteRegistry] is used to associate routes with their corresponding
 // handlers. Routing supports both static and dynamic routes. The keys of the
 // [RouteRegistry] represent the route that the handler will be matched
@@ -40,7 +42,7 @@ type router struct {
 }
 
 func newRouter() *router {
-	return &router{routes: newTrie[Handler]()}
+	return &router{routes: newTrie[Handler](), rewrites: map[string]string{}}
 }
 
 // Registers the routes to the router. Uses the keys of the map as the path,
@@ -91,6 +93,34 @@ func (r *router) NewStaticDir(s string) {
 	cleaned = strings.TrimPrefix(cleaned, "/")
 	r.staticDir = cleaned
 	r.staticLoader = staticLoader(r.namespace)
+}
+
+// Adds a new URL rewrite rule to the router. Ignores comments and empty lines
+// but will panic if the input is malformed, such as an incorrect number of
+// values provided, no leading slashes, invalid URI syntax. Additionally, will
+// panic if the new rule conflicts with an existing rule.
+func (r *router) NewRewrite(raw string) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+		return
+	}
+
+	matches := rewriteParseRe.FindStringSubmatch(trimmed)
+	if len(matches) < 3 {
+		panic(fmt.Errorf("invalid configuration line - not enough entries %#q", raw))
+	}
+
+	key, value := matches[1], matches[2]
+	if key == value {
+		return
+	}
+
+	actual, found := r.rewrites[key]
+	if found && actual != value {
+		panic(fmt.Errorf("found conflicting URL rewrite rules for %#q - found both %#q and %#q", key, actual, value))
+	}
+
+	r.rewrites[key] = value
 }
 
 // Routes a request to the corresponding handler. A handler may support multiple

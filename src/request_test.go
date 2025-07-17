@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+// TODO: (currently) if a path contains a %-encoded / symbol, then this will be interpreted as a path delimiter, so will cause incorrect routing in the trie. This could be addressed by splitting on `/` first, then accepting a list in the trie, instead of the full path.
+
 func TestRequestFromRaw(t *testing.T) {
 	t.Run("invalid", func(t *testing.T) {
 		tests := []struct {
@@ -70,6 +72,21 @@ func TestRequestFromRaw(t *testing.T) {
 			{
 				"* path and not OPTIONS",
 				"GET * HTTP/1.1\r\nHost: localhost\r\n\r\n",
+				StatusBadRequest,
+			},
+			{
+				"incomplete escaping",
+				"GET /foo% HTTP/1.1\r\nHost: localhost\r\n\r\n",
+				StatusBadRequest,
+			},
+			{
+				"invalid escaping",
+				"GET /foo%ZZbar HTTP/1.1\r\nHost: localhost\r\n\r\n",
+				StatusBadRequest,
+			},
+			{
+				"mixed escaping",
+				"GET /foo%\"bar HTTP/1.1\r\nHost: localhost\r\n\r\n",
 				StatusBadRequest,
 			},
 		}
@@ -221,41 +238,53 @@ func TestRequestFromRaw(t *testing.T) {
 		})
 	})
 
-	t.Run("query string", func(t *testing.T) {
-		t.Run("parses valid", func(t *testing.T) {
-			in := []byte("GET /endpoint?q1=hello&q2=nice HTTP/1.1\r\nHost: localhost\r\n\r\n")
-			wantq1 := "hello"
-			wantq2 := "nice"
-			wantQuery := map[string]string{
-				"q1": wantq1,
-				"q2": wantq2,
-			}
+	t.Run("parses valid query string", func(t *testing.T) {
+		tests := []struct {
+			in   string
+			want map[string]string
+		}{
+			{
+				"?q1=hello&q2=nice",
+				map[string]string{
+					"q1": "hello",
+					"q2": "nice",
+				},
+			},
+			{
+				"?q1=",
+				map[string]string{"q1": ""},
+			},
+			{
+				"?q1=hello%5D",
+				map[string]string{"q1": "hello]"},
+			},
+		}
 
-			req, err := requestFromRaw(in)
-			if err != nil {
-				t.Errorf("requestFromRaw parses query string unexpected error %s", err)
-			}
-			expectBody(t, req.body, "")
-			expectUrl(t, req, "/endpoint")
-			expectMethod(t, req.mthd, GET)
-			if len(req.uri.queryParams) != len(wantQuery) {
-				t.Errorf(`requestFromRaw parses query string query = %q, wanted %#q`, req.uri.queryParams, wantQuery)
-			}
-			q1, exists := req.QueryParam("q1")
-			if !exists {
-				t.Errorf(`requestFromRaw parses query string expected header "q1" to exist`)
-			}
-			if q1 != wantq1 {
-				t.Errorf(`requestFromRaw parses query string headers["q1"] = %q, wanted %#q`, q1, wantq1)
-			}
-			q2, exists := req.QueryParam("q2")
-			if !exists {
-				t.Errorf(`requestFromRaw parses query string expected header "q2" to exist`)
-			}
-			if q2 != wantq2 {
-				t.Errorf(`requestFromRaw parses query string headers["q2"] = %q, wanted %#q`, q2, wantq2)
-			}
-		})
+		for _, tc := range tests {
+			t.Run(tc.in, func(t *testing.T) {
+				in := fmt.Appendf(nil, "GET /endpoint%s HTTP/1.1\r\nHost: localhost\r\n\r\n", tc.in)
+
+				req, err := requestFromRaw(in)
+				if err != nil {
+					t.Errorf("requestFromRaw parses query string unexpected error %s", err)
+				}
+				expectBody(t, req.body, "")
+				expectUrl(t, req, "/endpoint")
+				expectMethod(t, req.mthd, GET)
+				if len(req.uri.queryParams) != len(tc.want) {
+					t.Errorf(`requestFromRaw parses query string query = %q, wanted %#q`, req.uri.queryParams, tc.want)
+				}
+				for key, want := range tc.want {
+					actual, exists := req.QueryParam(key)
+					if !exists {
+						t.Errorf(`requestFromRaw parses query string expected %#q to exist`, key)
+					}
+					if actual != want {
+						t.Errorf(`requestFromRaw parses query string QueryParam(%#q) = %q, wanted %#q`, key, actual, want)
+					}
+				}
+			})
+		}
 	})
 }
 

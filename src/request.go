@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"reflect"
 	"strings"
 )
@@ -48,6 +49,7 @@ type queryParameters map[string]string
 // with a leading slash. Query parameters are extracted into a separate property
 // and path parameters may be populated by the router.
 type uri struct {
+	// TODO: could consider storing the raw values here as well
 	path        string
 	pathParams  pathParameters
 	queryParams queryParameters
@@ -216,6 +218,10 @@ func (req *Request) ContentType() ContentType {
 	return req.ct
 }
 
+// Parses the first line of the request. This line should contain the HTTP
+// method, requested URI and the protocol. parseProtocolLine will parse all
+// components and group them into a [protocolLine] struct, returning an error
+// if the protocol line is malformed.
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	startLineSplit := bytes.Split(raw, []byte(" "))
 	if len(startLineSplit) != 3 {
@@ -247,9 +253,27 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 		return protocol, nil
 	}
 
-	uriSplit := strings.Split(uriRaw, "?")
+	// The client (e.g. browsers) typically strips the fragment from the
+	// request before sending it. routeit does not know how to respond to a URI
+	// that contains a fragment, so we simply ignore it. We don't reject the
+	// request since we can still interpret it without the fragment, and will
+	// reject it later on if the URI is malformed.
+	uriRaw, _, _ = strings.Cut(uriRaw, "#")
 
-	path := uriSplit[0]
+	// The URI should not contain any ASCII control characters
+	for _, b := range uriRaw {
+		if b < ' ' || b == 0x7F {
+			return protocolLine{}, BadRequestError()
+		}
+	}
+
+	rawPath, rawQuery, hasQuery := strings.Cut(uriRaw, "?")
+
+	path, err := url.PathUnescape(rawPath)
+	if err != nil {
+		return protocolLine{}, BadRequestError()
+	}
+
 	if !strings.HasPrefix(path, "/") {
 		// Per FRC-9112 Section 3.2.1 guidance, origin-form request targets
 		// must include a leading slash. This server adopts a lenient approach
@@ -261,23 +285,29 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	queryParams := queryParameters{}
 	protocol.uri = uri{path: path, queryParams: queryParams}
 
-	if len(uriSplit) == 1 {
-		// No query string present
+	if !hasQuery {
 		return protocol, nil
 	}
 
-	if len(uriSplit) > 2 {
-		// There should only be 1 `?`. Any `?` that feature as part of the
-		// query string should be URL encoded.
+	if strings.Contains(rawQuery, "?") {
+		// There should only be 1 `?`, which we have stripped off. Any `?` that
+		// feature as part of the query string should be URL encoded.
 		return protocol, BadRequestError()
 	}
 
-	for query := range strings.SplitSeq(uriSplit[1], "&") {
-		kvp := strings.Split(query, "=")
-		if len(kvp) != 2 {
-			return protocol, BadRequestError()
+	for query := range strings.SplitSeq(rawQuery, "&") {
+		// Most servers interpret the query component "?foo=" or "?foo" to mean
+		// that the value of "foo" is "".
+		key, rest, _ := strings.Cut(query, "=")
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return protocolLine{}, BadRequestError()
 		}
-		queryParams[kvp[0]] = kvp[1]
+		val, err := url.QueryUnescape(rest)
+		if err != nil {
+			return protocolLine{}, BadRequestError()
+		}
+		queryParams[key] = val
 	}
 
 	return protocol, nil

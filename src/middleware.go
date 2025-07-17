@@ -1,5 +1,15 @@
 package routeit
 
+// A middleware function is called for all incoming requests that reach the
+// server. It can choose to block the request, or pass it off to the next
+// middleware in the chain using [Chain.Proceed]. Common use cases include
+// authentication or rate-limiting. The order with which middleware is
+// registered to the server is important, as it defines the order of the chain.
+// If a middleware chooses to block a request (by returning an error), it will
+// not be propagated through to the rest of the chain, nor the handler defined
+// by the application for the route and method of the request.
+type Middleware func(c *Chain, rw *ResponseWriter, req *Request) error
+
 type middleware struct {
 	mwares []Middleware
 	last   Middleware
@@ -43,13 +53,3 @@ func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
 	c.i++
 	return next(c, rw, req)
 }
-
-// A middleware function is called for all incoming requests that reach the
-// server. It can choose to block the request, or pass it off to the next
-// middleware in the chain using [Chain.Proceed]. Common use cases include
-// authentication or rate-limiting. The order with which middleware is
-// registered to the server is important, as it defines the order of the chain.
-// If a middleware chooses to block a request (by returning an error), it will
-// not be propagated through to the rest of the chain, nor the handler defined
-// by the application for the route and method of the request.
-type Middleware func(c *Chain, rw *ResponseWriter, req *Request) error

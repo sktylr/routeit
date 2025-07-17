@@ -120,6 +120,8 @@ Currently dynamic routing only supports full string matching and does not suppor
 })
 ```
 
+A more comprehensive example can be found in [`examples/routing/dynamic`](/examples/routing/dynamic).
+
 #### Testing
 
 The framework supports a simple testing paradigm that allows user to perform E2E-like tests on their server.

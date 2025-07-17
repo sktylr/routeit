@@ -139,6 +139,7 @@ func (req *Request) Path() string {
 	return req.uri.path
 }
 
+// TODO: rethink the API here - should it return a bool???
 func (req *Request) PathParam(param string) (string, bool) {
 	val, found := req.uri.pathParams[param]
 	return val, found

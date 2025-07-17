@@ -7,6 +7,26 @@ import (
 	"strings"
 )
 
+// The [RouteRegistry] is used to associate routes with their corresponding
+// handlers. Routing supports both static and dynamic routes. The keys of the
+// [RouteRegistry] represent the route that the handler will be matched
+// against. They can optionally include a leading slash and all trailing
+// slashes will be stripped. Static routes can be supplied by providing the
+// exact path the route should match against. Dynamic routes can be provided
+// using a colon-notation.
+//
+// Examples:
+//   - "/foo/:bar" -> This will match against "/foo/<anything>" and name the
+//     first matched parameter "bar".
+//   - "/:foo/bar/:baz" -> This will match against "/<anything>/bar/<anything>".
+//     The first matched parameter will be named "foo", while the second will
+//     be named "baz".
+//
+// Registering routes with dynamic components with the same name (such as
+// "/:foo/bar/:foo") will cause the application to panic.
+//
+// Names parameters can be accessed using [Request.PathParam], providing the
+// case-sensitive name of the parameter as provided in the route registration.
 type RouteRegistry map[string]Handler
 
 type router struct {

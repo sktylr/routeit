@@ -28,7 +28,7 @@ $ curl http://localhost:8080/hello/bob -H "Content-Type: application/json" -d '{
 ```
 
 `/:greeting/bob`. This route is another dynamic route.
-Compare to `/hello:name`, it is less specific due to having a dynamic component earlier in the route.
+Compared to `/hello/:name`, it is less specific due to having a dynamic component earlier in the route.
 It uses the `greeting` path parameter to compose the output object.
 ```bash
 $ curl http://localhost:8080/welcome/bob -X POST

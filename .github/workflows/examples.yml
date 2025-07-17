@@ -9,6 +9,8 @@ jobs:
     strategy:
         matrix:
             example:
+                - middleware/simple
+                - routing/dynamic
                 - routing/namespaced
                 - routing/simple
                 - simple

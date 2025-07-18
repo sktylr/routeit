@@ -44,11 +44,11 @@ type router struct {
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticLoader *Handler
-	rewrites     map[string]string
+	rewrites     *trie[string]
 }
 
 func newRouter() *router {
-	return &router{routes: newTrie[Handler](), rewrites: map[string]string{}}
+	return &router{routes: newTrie[Handler](), rewrites: newTrie[string]()}
 }
 
 // Registers the routes to the router. Uses the keys of the map as the path,
@@ -121,12 +121,12 @@ func (r *router) NewRewrite(raw string) {
 		return
 	}
 
-	actual, found := r.rewrites[key]
-	if found && actual != value {
-		panic(fmt.Errorf("found conflicting URL rewrite rules for %#q - found both %#q and %#q", key, actual, value))
+	actual, _, found := r.rewrites.Find(key)
+	if found && *actual != value {
+		panic(fmt.Errorf("found conflicting URL rewrite rules for %#q - found both %#q and %#q", key, *actual, value))
 	}
 
-	r.rewrites[key] = value
+	r.rewrites.Insert(key, &value)
 }
 
 // Routes a request to the corresponding handler. A handler may support multiple
@@ -172,11 +172,11 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 
 // Passes the incoming URL through the router's rewrites.
 func (r *router) Rewrite(url string) (string, bool) {
-	rewrite, found := r.rewrites[url]
+	rewrite, _, found := r.rewrites.Find(url)
 	if !found {
 		return url, false
 	}
-	return rewrite, true
+	return *rewrite, true
 }
 
 // Removes a single leading slash and any trailing slashes that a route has.

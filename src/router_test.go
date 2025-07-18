@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -138,6 +139,14 @@ func TestRoute(t *testing.T) {
 				},
 				path:           "/awesome/dynamic/router-magic",
 				wantPathParams: pathParameters{"funky": "awesome", "dynamic": "dynamic", "route": "router-magic"},
+			},
+			{
+				name: "complex dynamic matches",
+				reg: RouteRegistry{
+					"/foo/:bar": Get(wantHandler),
+				},
+				path:           "/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
+				wantPathParams: pathParameters{"bar": "this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8"},
 			},
 		}
 
@@ -384,7 +393,9 @@ func TestRewrite(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			router.rewrites = tc.base
+			for k, v := range tc.base {
+				router.NewRewrite(fmt.Sprintf("%s %s", k, v))
+			}
 
 			actual, rewrite := router.Rewrite(tc.in)
 			if rewrite != tc.rewrite {
@@ -469,7 +480,9 @@ func TestNewRewrite(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				router := newRouter()
-				router.rewrites = tc.before
+				for k, v := range tc.before {
+					router.NewRewrite(fmt.Sprintf("%s %s", k, v))
+				}
 
 				defer func() {
 					if r := recover(); r == nil {
@@ -541,16 +554,13 @@ func TestNewRewrite(t *testing.T) {
 
 				router.NewRewrite(tc.raw)
 
-				if len(router.rewrites) != len(tc.want) {
-					t.Errorf(`len(rewrites) = %d, wanted %d`, len(router.rewrites), len(tc.want))
-				}
 				for k, v := range tc.want {
-					actual, exists := router.rewrites[k]
+					actual, _, exists := router.rewrites.Find(k)
 					if !exists {
 						t.Errorf("rewrites[%#q] not found, expected to find", k)
 					}
-					if actual != v {
-						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, actual, v)
+					if *actual != v {
+						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *actual, v)
 					}
 				}
 			})

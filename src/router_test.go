@@ -258,37 +258,38 @@ func TestRoute(t *testing.T) {
 			})
 		}
 	})
-}
 
-func TestStaticRoutingFound(t *testing.T) {
-	router := newRouter()
-	router.NewStaticDir("static")
-	req := requestWithUrlAndMethod("/static", GET)
+	t.Run("static found", func(t *testing.T) {
+		tests := []RouteTest{
+			{
+				name: "simple",
+				path: "/static",
+			},
+			{
+				name:       "with global namespace",
+				gNamespace: "/api",
+				path:       "/api/static",
+			},
+		}
 
-	// We don't want to actually load the file from disk in the test, so we
-	// only assert on the presence of the routing. This works for these tests
-	// since we have no other handlers registered, meaning that if we found
-	// this one it must be the static loader.
-	_, found := router.Route(req)
-	if !found {
-		t.Error("expected to find static router")
-	}
-}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				router := newRouter()
+				router.NewStaticDir("static")
+				router.GlobalNamespace(tc.gNamespace)
+				req := requestWithUrlAndMethod(tc.path, GET)
 
-func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
-	router := newRouter()
-	router.GlobalNamespace("/api")
-	router.NewStaticDir("static")
-	req := requestWithUrlAndMethod("/api/static", GET)
-
-	// We don't want to actually load the file from disk in the test, so we
-	// only assert on the presence of the routing. This works for these tests
-	// since we have no other handlers registered, meaning that if we found
-	// this one it must be the static loader.
-	_, found := router.Route(req)
-	if !found {
-		t.Error("expected to find static router")
-	}
+				// We don't want to actually load the file from disk in the test, so we
+				// only assert on the presence of the routing. This works for these tests
+				// since we have no other handlers registered, meaning that if we found
+				// this one it must be the static loader.
+				_, found := router.Route(req)
+				if !found {
+					t.Error("expected to find static router")
+				}
+			})
+		}
+	})
 }
 
 func TestStaticDirEnforcesSubdirectory(t *testing.T) {

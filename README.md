@@ -94,6 +94,7 @@ These dynamic components match against all inputs.
 Dynamic components are denoted with a leading `:`, followed by the name they should be looked up by.
 The naming is case sensitive.
 Currently dynamic routing only supports full string matching and does not support any regex.
+
 ```golang
 "/:foo/bar/:baz": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 	foo, _ := req.PathParam("foo")
@@ -121,7 +122,7 @@ An example is shown in the table below.
 | `/:foo/bar`     | `/foo/:bar`      | `/foo/bar`     | B             | Same number of dynamic components, more leading static components |
 | `/foo/:bar/baz` | `/:foo/bar/:baz` | `/foo/bar/baz` | A             | Less dynamic components                                           |
 
-### URL Rewrites
+#### URL Rewrites
 
 `routeit` allows the integrator to define rewrite rules for incoming URLs.
 This is commonly preferred in servers that serve static content, as the raw URLs for static content is `<static directory>/<file name>.<extension>`, which is quite ugly.
@@ -135,6 +136,8 @@ The rewrite rules are defined using a `.conf` file and passed in using the `rout
 Unlike the static directory definition, this can be any file on the system, though it must be accessible by the server and exist at start up.
 The server will panic if the file is corrupted or badly formed and must be restarted to propagate any changes from the file.
 
+**Static rewrites**
+
 The syntax is a straightforward key value syntax with optional comments using `#`.
 Routes should be specified on their own line using `/incoming /rewrite/to`, where the key is the URL the server receives (public facing, e.g. `/about`), and the value is the URL it should rewrite to.
 The keys and values should both be prefixed with leading slashes and not have trailing slashes, and must generally by valid path components of a URL.
@@ -144,19 +147,52 @@ There must be at least 1 whitespace character between the key and value, though 
 Useless assignments (e.g. `/foo /foo`) are valid, though in practice the server will ignore them.
 Conflicting rules - such as `/foo /bar` combined with `/foo /baz` - are illegal.
 
+**Dynamic rewrites**
+
+Dynamic rewrites are also supported by `routeit`.
+They leverage the existing Trie data structure used by URL routing to also allow for dynamic rewriting.
+The syntax is quite similar to that used for regex substitution.
+The syntax is extended to allow the inclusion of `$`, `{` and `}` characters in both the key and value.
+
+Within the key, the dynamic syntax can only be used in a single path component in its entirety.
+So `/foo/${bar}` will allow for dynamic matching of any two-part path starting with `/foo` (e.g. `/foo/bar`, `/foo/qux`), but `/foo/${bar}baz` will only match exactly against `/foo/${bar}baz`.
+The same is true for incomplete variable escaping, such as `/foo/${bar`, which will only match the exact string `/foo/${bar`.
+
+Static and dynamic rules that collide (such as `/hello -> ...` and `/${name} -> ...`) are allowed, since the Trie structure will unambiguously be able to choose the static selection if it receives the exact string.
+However, conflicting dynamic rules are not allowed, in the same way conflicting static rules are not.
+This means that the following config would cause the server to panic.
+Notice how even though the variable names are different, the set of strings they both match against are exactly the same.
+
+```conf
+/foo/${bar} 	/baz/${bar}/qux
+/foo/${baz}		/bar/${baz}
+```
+
+It is not a requirement that all variables from the key are used in the value and the value may use more complex composition.
+A common example (shown in [`examples/static/rewrites/dynamic`](/examples/static/rewrites/dynamic/)) is to append file extensions to incoming requests, which avoids the need to use the extension in the request.
+
+```conf
+/${page}	/assets/${page}.html
+```
+
+This will match all incoming single-part requests (excluding the root `/`), append `.html` and prepend `/assets`, resulting in the file being loaded correctly if it exists.
+
+**Additional**
+
 Chaining is not supported, meaning at most 1 rewrite takes place per request.
 For example, assume the following rewrite rules.
+
 ```conf
 /foo /bar
 /bar /baz
 ```
+
 If the server receives a request to `/foo`, it will redirect to `/bar`, not `/baz`, even though `/bar` redirects to `/baz`.
 
 The actual targets (e.g. `/static/index.html`) are still accessible using their actual routes.
 The server does not hide the values of the config from the public, so introducing a rewrite rule means that a resource will be available at two routes.
 
 Examples of using URL rewrites can be found in [`examples/static/rewrites`](/examples/static/rewrites/).
-Currently only static rewriting is supported.
 
 #### Testing
 

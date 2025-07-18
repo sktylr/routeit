@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contact</title>
+  <link rel="stylesheet" href="/styles" />
+</head>
+<body>
+  <div class="container">
+    <h1>Contact Us</h1>
+    <nav>
+      <a href="/">Home</a>
+    </nav>
+    <form id="contact-form">
+      <input type="text" name="name" placeholder="Your Name" required />
+      <input type="email" name="email" placeholder="Your Email" required />
+      <textarea name="message" placeholder="Your Message" required></textarea>
+      <button type="submit">Send</button>
+    </form>
+    <pre id="contact-response"></pre>
+  </div>
+
+  <script>
+    document.getElementById("contact-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        name: form.name.value,
+        email: form.email.value,
+        message: form.message.value
+      };
+
+      const output = document.getElementById("contact-response");
+      output.textContent = "Sending...";
+
+      try {
+        const res = await fetch("/api/contact", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+        const text = await res.text();
+        output.textContent = res.ok ? `Success: ${text}` : `Error: ${text}`;
+      } catch (err) {
+        output.textContent = "Request failed: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

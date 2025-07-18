@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Joke</title>
+  <link rel="stylesheet" href="/styles" />
+</head>
+<body>
+  <div class="container">
+    <h1>Need a Laugh?</h1>
+    <nav>
+      <a href="/">Home</a>
+    </nav>
+    <button onclick="getJoke()">Get Joke</button>
+    <pre id="joke-box" style="margin-top: 1em;"></pre>
+  </div>
+
+  <script>
+    async function getJoke() {
+      const output = document.getElementById("joke-box");
+      output.textContent = "Loading joke...";
+
+      try {
+        const res = await fetch("https://icanhazdadjoke.com/", {
+          headers: {
+            "Accept": "application/json",
+            "User-Agent": "Rewrite-Demo-Site"
+          }
+        });
+
+        const data = await res.json();
+        output.textContent = data.joke || "No joke found.";
+      } catch (err) {
+        output.textContent = "Failed to load joke: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>

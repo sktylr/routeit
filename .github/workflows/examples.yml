@@ -15,6 +15,7 @@ jobs:
                 - routing/simple
                 - simple
                 - static/simple
+                - static/rewrites/dynamic
                 - static/rewrites/static
 
     steps:

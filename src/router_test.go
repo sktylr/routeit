@@ -388,11 +388,53 @@ func TestRewrite(t *testing.T) {
 			"/baz",
 			true,
 		},
+		{
+			"1 dynamic",
+			map[string]string{"/foo/${bar}": "/baz/${bar}"},
+			"/foo/qux",
+			"/baz/qux",
+			true,
+		},
+		{
+			"2 dynamics (same count), prioritises later dynamics",
+			map[string]string{"/foo/${bar}": "/baz/${bar}", "/${foo}/bar": "/${foo}/qux"},
+			"/foo/bar",
+			"/baz/bar",
+			true,
+		},
+		{
+			"2 dynamics, different count, prioritises shorter count",
+			map[string]string{"/foo/${bar}/baz": "/pick/me", "/${foo}/bar/${baz}": "/not/me"},
+			"/foo/bar/baz",
+			"/pick/me",
+			true,
+		},
+		{
+			"prioritises static rewrites",
+			map[string]string{"/foo/bar": "/baz", "/foo/${bar}": "/${bar}"},
+			"/foo/bar",
+			"/baz",
+			true,
+		},
+		{
+			"dynamic does not match (too short)",
+			map[string]string{"/foo/${bar}": "/baz/${bar}"},
+			"/foo",
+			"/foo",
+			false,
+		},
+		{
+			"dynamic does not match (too long)",
+			map[string]string{"/foo/${bar}": "/baz/${bar}"},
+			"/foo/bar/baz",
+			"/foo/bar/baz",
+			false,
+		},
 	}
-	router := newRouter()
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			router := newRouter()
 			for k, v := range tc.base {
 				router.NewRewrite(fmt.Sprintf("%s %s", k, v))
 			}
@@ -546,6 +588,26 @@ func TestNewRewrite(t *testing.T) {
 				"/foo /",
 				map[string]string{"/foo": "/"},
 			},
+			{
+				"dynamic rewrite (key and value)",
+				"/foo/${bar} /baz/${bar}",
+				map[string]string{"/foo/bar": "/baz/bar", "/foo/foo": "/baz/foo", "/foo/123": "/baz/123"},
+			},
+			{
+				"dynamic rewrites (key only)",
+				"/foo/${bar} /baz/bar",
+				map[string]string{"/foo/bar": "/baz/bar", "/foo/qux": "/baz/bar", "/foo/ABCD": "/baz/bar"},
+			},
+			{
+				"dynamic rewrites (value only)",
+				"/foo/bar /baz/${bar}",
+				map[string]string{"/foo/bar": "/baz/${bar}"},
+			},
+			{
+				"poorly formed dynamic key acts as static",
+				"/foo/${bar /baz/${bar}",
+				map[string]string{"/foo/${bar": "/baz/${bar}"},
+			},
 		}
 
 		for _, tc := range tests {
@@ -555,12 +617,17 @@ func TestNewRewrite(t *testing.T) {
 				router.NewRewrite(tc.raw)
 
 				for k, v := range tc.want {
-					actual, _, exists := router.rewrites.Find(k)
+					static, dynamic, exists := router.rewrites.Find(k)
 					if !exists {
 						t.Errorf("rewrites[%#q] not found, expected to find", k)
 					}
-					if *actual != v {
-						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *actual, v)
+					matchAgainst := static
+					if dynamic != nil && *dynamic != "" {
+						t.Log("using dynamic value for comparison")
+						matchAgainst = dynamic
+					}
+					if *matchAgainst != v {
+						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *matchAgainst, v)
 					}
 				}
 			})

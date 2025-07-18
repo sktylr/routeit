@@ -5,29 +5,183 @@ import (
 	"testing"
 )
 
+type RouteTest struct {
+	name           string
+	gNamespace     string
+	lNamespace     string
+	reg            RouteRegistry
+	path           string
+	wantPathParams pathParameters
+}
+
+func TestRoute(t *testing.T) {
+	t.Run("found", func(t *testing.T) {
+		tests := []RouteTest{
+			{
+				name: "one route no namespace",
+				reg: RouteRegistry{
+					"/want": Get(wantHandler),
+				},
+				path: "/want",
+			},
+			{
+				name: "multiple, valid route no namespace",
+				path: "/want",
+			},
+			{
+				name: "registration forces leading slash",
+				reg: RouteRegistry{
+					"some/route":    Get(doNotWantHandler),
+					"another/route": Get(doNotWantHandler),
+					"want":          Get(wantHandler),
+				},
+				path: "/want",
+			},
+			{
+				name: "lookup ensures leading slash",
+				path: "want",
+			},
+			{
+				name: "registration ignores trailing slash",
+				reg: RouteRegistry{
+					"/some/route/":    Get(doNotWantHandler),
+					"/another/route/": Get(doNotWantHandler),
+					"/want/":          Get(wantHandler),
+				},
+				path: "/want",
+			},
+			{
+				name: "lookup ignores trailing slash",
+				path: "/want/",
+			},
+			{
+				name:       "simple global",
+				gNamespace: "/api",
+				path:       "/api/want",
+			},
+			{
+				name:       "multi tiered global",
+				gNamespace: "/api/foo",
+				path:       "/api/foo/want",
+			},
+			{
+				name:       "ensures leading slash on global namespace",
+				gNamespace: "api",
+				path:       "/api/want",
+			},
+			{
+				name:       "ignores trailing slash on global namespace",
+				gNamespace: "/api/",
+				path:       "/api/want",
+			},
+			{
+				name:       "ignores multiple trailing slashes on global namespace",
+				gNamespace: "/api//",
+				path:       "/api/want",
+			},
+			{
+				name:       "ensures leading slash on paths with global namespace",
+				gNamespace: "/api",
+				reg: RouteRegistry{
+					"some/route":    Get(doNotWantHandler),
+					"another/route": Get(doNotWantHandler),
+					"want":          Get(wantHandler),
+				},
+				path: "/api/want",
+			},
+			{
+				name:       "simple local",
+				lNamespace: "/api",
+				path:       "/api/want",
+			},
+			{
+				name:       "multi tiered local namespace",
+				lNamespace: "/api/foo",
+				path:       "/api/foo/want",
+			},
+			{
+				name:       "global and local",
+				gNamespace: "/api",
+				lNamespace: "/foo",
+				path:       "/api/foo/want",
+			},
+			{
+				name:       "local registration ensures leading slash",
+				lNamespace: "api",
+				path:       "/api/want",
+			},
+			{
+				name:       "local registration ensures leading slashes on paths",
+				lNamespace: "/api",
+				reg: RouteRegistry{
+					"some/route":    Get(doNotWantHandler),
+					"another/route": Get(doNotWantHandler),
+					"want":          Get(wantHandler),
+				},
+				path: "/api/want",
+			},
+			{
+				name:       "local registration ignores trailing slash",
+				lNamespace: "/api/",
+				path:       "/api/want",
+			},
+			{
+				name:       "local registration ignores multiple trailing slashes",
+				lNamespace: "/api//",
+				path:       "/api/want",
+			},
+			{
+				name: "dynamic lookup includes path params",
+				reg: RouteRegistry{
+					"/:funky/:dynamic/:route": Get(wantHandler),
+				},
+				path:           "/awesome/dynamic/router-magic",
+				wantPathParams: pathParameters{"funky": "awesome", "dynamic": "dynamic", "route": "router-magic"},
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				router := newRouter()
+				reg := tc.reg
+				if len(reg) == 0 {
+					reg = defaultRouteRegistry()
+				}
+				if tc.lNamespace == "" {
+					router.RegisterRoutes(reg)
+				} else {
+					router.RegisterRoutesUnderNamespace(tc.lNamespace, reg)
+				}
+				router.GlobalNamespace(tc.gNamespace)
+				req := requestWithUrlAndMethod(tc.path, GET)
+
+				got, found := router.Route(req)
+				if !found {
+					t.Error("expected route to be found")
+				}
+				err := got.handle(&ResponseWriter{}, req)
+				if err != nil {
+					t.Errorf("did not expect handler to error: %s", err.Error())
+				}
+				params := req.uri.pathParams
+				if len(params) != len(tc.wantPathParams) {
+					t.Errorf(`Route() returned %d length params, wanted %d`, len(params), len(tc.wantPathParams))
+				}
+				for k, v := range tc.wantPathParams {
+					if params[k] != v {
+						t.Errorf(`pathParams[%#q] = %s, wanted %s`, k, params[k], v)
+					}
+				}
+			})
+		}
+	})
+}
+
 func TestRouteEmpty(t *testing.T) {
 	router := newRouter()
 	req := requestWithUrlAndMethod("/want", GET)
 
 	verifyRouteNotFound(t, router, req)
-}
-
-func TestRouteOneRoute(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(RouteRegistry{
-		"/want": Get(wantHandler),
-	})
-	req := requestWithUrlAndMethod("/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestRouteValidRoute(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/want", GET)
-
-	verifyRouteFound(t, router, req)
 }
 
 func TestRouteHandlesRepeatedSlashes(t *testing.T) {
@@ -36,24 +190,6 @@ func TestRouteHandlesRepeatedSlashes(t *testing.T) {
 	req := requestWithUrlAndMethod("/some//route", GET)
 
 	verifyRouteNotFound(t, router, req)
-}
-
-func TestRouteWithGlobalNamespaceFound(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	router.GlobalNamespace("/api")
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestRouteWithMultiTieredGlobalNamespace(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	router.GlobalNamespace("/api/foo")
-	req := requestWithUrlAndMethod("/api/foo/want", GET)
-
-	verifyRouteFound(t, router, req)
 }
 
 func TestRouteWithGlobalNamespaceNotFound(t *testing.T) {
@@ -65,37 +201,12 @@ func TestRouteWithGlobalNamespaceNotFound(t *testing.T) {
 	verifyRouteNotFound(t, router, req)
 }
 
-func TestRouteLocalNamespaceFound(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestRouteWithMultiTieredLocalNamespace(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api/foo", defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/api/foo/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
 func TestRouteLocalNamespaceNotFound(t *testing.T) {
 	router := newRouter()
 	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
 	req := requestWithUrlAndMethod("/want", GET)
 
 	verifyRouteNotFound(t, router, req)
-}
-
-func TestRouteGlobalAndLocalNamespaceFound(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
-	router.GlobalNamespace("/foo")
-	req := requestWithUrlAndMethod("/foo/api/want", GET)
-
-	verifyRouteFound(t, router, req)
 }
 
 func TestRouteGlobalAndLocalNamespaceNotFound(t *testing.T) {
@@ -106,122 +217,6 @@ func TestRouteGlobalAndLocalNamespaceNotFound(t *testing.T) {
 	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/api/foo/want", GET))
 	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/api/want", GET))
 	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/foo/want", GET))
-}
-
-func TestRegistrationEnsuresLeadingSlash(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(RouteRegistry{
-		"some/route":    Get(doNotWantHandler),
-		"another/route": Get(doNotWantHandler),
-		"want":          Get(wantHandler),
-	})
-	req := requestWithUrlAndMethod("/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestLookupEnsuresLeadingSlash(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	req := requestWithUrlAndMethod("want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestRegistrationIgnoresTrailingSlash(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(RouteRegistry{
-		"/some/route/":    Get(doNotWantHandler),
-		"/another/route/": Get(doNotWantHandler),
-		"/want/":          Get(wantHandler),
-	})
-	req := requestWithUrlAndMethod("/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestLookupIgnoresTrailingSlash(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/want/", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestGlobalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	router.GlobalNamespace("api")
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestGlobalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(RouteRegistry{
-		"some/route":    Get(doNotWantHandler),
-		"another/route": Get(doNotWantHandler),
-		"want":          Get(wantHandler),
-	})
-	router.GlobalNamespace("/api")
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestLocalNamespaceEnsuresLeadingSlashOnNamespace(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("api", defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestLocalNamespaceEnsuresLeadingSlashOnPaths(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api", RouteRegistry{
-		"some/route":    Get(doNotWantHandler),
-		"another/route": Get(doNotWantHandler),
-		"want":          Get(wantHandler),
-	})
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestGlobalNamespaceIgnoresTrailingSlash(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	router.GlobalNamespace("/api/")
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestLocalNamespaceIgnoresTrailingSlash(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api/", defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestGlobalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	router.GlobalNamespace("/api//")
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
-}
-
-func TestLocalNamespaceIgnoresTrailingMultipleSlashes(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api//", defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/api/want", GET)
-
-	verifyRouteFound(t, router, req)
 }
 
 func TestStaticRoutingFound(t *testing.T) {
@@ -341,17 +336,6 @@ func TestStaticDirSimplifiesExpressions(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestDynamicLookupIncludesPathParams(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(RouteRegistry{
-		"/:funky/:dynamic/:route": Get(wantHandler),
-	})
-	req := requestWithUrlAndMethod("/awesome/dynamic/router-magic", GET)
-
-	wantParams := pathParameters{"funky": "awesome", "dynamic": "dynamic", "route": "router-magic"}
-	verifyRouteFoundWithParams(t, router, req, wantParams)
 }
 
 func TestRewrite(t *testing.T) {
@@ -583,32 +567,6 @@ func doNotWantHandler(rw *ResponseWriter, req *Request) error {
 
 func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
 	return &Request{uri: uri{edgePath: url}, mthd: method}
-}
-
-func verifyRouteFound(t *testing.T, router *router, req *Request) {
-	t.Helper()
-	verifyRouteFoundWithParams(t, router, req, pathParameters{})
-}
-
-func verifyRouteFoundWithParams(t *testing.T, router *router, req *Request, wantParams pathParameters) {
-	t.Helper()
-	got, found := router.Route(req)
-	if !found {
-		t.Error("expected route to be found")
-	}
-	err := got.handle(&ResponseWriter{}, req)
-	if err != nil {
-		t.Errorf("did not expect handler to error: %s", err.Error())
-	}
-	params := req.uri.pathParams
-	if len(params) != len(wantParams) {
-		t.Errorf(`Route() returned %d length params, wanted %d`, len(params), len(wantParams))
-	}
-	for k, v := range wantParams {
-		if params[k] != v {
-			t.Errorf(`pathParams[%#q] = %s, wanted %s`, k, params[k], v)
-		}
-	}
 }
 
 func verifyRouteNotFound(t *testing.T, router *router, req *Request) {

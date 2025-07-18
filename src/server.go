@@ -237,6 +237,10 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		}
 	}()
 
+	rewrite, didRewrite := s.router.Rewrite(req.Path())
+	if didRewrite {
+		req.uri.rewrittenPath = rewrite
+	}
 	rw = newResponseForMethod(req.mthd)
 	var err error
 	chain := s.middleware.NewChain()
@@ -276,7 +280,7 @@ func (s *Server) configureRewrites() {
 	}
 
 	path := path.Clean(s.conf.URLRewritePath)
-	if !strings.HasPrefix(path, ".conf") {
+	if !strings.HasSuffix(path, ".conf") {
 		panic(fmt.Errorf(`URL rewrite file %#q is not a ".conf" file`, s.conf.URLRewritePath))
 	}
 

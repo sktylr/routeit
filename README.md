@@ -121,6 +121,43 @@ An example is shown in the table below.
 | `/:foo/bar`     | `/foo/:bar`      | `/foo/bar`     | B             | Same number of dynamic components, more leading static components |
 | `/foo/:bar/baz` | `/:foo/bar/:baz` | `/foo/bar/baz` | A             | Less dynamic components                                           |
 
+### URL Rewrites
+
+`routeit` allows the integrator to define rewrite rules for incoming URLs.
+This is commonly preferred in servers that serve static content, as the raw URLs for static content is `<static directory>/<file name>.<extension>`, which is quite ugly.
+For example, the convention for HTML servers is to define the home page in `static/index.html`, which means the landing page of the website would be `http://url.com/static.index.html`.
+
+Rewrites allow us to change that to `http://url.com/`, which is much easier.
+Additionally, the links used within the static content (e.g. JavaScript, HTML, stylesheets, images) can use the rewritten URL, meaning it is easier to swap components out.
+If you want to change the `/about` page from `/static/about1.html` to `/static/about2.html`, you can use `/about` as the link referenced in all static content, then just change the URL rewrite rule and the change is made across the entire server.
+
+The rewrite rules are defined using a `.conf` file and passed in using the `routeit.ServerConfig.URLRewritePath`.
+Unlike the static directory definition, this can be any file on the system, though it must be accessible by the server and exist at start up.
+The server will panic if the file is corrupted or badly formed and must be restarted to propagate any changes from the file.
+
+The syntax is a straightforward key value syntax with optional comments using `#`.
+Routes should be specified on their own line using `/incoming /rewrite/to`, where the key is the URL the server receives (public facing, e.g. `/about`), and the value is the URL it should rewrite to.
+The keys and values should both be prefixed with leading slashes and not have trailing slashes, and must generally by valid path components of a URL.
+For example, `/foo/ //` is illegal for 3 reasons - `/foo/` ends with a slash, and `//` features an empty path component and ends with a trailing slash.
+
+There must be at least 1 whitespace character between the key and value, though the type and amount of whitespace is up to the integrator, so long as it is not a new line.
+Useless assignments (e.g. `/foo /foo`) are valid, though in practice the server will ignore them.
+Conflicting rules - such as `/foo /bar` combined with `/foo /baz` - are illegal.
+
+Chaining is not supported, meaning at most 1 rewrite takes place per request.
+For example, assume the following rewrite rules.
+```conf
+/foo /bar
+/bar /baz
+```
+If the server receives a request to `/foo`, it will redirect to `/bar`, not `/baz`, even though `/bar` redirects to `/baz`.
+
+The actual targets (e.g. `/static/index.html`) are still accessible using their actual routes.
+The server does not hide the values of the config from the public, so introducing a rewrite rule means that a resource will be available at two routes.
+
+Examples of using URL rewrites can be found in [`examples/static/rewrites`](/examples/static/rewrites/).
+Currently only static rewriting is supported.
+
 #### Testing
 
 The framework supports a simple testing paradigm that allows user to perform E2E-like tests on their server.

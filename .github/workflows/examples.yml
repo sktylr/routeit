@@ -15,6 +15,7 @@ jobs:
                 - routing/simple
                 - simple
                 - static/simple
+                - static/rewrites/static
 
     steps:
       - uses: actions/checkout@v4

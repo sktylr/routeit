@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>About - URL Rewrites</title>
+    <link rel="stylesheet" href="/styles.css">
+	</head>
+  <body>
+    <div class="container">
+      <h1>Learn more about URL rewrites</h1>
+	  <p>URL rewriting allows the URLs of a server to be easier to manage, such as "/" instead of "/static/index.html"</p>
+	  <p>The new URLs can be used everywhere in the server, such as in relative links within HTML and in JavaScript.</p>
+	  <p>This page can be found at "/about", which is an easy URL to remember.</p>
+      <p>
+        In reality, it is served from the "/statics/index.html" route, which it can also be loaded from.
+        The server internally rewrites the incoming "/" URL to "/statics/index.html".
+      </p>
+    <a href="/">Go to Home</a>
+    <button onclick="hello()">Call /rewrite/me/please</button>
+    <div id="response-output"></div>
+    </div>
+	<script>
+    async function hello() {
+      const output = document.getElementById("response-output");
+      output.textContent = "Loading...";
+
+      try {
+        const res = await fetch("/rewrite/me/please");
+
+        let content;
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          content = JSON.stringify(json, null, 2);
+        } catch (_) {
+          content = text;
+        }
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${content}`);
+        }
+
+        output.textContent = content;
+      } catch (err) {
+        console.error("Fetch failed:", err);
+        output.textContent = "Error: " + err.message;
+      }
+    }
+	</script>
+  </body>
+</html>

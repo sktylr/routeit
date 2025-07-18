@@ -1,8 +1,35 @@
 // This file contains the types and functions used to model a trie. Unlike a
 // regular trie which splits on each character, this trie splits on the '/'
 // character and is used to model a URL path hierarchy. The trie only supports
-// inserts and lookups and currently does not support pattern matches - only
-// direct matches.
+// inserts and lookups and supports both static and dynamic matches. When a
+// dynamic path component is included within a path, the corresponding key
+// within the trie is marked as a "wildcard", and the leaf value that holds the
+// inserted value contains a "dynamic matcher".
+//
+// Lookup performs a BFS to find all eligible candidates for the rewrite. The
+// way insertion is done means that each node only has at most 1 "wildcard"
+// child, since all wildcard components are grouped together. Once the input
+// path has been traversed, the remaining eligible candidates are examined.
+// These are all candidates that do match the key, with differing degrees of
+// specificity.
+//
+// A match is most specific if it is a completely static match - no dynamic
+// components at all. Trie construction guarantees that there is only ever at
+// most one of these matches. Dynamic matches are compared using two degrees of
+// specificity. A dynamic match, A, is strictly more specific than another, B,
+// if A has strictly less dynamic components than B. If A and B have the same
+// number of dynamic components, then whichever has more _leading_ static
+// components is more specific e.g. /foo/bar/* is more specific than /foo/*/baz.
+// If they still cannot be separated, then whichever appeared first in lookup
+// is chosen. The order of lookup appearance depends on insertion order.
+//
+// Once a match is chosen, we perform additional extraction of useful
+// information for the caller, which is done using an extraction function
+// provided at instantiation time. This is useful (and therefore only
+// performed) for dynamic matches. For example, if we assume a trie that is
+// used to route API requests to their appropriate handler, we would typically
+// want to access the dynamic path parameters within the handler as they
+// normally represent useful information such as an ID.
 //
 // https://www.geeksforgeeks.org/dsa/trie-insert-and-search/
 
@@ -15,8 +42,15 @@ import (
 	"strings"
 )
 
-type trie[T any] struct {
-	root *node[T]
+type trie[T any, E any] struct {
+	root    *node[T]
+	extract dynamicExtractor[T, E]
+}
+
+type node[T any] struct {
+	key      trieKey
+	value    *trieValue[T]
+	children []*node[T]
 }
 
 // Trie keys can match exactly, or dynamically against the input key. This
@@ -26,6 +60,11 @@ type trieKey struct {
 	exact string
 	// TODO: look into just removing this?
 	wildcard bool
+}
+
+type trieValue[T any] struct {
+	dm  *dynamicMatcher
+	val *T
 }
 
 // A dynamic matcher is used in value nodes to signify that there is at least
@@ -39,15 +78,15 @@ type dynamicMatcher struct {
 	first int
 }
 
-type trieValue[T any] struct {
-	dm  *dynamicMatcher
-	val *T
-}
+// A dynamic extractor operates on a [trieValue] to extract meaningful
+// information from a matched [trie] key. For example, the two implementations
+// used in this project are used to extract path parameters from the matched
+// path so that they can be populated in the request, and perform dynamic URL
+// rewrites using regex substitution.
+type dynamicExtractor[T any, O any] func(*trieValue[T], string) O
 
-type node[T any] struct {
-	key      trieKey
-	value    *trieValue[T]
-	children []*node[T]
+func newTrie[T any, D any](extract dynamicExtractor[T, D]) *trie[T, D] {
+	return &trie[T, D]{root: &node[T]{}, extract: extract}
 }
 
 func newKey(part string) trieKey {
@@ -58,14 +97,10 @@ func newKey(part string) trieKey {
 	return trieKey{exact: part}
 }
 
-func newTrie[T any]() *trie[T] {
-	return &trie[T]{root: &node[T]{}}
-}
-
 // TODO: can probably move this to its own package
-func (t *trie[T]) Find(path string) (*T, pathParameters, bool) {
+func (t *trie[T, D]) Find(path string) (*T, *D, bool) {
 	if t.root == nil {
-		return nil, pathParameters{}, false
+		return nil, nil, false
 	}
 
 	eligible := []*node[T]{t.root}
@@ -84,7 +119,7 @@ func (t *trie[T]) Find(path string) (*T, pathParameters, bool) {
 			}
 		}
 		if !found {
-			return nil, pathParameters{}, false
+			return nil, nil, false
 		}
 		eligible = eligibleChildren
 	}
@@ -101,15 +136,16 @@ func (t *trie[T]) Find(path string) (*T, pathParameters, bool) {
 	}
 
 	if found == nil || found.value == nil {
-		return nil, pathParameters{}, false
+		return nil, nil, false
 	}
 
 	// We omit the nil check on the inner value since by construction it should
 	// always be populated.
-	return found.value.val, found.value.PathParams(path), true
+	d := t.extract(found.value, path)
+	return found.value.val, &d, true
 }
 
-func (t *trie[T]) Insert(path string, value *T) {
+func (t *trie[T, D]) Insert(path string, value *T) {
 	if t.root == nil {
 		t.root = &node[T]{}
 	}
@@ -223,6 +259,19 @@ func (v *trieValue[T]) PathParams(path string) pathParameters {
 	return params
 }
 
+// Performs substitution on the matched path, treating the matched value as a
+// template for the substitution.
+func stringSubstitution(v *trieValue[string], path string) string {
+	if v.dm == nil {
+		return ""
+	}
+
+	match := v.dm.re.FindStringSubmatchIndex(path)
+	result := v.dm.re.ExpandString(nil, *v.val, path, match)
+
+	return string(result)
+}
+
 // Constructs a dynamic matcher for a given path, returning nil if the path has
 // no dynamic components. This includes building a named regex that can be used
 // to extract the path parameters of the request once matched.
@@ -236,6 +285,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 	frequencies := map[string]int{}
 	first, total := int(^uint(0)>>1), 0
 	var sb strings.Builder
+	sb.WriteRune('^')
 	for i, seg := range strings.Split(path, "/") {
 		if i == 0 && seg == "" {
 			continue
@@ -266,6 +316,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			}
 		}
 	}
+	sb.WriteRune('$')
 
 	for k, v := range frequencies {
 		if v != 1 {

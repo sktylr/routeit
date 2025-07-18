@@ -13,7 +13,7 @@ import (
 // between the key an value is allowed. The line may optionally end with a
 // comment, specific using the "#" character. This can be prefixed optionally
 // with any amount of whitespace, though does not have to be.
-var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.-]+(?:/[\w.-]+)*)?)\s+(/(?:[\w.-]+(?:/[\w.-]+)*)?)(?:\s*#.*)?$`)
+var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}-]+(?:/[\w.${}-]+)*)?)\s+(/(?:[\w.${}-]+(?:/[\w.${}-]+)*)?)(?:\s*#.*)?$`)
 
 // The [RouteRegistry] is used to associate routes with their corresponding
 // handlers. Routing supports both static and dynamic routes. The keys of the
@@ -38,17 +38,17 @@ var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.-]+(?:/[\w.-]+)*)?)\s+(/(?:[\
 type RouteRegistry map[string]Handler
 
 type router struct {
-	routes *trie[Handler]
+	routes *trie[Handler, pathParameters]
 	// The global namespace that all registered routes are prefixed with.
 	namespace string
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticLoader *Handler
-	rewrites     *trie[string]
+	rewrites     *trie[string, string]
 }
 
 func newRouter() *router {
-	return &router{routes: newTrie[Handler](), rewrites: newTrie[string]()}
+	return &router{routes: newTrie((*trieValue[Handler]).PathParams), rewrites: newTrie(stringSubstitution)}
 }
 
 // Registers the routes to the router. Uses the keys of the map as the path,
@@ -116,10 +116,27 @@ func (r *router) NewRewrite(raw string) {
 		panic(fmt.Errorf("invalid configuration line - not enough entries %#q", raw))
 	}
 
-	key, value := matches[1], matches[2]
-	if key == value {
+	rawKey, value := matches[1], matches[2]
+	if rawKey == value {
 		return
 	}
+
+	// Rewrite the key from the regex for using ${} to signify variables to the
+	// trie form using :
+	var kb strings.Builder
+	for i, seg := range strings.Split(rawKey, "/") {
+		if i == 0 && seg == "" {
+			continue
+		}
+		kb.WriteRune('/')
+		if !(strings.HasPrefix(seg, "${") && strings.HasSuffix(seg, "}")) {
+			kb.WriteString(seg)
+		} else {
+			kb.WriteRune(':')
+			kb.WriteString(seg[2 : len(seg)-1])
+		}
+	}
+	key := kb.String()
 
 	actual, _, found := r.rewrites.Find(key)
 	if found && *actual != value {
@@ -163,7 +180,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 
 	route, params, found := r.routes.Find(trimmed)
 	if route != nil && found {
-		req.uri.pathParams = params
+		req.uri.pathParams = *params
 		return route, true
 	}
 
@@ -172,11 +189,17 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 
 // Passes the incoming URL through the router's rewrites.
 func (r *router) Rewrite(url string) (string, bool) {
-	rewrite, _, found := r.rewrites.Find(url)
+	// For static rewrites, the `static` variable is the actual rewrite. For
+	// dynamic rewrites, it is the _template_ of the rewrite (i.e. the value
+	// used in the config entry)
+	static, dynamic, found := r.rewrites.Find(url)
 	if !found {
 		return url, false
 	}
-	return *rewrite, true
+	if dynamic != nil && *dynamic != "" {
+		return *dynamic, true
+	}
+	return *static, true
 }
 
 // Removes a single leading slash and any trailing slashes that a route has.

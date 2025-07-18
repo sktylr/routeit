@@ -33,20 +33,20 @@ func TestTrieLookup(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
-				trie := newTrie[int]()
+				trie := newTrie((*trieValue[int]).PathParams)
 				for k, v := range tc.in {
 					trie.Insert(k, &v)
 				}
 
 				val, params, found := trie.Find(tc.search)
 				if found {
-					t.Errorf(`Trie.Find(%#q), did not expect to find element`, tc.search)
+					t.Fatalf(`Trie.Find(%#q), did not expect to find element`, tc.search)
 				}
 				if val != nil {
 					t.Errorf(`Trie.Find(%#q) = %d, expected value to be nil`, tc.search, *val)
 				}
-				if len(params) != 0 {
-					t.Errorf(`Trie.Find(%#q) returned %d length params, expected none`, tc.search, len(params))
+				if params != nil && len(*params) != 0 {
+					t.Errorf(`Trie.Find(%#q) returned %d length params, expected none`, tc.search, len(*params))
 				}
 			})
 		}
@@ -127,7 +127,7 @@ func TestTrieLookup(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
-				trie := newTrie[int]()
+				trie := newTrie((*trieValue[int]).PathParams)
 				for k, v := range tc.in {
 					trie.Insert(k, &v)
 				}
@@ -139,12 +139,12 @@ func TestTrieLookup(t *testing.T) {
 				if *actual != tc.want {
 					t.Errorf(`trie["%s"] = %d, wanted %d`, tc.search, *actual, tc.want)
 				}
-				if len(params) != len(tc.wantParams) {
-					t.Errorf(`Trie.Find(%#q) returned %d length params, wanted %d`, tc.search, len(params), len(tc.wantParams))
+				if len(*params) != len(tc.wantParams) {
+					t.Errorf(`Trie.Find(%#q) returned %d length params, wanted %d`, tc.search, len(*params), len(tc.wantParams))
 				}
 				for k, v := range tc.wantParams {
-					if params[k] != v {
-						t.Errorf(`pathParams[%#q] = %s, wanted %s`, k, params[k], v)
+					if (*params)[k] != v {
+						t.Errorf(`pathParams[%#q] = %s, wanted %s`, k, (*params)[k], v)
 					}
 				}
 			})
@@ -157,18 +157,18 @@ func TestTrieInsertion(t *testing.T) {
 		tests := []struct {
 			name  string
 			in    string
-			start *trie[int]
+			start *trie[int, pathParameters]
 		}{
 			{
 				"duplicate names",
 				"/:foo/bar/:foo",
-				newTrie[int](),
+				newTrie((*trieValue[int]).PathParams),
 			},
 			{
 				"conflicting dynamic",
 				"/:foo/bar/:bar",
-				func() *trie[int] {
-					trie := newTrie[int]()
+				func() *trie[int, pathParameters] {
+					trie := newTrie((*trieValue[int]).PathParams)
 					v := 17
 					trie.Insert("/:foo/bar/:baz", &v)
 					return trie

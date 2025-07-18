@@ -10,6 +10,7 @@ type RouteTest struct {
 	gNamespace     string
 	lNamespace     string
 	reg            RouteRegistry
+	staticDir      string
 	path           string
 	wantPathParams pathParameters
 }
@@ -145,7 +146,11 @@ func TestRoute(t *testing.T) {
 				router := newRouter()
 				reg := tc.reg
 				if len(reg) == 0 {
-					reg = defaultRouteRegistry()
+					reg = RouteRegistry{
+						"/some/route":    Get(doNotWantHandler),
+						"/another/route": Get(doNotWantHandler),
+						"/want":          Get(wantHandler),
+					}
 				}
 				if tc.lNamespace == "" {
 					router.RegisterRoutes(reg)
@@ -175,48 +180,84 @@ func TestRoute(t *testing.T) {
 			})
 		}
 	})
-}
 
-func TestRouteEmpty(t *testing.T) {
-	router := newRouter()
-	req := requestWithUrlAndMethod("/want", GET)
+	t.Run("not found", func(t *testing.T) {
+		tests := []RouteTest{
+			{
+				name: "empty",
+				reg:  RouteRegistry{},
+				path: "/want",
+			},
+			{
+				name: "repeated slashes",
+				path: "/some//route",
+			},
+			{
+				name:       "valid route in registry, but global namespace",
+				gNamespace: "/api",
+				path:       "/want",
+			},
+			{
+				name:       "valid route in registry, but local namespace",
+				lNamespace: "/api",
+				path:       "/want",
+			},
+			{
+				name:       "valid route in registry, but global and local namespace, just route",
+				gNamespace: "/api",
+				lNamespace: "/foo",
+				path:       "/want",
+			},
+			{
+				name:       "valid route in registry, but global and local namespace, global + route",
+				gNamespace: "/api",
+				lNamespace: "/foo",
+				path:       "/api/want",
+			},
+			{
+				name:       "valid route in registry, but global and local namespace, local + route",
+				gNamespace: "/api",
+				lNamespace: "/foo",
+				path:       "/foo/want",
+			},
+			{
+				name:       "valid route in registry, but global and local namespace, local + global + route",
+				gNamespace: "/api",
+				lNamespace: "/foo",
+				path:       "/foo/api/want",
+			},
+			{
+				name:      "static backtracking",
+				staticDir: "static",
+				path:      "static/../main.go",
+			},
+			{
+				name:       "global namespace, static backtracking",
+				gNamespace: "/api",
+				staticDir:  "static",
+				path:       "/api/static/../main.go",
+			},
+		}
 
-	verifyRouteNotFound(t, router, req)
-}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				router := newRouter()
+				req := requestWithUrlAndMethod(tc.path, GET)
+				if tc.lNamespace == "" {
+					router.RegisterRoutes(tc.reg)
+				} else {
+					router.RegisterRoutesUnderNamespace(tc.lNamespace, tc.reg)
+				}
+				router.GlobalNamespace(tc.gNamespace)
+				router.NewStaticDir(tc.staticDir)
 
-func TestRouteHandlesRepeatedSlashes(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/some//route", GET)
-
-	verifyRouteNotFound(t, router, req)
-}
-
-func TestRouteWithGlobalNamespaceNotFound(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutes(defaultRouteRegistry())
-	router.GlobalNamespace("/api")
-	req := requestWithUrlAndMethod("/want", GET)
-
-	verifyRouteNotFound(t, router, req)
-}
-
-func TestRouteLocalNamespaceNotFound(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
-	req := requestWithUrlAndMethod("/want", GET)
-
-	verifyRouteNotFound(t, router, req)
-}
-
-func TestRouteGlobalAndLocalNamespaceNotFound(t *testing.T) {
-	router := newRouter()
-	router.RegisterRoutesUnderNamespace("/api", defaultRouteRegistry())
-	router.GlobalNamespace("/foo")
-
-	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/api/foo/want", GET))
-	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/api/want", GET))
-	verifyRouteNotFound(t, router, requestWithUrlAndMethod("/foo/want", GET))
+				_, found := router.Route(req)
+				if found {
+					t.Errorf("did not expect to find a route for [url=%s, method=%s]", req.Path(), req.Method().name)
+				}
+			})
+		}
+	})
 }
 
 func TestStaticRoutingFound(t *testing.T) {
@@ -248,23 +289,6 @@ func TestStaticRoutingGlobalNamespaceFound(t *testing.T) {
 	if !found {
 		t.Error("expected to find static router")
 	}
-}
-
-func TestStaticRoutingNotFoundBacktracking(t *testing.T) {
-	router := newRouter()
-	router.NewStaticDir("static")
-	req := requestWithUrlAndMethod("/static/../main.go", GET)
-
-	verifyRouteNotFound(t, router, req)
-}
-
-func TestStaticRoutingGlobalNamespaceNotFoundBacktracking(t *testing.T) {
-	router := newRouter()
-	router.GlobalNamespace("/api")
-	router.NewStaticDir("static")
-	req := requestWithUrlAndMethod("/api/static/../main.go", GET)
-
-	verifyRouteNotFound(t, router, req)
 }
 
 func TestStaticDirEnforcesSubdirectory(t *testing.T) {
@@ -546,14 +570,6 @@ func TestNewRewrite(t *testing.T) {
 	})
 }
 
-func defaultRouteRegistry() RouteRegistry {
-	return RouteRegistry{
-		"/some/route":    Get(doNotWantHandler),
-		"/another/route": Get(doNotWantHandler),
-		"/want":          Get(wantHandler),
-	}
-}
-
 // For handlers we do want, return nil which will satisfy the tests.
 func wantHandler(rw *ResponseWriter, req *Request) error {
 	return nil
@@ -567,11 +583,4 @@ func doNotWantHandler(rw *ResponseWriter, req *Request) error {
 
 func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
 	return &Request{uri: uri{edgePath: url}, mthd: method}
-}
-
-func verifyRouteNotFound(t *testing.T, router *router, req *Request) {
-	_, found := router.Route(req)
-	if found {
-		t.Errorf("did not expect to find a route for [url=%s, method=%s]", req.Path(), req.Method().name)
-	}
 }

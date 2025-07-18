@@ -428,6 +428,46 @@ func TestNewRewrite(t *testing.T) {
 				"/foo /bar",
 				map[string]string{"/foo": "/baz"},
 			},
+			{
+				"interior comment",
+				"/foo # Comment /bar",
+				map[string]string{},
+			},
+			{
+				"comment in key",
+				"/foo#Comment /bar",
+				map[string]string{},
+			},
+			{
+				"empty path component on key",
+				"// /bar",
+				map[string]string{},
+			},
+			{
+				"empty path component on value",
+				"/foo/bar //",
+				map[string]string{},
+			},
+			{
+				"trailing slash on key",
+				"/foo/ /bar",
+				map[string]string{},
+			},
+			{
+				"trailing slash on value",
+				"/foo /bar/",
+				map[string]string{},
+			},
+			{
+				"trailing slash on value with whitespaced comment",
+				"/foo /bar/ # Comment",
+				map[string]string{},
+			},
+			{
+				"trailing slash on value with non-whitespaced comment",
+				"/foo /bar/# Comment",
+				map[string]string{},
+			},
 		}
 
 		for _, tc := range tests {
@@ -486,6 +526,16 @@ func TestNewRewrite(t *testing.T) {
 				"comment immediately after value (no whitespace)",
 				"/foo/bar /baz# The comment",
 				map[string]string{"/foo/bar": "/baz"},
+			},
+			{
+				"root in key",
+				"/ /bar",
+				map[string]string{"/": "/bar"},
+			},
+			{
+				"root in value",
+				"/foo /",
+				map[string]string{"/foo": "/"},
 			},
 		}
 

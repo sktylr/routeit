@@ -7,7 +7,13 @@ import (
 	"strings"
 )
 
-var rewriteParseRe = regexp.MustCompile(`^(/[\w./-]*)\s+(/[\w./-]*)(?:\s*#.*)?$`)
+// Matches against strings of the form "/foo /bar # Comment", where "/foo" can
+// have any number of path components, but must start with a leading slash and
+// not have a trailing slash, and the same for "/bar". Any amount of whitespace
+// between the key an value is allowed. The line may optionally end with a
+// comment, specific using the "#" character. This can be prefixed optionally
+// with any amount of whitespace, though does not have to be.
+var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.-]+(?:/[\w.-]+)*)?)\s+(/(?:[\w.-]+(?:/[\w.-]+)*)?)(?:\s*#.*)?$`)
 
 // The [RouteRegistry] is used to associate routes with their corresponding
 // handlers. Routing supports both static and dynamic routes. The keys of the

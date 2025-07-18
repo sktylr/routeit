@@ -478,6 +478,21 @@ func TestNewRewrite(t *testing.T) {
 				map[string]string{"/foo": "/baz"},
 			},
 			{
+				"conflicting dynamic duplication to static",
+				"/${foo} /bar",
+				map[string]string{"/${foo}": "/baz"},
+			},
+			{
+				"conflicting dynamic duplication to dynamic",
+				"/${foo} /bar/${foo}",
+				map[string]string{"/${foo}": "/bar/qux/${foo}"},
+			},
+			{
+				"conflicting dynamic duplication to complex dynamic",
+				"/${foo} /bar/${foo}.png",
+				map[string]string{"/${foo}": "/bar/${foo}"},
+			},
+			{
 				"interior comment",
 				"/foo # Comment /bar",
 				map[string]string{},
@@ -517,6 +532,11 @@ func TestNewRewrite(t *testing.T) {
 				"/foo /bar/# Comment",
 				map[string]string{},
 			},
+			{
+				"dynamic key reuses variable names",
+				"/foo/${bar}/baz/${bar} /qux/${bar}/quux/${bar}",
+				map[string]string{},
+			},
 		}
 
 		for _, tc := range tests {
@@ -539,80 +559,99 @@ func TestNewRewrite(t *testing.T) {
 
 	t.Run("happy", func(t *testing.T) {
 		tests := []struct {
-			name string
-			raw  string
-			want map[string]string
+			name     string
+			existing []string
+			raw      string
+			want     map[string]string
 		}{
 			{
-				"empty line",
-				"",
-				map[string]string{},
+				name: "empty line",
+				raw:  "",
+				want: map[string]string{},
 			},
 			{
-				"comment line",
-				"# This is a comment",
-				map[string]string{},
+				name: "comment line",
+				raw:  "# This is a comment",
+				want: map[string]string{},
 			},
 			{
-				"comment with leading whitespace",
-				"      # Comment",
-				map[string]string{},
+				name: "comment with leading whitespace",
+				raw:  "      # Comment",
+				want: map[string]string{},
 			},
 			{
-				"simple rewrite",
-				"/foo /bar",
-				map[string]string{"/foo": "/bar"},
+				name: "simple rewrite",
+				raw:  "/foo /bar",
+				want: map[string]string{"/foo": "/bar"},
 			},
 			{
-				"skips equivalences",
-				"/foo /foo",
-				map[string]string{},
+				name: "skips equivalences",
+				raw:  "/foo /foo",
+				want: map[string]string{},
 			},
 			{
-				"comment after value",
-				"/foo/bar /baz # The comment",
-				map[string]string{"/foo/bar": "/baz"},
+				name: "comment after value",
+				raw:  "/foo/bar /baz # The comment",
+				want: map[string]string{"/foo/bar": "/baz"},
 			},
 			{
-				"comment immediately after value (no whitespace)",
-				"/foo/bar /baz# The comment",
-				map[string]string{"/foo/bar": "/baz"},
+				name: "comment immediately after value (no whitespace)",
+				raw:  "/foo/bar /baz# The comment",
+				want: map[string]string{"/foo/bar": "/baz"},
 			},
 			{
-				"root in key",
-				"/ /bar",
-				map[string]string{"/": "/bar"},
+				name: "root in key",
+				raw:  "/ /bar",
+				want: map[string]string{"/": "/bar"},
 			},
 			{
-				"root in value",
-				"/foo /",
-				map[string]string{"/foo": "/"},
+				name: "root in value",
+				raw:  "/foo /",
+				want: map[string]string{"/foo": "/"},
 			},
 			{
-				"dynamic rewrite (key and value)",
-				"/foo/${bar} /baz/${bar}",
-				map[string]string{"/foo/bar": "/baz/bar", "/foo/foo": "/baz/foo", "/foo/123": "/baz/123"},
+				name: "dynamic rewrite (key and value)",
+				raw:  "/foo/${bar} /baz/${bar}",
+				want: map[string]string{"/foo/bar": "/baz/bar", "/foo/foo": "/baz/foo", "/foo/123": "/baz/123"},
 			},
 			{
-				"dynamic rewrites (key only)",
-				"/foo/${bar} /baz/bar",
-				map[string]string{"/foo/bar": "/baz/bar", "/foo/qux": "/baz/bar", "/foo/ABCD": "/baz/bar"},
+				name: "dynamic rewrites (key only)",
+				raw:  "/foo/${bar} /baz/bar",
+				want: map[string]string{"/foo/bar": "/baz/bar", "/foo/qux": "/baz/bar", "/foo/ABCD": "/baz/bar"},
 			},
 			{
-				"dynamic rewrites (value only)",
-				"/foo/bar /baz/${bar}",
-				map[string]string{"/foo/bar": "/baz/${bar}"},
+				name: "dynamic rewrites (value only)",
+				raw:  "/foo/bar /baz/${bar}",
+				want: map[string]string{"/foo/bar": "/baz/${bar}"},
 			},
 			{
-				"poorly formed dynamic key acts as static",
-				"/foo/${bar /baz/${bar}",
-				map[string]string{"/foo/${bar": "/baz/${bar}"},
+				name: "dynamic rewrites (value only) with repeated variable in value",
+				raw:  "/foo/bar /baz/${bar}/${bar}",
+				want: map[string]string{"/foo/bar": "/baz/${bar}/${bar}"},
+			},
+			{
+				name: "poorly formed dynamic key acts as static",
+				raw:  "/foo/${bar /baz/${bar}",
+				want: map[string]string{"/foo/${bar": "/baz/${bar}"},
+			},
+			{
+				name:     "non conflicting duplicates allowed",
+				existing: []string{"/${page} /assets/${page}.html"},
+				// This is not conflicting since it contains no dynamic values
+				// in the key, whereas the existing entry does. In lookup,
+				// this entry will be prioritised if the input is exactly
+				// /favicon.ico
+				raw:  "/favicon.ico /assets/images/foo.png",
+				want: map[string]string{"/favicon.ico": "/assets/images/foo.png", "/contact": "/assets/contact.html"},
 			},
 		}
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				router := newRouter()
+				for _, e := range tc.existing {
+					router.NewRewrite(e)
+				}
 
 				router.NewRewrite(tc.raw)
 

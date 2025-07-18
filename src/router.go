@@ -12,7 +12,13 @@ import (
 // not have a trailing slash, and the same for "/bar". Any amount of whitespace
 // between the key an value is allowed. The line may optionally end with a
 // comment, specific using the "#" character. This can be prefixed optionally
-// with any amount of whitespace, though does not have to be.
+// with any amount of whitespace, though does not have to be. We also allow for
+// dynamic rules on both the key and value. These are denoted by ${<name>}
+// where <name> is the name of the variable given to the substring so that it
+// can be used in the template to rewrite to. Where a key path component is
+// dynamic, the component must entirely be encapsulated by ${ }. This regex
+// does not prohibit this behaviour, but the key will be incorrectly
+// interpreted within the parser if this is the case.
 var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}-]+(?:/[\w.${}-]+)*)?)\s+(/(?:[\w.${}-]+(?:/[\w.${}-]+)*)?)(?:\s*#.*)?$`)
 
 // The [RouteRegistry] is used to associate routes with their corresponding
@@ -104,7 +110,8 @@ func (r *router) NewStaticDir(s string) {
 // Adds a new URL rewrite rule to the router. Ignores comments and empty lines
 // but will panic if the input is malformed, such as an incorrect number of
 // values provided, no leading slashes, invalid URI syntax. Additionally, will
-// panic if the new rule conflicts with an existing rule.
+// panic if the new rule conflicts with an existing rule. Expects to receive a
+// single line containing exactly 1 rewrite rule (or an empty line or comment).
 func (r *router) NewRewrite(raw string) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
@@ -121,9 +128,11 @@ func (r *router) NewRewrite(raw string) {
 		return
 	}
 
+	// TODO: this (probably?) allows for something like /${bar}{baz} or /${bar}{baz}, /${bar}} etc, which should probably be prohibited due to it matching weirdly within regex
 	// Rewrite the key from the regex for using ${} to signify variables to the
 	// trie form using :
 	var kb strings.Builder
+	isDynamic := false
 	for i, seg := range strings.Split(rawKey, "/") {
 		if i == 0 && seg == "" {
 			continue
@@ -134,13 +143,31 @@ func (r *router) NewRewrite(raw string) {
 		} else {
 			kb.WriteRune(':')
 			kb.WriteString(seg[2 : len(seg)-1])
+			isDynamic = true
 		}
 	}
 	key := kb.String()
 
-	actual, _, found := r.rewrites.Find(key)
-	if found && *actual != value {
-		panic(fmt.Errorf("found conflicting URL rewrite rules for %#q - found both %#q and %#q", key, *actual, value))
+	// We want to prevent conflicting duplicates, but need to make sure that we
+	// don't reject "duplicates" that would actually be unambiguously
+	// interpreted by the underlying trie when looking up a key.
+	// For example, given the rewrites:
+	// 	- /favicon.ico -> /assets/images/favicon.png
+	//	- /${page} -> /assets/${page}.html
+	// The trie will be able to determine which of the routes to resolve
+	// unambiguously given the input /favicon.ico, so we should allow this.
+	// However, if given something like this:
+	//	- /foo -> /bar
+	//	- /foo -> /baz
+	// The trie will not be able to determine which to choose as both are
+	// equally specific maps. We want to reject these at setup time to force
+	// the integrator to adjust their URL rewrite rules.
+	existingS, existingD, found := r.rewrites.Find(key)
+	existingIsDynamic := existingD != nil && *existingD != ""
+	haveSame := isDynamic == existingIsDynamic
+	if found && haveSame && *existingS != value {
+		panic(fmt.Errorf("found conflicting URL rewrite rules for %#q - found both %#q and %#q", key, *existingS, value))
+
 	}
 
 	r.rewrites.Insert(key, &value)

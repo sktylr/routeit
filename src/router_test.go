@@ -292,71 +292,58 @@ func TestRoute(t *testing.T) {
 	})
 }
 
-func TestStaticDirEnforcesSubdirectory(t *testing.T) {
-	tests := []struct {
-		name string
-		in   string
-	}{
-		{
-			"root directory", "~/foo/bar",
-		},
-		{
-			"containing variables", "$HOME/bar",
-		},
-		{
-			"backtracking outside", "static/../..",
-		},
-		{
-			"project root", "static/..",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			router := newRouter()
-
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("router invalid static dir, expected panic but got none - static = %#q", router.staticDir)
-				}
-			}()
-
-			router.NewStaticDir(tc.in)
-		})
-	}
-}
-
-func TestStaticDirSimplifiesExpressions(t *testing.T) {
+func TestNewStaticDir(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
 		want string
 	}{
 		{
+			name: "root directory", in: "~/foo/bar",
+		},
+		{
+			name: "containing variables", in: "$HOME/bar",
+		},
+		{
+			name: "backtracking outside", in: "static/../..",
+		},
+		{
+			name: "project root", in: "static/..",
+		},
+		{
 			// The leading slash should be understood to mean ./ since we don't
 			// allow access outside of the project root.
-			"leading slash", "/static", "static",
+			name: "leading slash", in: "/static", want: "static",
 		},
 		{
-			"useless backtrack", "static/../static/../static", "static",
+			name: "useless backtrack", in: "static/../static/../static", want: "static",
 		},
 		{
-			"cyclic", "static/foo/../../static/../static/foo/../foo", "static/foo",
+			name: "cyclic", in: "static/foo/../../static/../static/foo/../foo", want: "static/foo",
 		},
 		{
 			// The `~` character is only expanded to the system root within the
 			// shell (it is a shorthand), but it is a perfectly legal, albeit
 			// confusing, directory name. This should not be expanded to the
 			// computer root.
-			"containing root shorthand", "static/~/foo", "static/~/foo",
+			name: "containing root shorthand", in: "static/~/foo", want: "static/~/foo",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			router := newRouter()
+			wantPanic := tc.want == ""
+
+			defer func() {
+				if r := recover(); r == nil && wantPanic {
+					t.Errorf("router invalid static dir, expected panic but got none - static = %#q", router.staticDir)
+				}
+			}()
+
 			router.NewStaticDir(tc.in)
-			if router.staticDir != tc.want {
+
+			if !wantPanic && router.staticDir != tc.want {
 				t.Errorf(`router.static = %q, wanted %#q`, router.staticDir, tc.want)
 			}
 		})

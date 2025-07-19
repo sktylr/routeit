@@ -80,6 +80,9 @@ func (rw *ResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
 // DELETE requests default to 204: No Content. All other request methods
 // default to 200: OK.
 func (rw *ResponseWriter) Status(s HttpStatus) {
+	if !s.isValid() {
+		panic(fmt.Errorf("invalid HTTP status code: %d, %s", s.code, s.msg))
+	}
 	rw.s = s
 }
 

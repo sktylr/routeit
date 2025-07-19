@@ -64,6 +64,16 @@ func GetServer() *routeit.Server {
 			// crashing
 			panic("panicking!")
 		}),
+		"/bad-status": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			// routeit.HttpStatus can technically be instantiated outside the
+			// package, using the following syntax. However, doing this will
+			// cause the server to panic due to the client not being able to
+			// set required properties on the HttpStatus struct. Doing this
+			// will cause the status to be translated due to a 500: Internal
+			// Server Error.
+			rw.Status(routeit.HttpStatus{})
+			return nil
+		}),
 		"/": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			var body Example
 			err := req.BodyToJson(&body)

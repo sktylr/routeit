@@ -97,6 +97,7 @@ func TestInternalServerError(t *testing.T) {
 		"/error",
 		"/crash",
 		"/panic",
+		"/bad-status",
 	}
 	verify := func(t *testing.T, res *routeit.TestResponse) {
 		res.AssertStatusCode(t, routeit.StatusInternalServerError)

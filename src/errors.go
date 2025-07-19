@@ -36,6 +36,10 @@ func ErrUnauthorized() *HttpError {
 	return httpErrorForStatus(StatusUnauthorized)
 }
 
+func ErrPaymentRequired() *HttpError {
+	return httpErrorForStatus(StatusPaymentRequired)
+}
+
 func ErrForbidden() *HttpError {
 	return httpErrorForStatus(StatusForbidden)
 }
@@ -54,6 +58,42 @@ func ErrMethodNotAllowed(allowed ...HttpMethod) *HttpError {
 	return &HttpError{status: StatusMethodNotAllowed, headers: headers}
 }
 
+func ErrNotAcceptable() *HttpError {
+	return httpErrorForStatus(StatusNotAcceptable)
+}
+
+func ErrProxyAuthenticationRequired() *HttpError {
+	return httpErrorForStatus(StatusProxyAuthenticationRequired)
+}
+
+func ErrRequestTimeout() *HttpError {
+	return httpErrorForStatus(StatusRequestTimeout)
+}
+
+func ErrConflict() *HttpError {
+	return httpErrorForStatus(StatusConflict)
+}
+
+func ErrGone() *HttpError {
+	return httpErrorForStatus(StatusGone)
+}
+
+func ErrLengthRequired() *HttpError {
+	return httpErrorForStatus(StatusLengthRequired)
+}
+
+func ErrPreconditionFailed() *HttpError {
+	return httpErrorForStatus(StatusPreconditionFailed)
+}
+
+func ErrContentTooLarge() *HttpError {
+	return httpErrorForStatus(StatusContentTooLarge)
+}
+
+func ErrURITooLong() *HttpError {
+	return httpErrorForStatus(StatusURITooLong)
+}
+
 func ErrUnsupportedMediaType(accepted ...ContentType) *HttpError {
 	headers := headers{}
 	if len(accepted) != 0 {
@@ -68,8 +108,56 @@ func ErrUnsupportedMediaType(accepted ...ContentType) *HttpError {
 	return &HttpError{status: StatusUnsupportedMediaType, headers: headers}
 }
 
+func ErrRangeNotSatisfiable() *HttpError {
+	return httpErrorForStatus(StatusRangeNotSatisfiable)
+}
+
+func ErrExpectationFailed() *HttpError {
+	return httpErrorForStatus(StatusExpectationFailed)
+}
+
+func ErrImATeapot() *HttpError {
+	return httpErrorForStatus(StatusImATeapot)
+}
+
+func ErrMisdirectedRequest() *HttpError {
+	return httpErrorForStatus(StatusMisdirectedRequest)
+}
+
 func ErrUnprocessableContent() *HttpError {
 	return httpErrorForStatus(StatusUnprocessableContent)
+}
+
+func ErrLocked() *HttpError {
+	return httpErrorForStatus(StatusLocked)
+}
+
+func ErrFailedDependency() *HttpError {
+	return httpErrorForStatus(StatusFailedDependency)
+}
+
+func ErrTooEarly() *HttpError {
+	return httpErrorForStatus(StatusTooEarly)
+}
+
+func ErrUpgradeRequired() *HttpError {
+	return httpErrorForStatus(StatusUpgradeRequired)
+}
+
+func ErrPreconditionRequired() *HttpError {
+	return httpErrorForStatus(StatusPreconditionRequired)
+}
+
+func ErrTooManyRequests() *HttpError {
+	return httpErrorForStatus(StatusTooManyRequests)
+}
+
+func ErrRequestHeaderFieldsTooLarge() *HttpError {
+	return httpErrorForStatus(StatusRequestHeaderFieldsTooLarge)
+}
+
+func ErrUnavailableForLegalReasons() *HttpError {
+	return httpErrorForStatus(StatusUnavailableForLegalReasons)
 }
 
 /*
@@ -84,8 +172,40 @@ func ErrNotImplemented() *HttpError {
 	return httpErrorForStatus(StatusNotImplemented)
 }
 
+func ErrBadGateway() *HttpError {
+	return httpErrorForStatus(StatusBadGateway)
+}
+
+func ErrServiceUnavailable() *HttpError {
+	return httpErrorForStatus(StatusServiceUnavailable)
+}
+
+func ErrGatewayTimeout() *HttpError {
+	return httpErrorForStatus(StatusGatewayTimeout)
+}
+
 func ErrHttpVersionNotSupported() *HttpError {
 	return httpErrorForStatus(StatusHttpVersionNotSupported)
+}
+
+func ErrVariantAlsoNegotiates() *HttpError {
+	return httpErrorForStatus(StatusVariantAlsoNegotiates)
+}
+
+func ErrInsufficientStorage() *HttpError {
+	return httpErrorForStatus(StatusInsufficientStorage)
+}
+
+func ErrLoopDetected() *HttpError {
+	return httpErrorForStatus(StatusLoopDetected)
+}
+
+func ErrNotExtended() *HttpError {
+	return httpErrorForStatus(StatusNotExtended)
+}
+
+func ErrNetworkAuthenticationRequired() *HttpError {
+	return httpErrorForStatus(StatusNetworkAuthenticationRequired)
 }
 
 func httpErrorForStatus(s HttpStatus) *HttpError {

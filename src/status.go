@@ -95,3 +95,7 @@ func (s HttpStatus) Is5xx() bool {
 func (s HttpStatus) isxx(min uint16, max uint16) bool {
 	return min <= s.code && s.code < max
 }
+
+func (s HttpStatus) isValid() bool {
+	return s.code != 0
+}

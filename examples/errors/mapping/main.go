@@ -36,7 +36,7 @@ func GetServer() *routeit.Server {
 		}),
 		"/login": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			var inBody LoginRequest
-			err := req.BodyToJson(&inBody)
+			err := req.BodyFromJson(&inBody)
 			if err != nil {
 				return err
 			}

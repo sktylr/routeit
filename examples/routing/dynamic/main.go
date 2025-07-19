@@ -50,7 +50,7 @@ func GetServer() *routeit.Server {
 
 func HelloHandler(rw *routeit.ResponseWriter, req *routeit.Request, name string, from string) error {
 	var in InGreeting
-	err := req.BodyToJson(&in)
+	err := req.BodyFromJson(&in)
 	if err != nil {
 		return err
 	}

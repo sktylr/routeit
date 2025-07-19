@@ -76,7 +76,7 @@ func GetServer() *routeit.Server {
 		}),
 		"/": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			var body Example
-			err := req.BodyToJson(&body)
+			err := req.BodyFromJson(&body)
 			if err != nil {
 				return err
 			}
@@ -113,7 +113,7 @@ func GetServer() *routeit.Server {
 			},
 			Post: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 				var in Nested
-				err := req.BodyToJson(&in)
+				err := req.BodyFromJson(&in)
 				if err != nil {
 					return routeit.ErrBadRequest()
 				}
@@ -130,7 +130,7 @@ func GetServer() *routeit.Server {
 			// request body back in response. It provides an example of how to
 			// safely parse the text/plain request body and respond with
 			// text/plain content.
-			body, err := req.BodyToText()
+			body, err := req.BodyFromText()
 			if err != nil {
 				return err
 			}

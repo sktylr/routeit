@@ -167,23 +167,23 @@ func (req *Request) QueryParam(key string) (string, bool) {
 // Content-Type header is application/json and will return a 415: Unsupported
 // Media Type error if this is not the case. Will panic if the destination is
 // not a pointer.
-func (req *Request) BodyToJson(to any) error {
+func (req *Request) BodyFromJson(to any) error {
 	if !req.ContentType().Equals(CTApplicationJson) {
 		return ErrUnsupportedMediaType(CTApplicationJson)
 	}
-	return req.UnsafeBodyToJson(to)
+	return req.UnsafeBodyFromJson(to)
 }
 
 // Parses the Json request body into the destination. Does not check the
 // Content-Type header to confirm that the request body has application/json
 // type body. Will panic if the destination is not a pointer.
-func (req *Request) UnsafeBodyToJson(to any) error {
+func (req *Request) UnsafeBodyFromJson(to any) error {
 	v := reflect.ValueOf(to)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
 		// We panic for now, this may change. This is due to an issue introduced
 		// by the integrator, so we panic which will manifest itself as a 500:
 		// Internal Server Error outside of the integrator's control.
-		panic(fmt.Sprintf("BodyToJson requires a non-nil pointer destination, got %T", to))
+		panic(fmt.Sprintf("BodyFromJson requires a non-nil pointer destination, got %T", to))
 	}
 	return json.Unmarshal([]byte(req.body), to)
 }
@@ -191,7 +191,7 @@ func (req *Request) UnsafeBodyToJson(to any) error {
 // Parses the text/plain content from the request. This method checks that the
 // Content-Type header is set to text/plain, returning a 415: Unsupported Media
 // Type error if that is not the case.
-func (req *Request) BodyToText() (string, error) {
+func (req *Request) BodyFromText() (string, error) {
 	if !req.ContentType().Equals(CTTextPlain) {
 		return "", ErrUnsupportedMediaType(CTTextPlain)
 	}

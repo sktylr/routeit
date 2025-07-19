@@ -43,7 +43,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 	// The URI should not contain any ASCII control characters
 	for _, b := range uriRaw {
 		if b < ' ' || b == 0x7F {
-			return nil, BadRequestError()
+			return nil, ErrBadRequest()
 		}
 	}
 
@@ -51,7 +51,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 
 	path, err := url.PathUnescape(rawPath)
 	if err != nil {
-		return nil, BadRequestError()
+		return nil, ErrBadRequest()
 	}
 
 	if !strings.HasPrefix(path, "/") {
@@ -77,7 +77,7 @@ func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError 
 	if strings.Contains(rawQuery, "?") {
 		// There should only be 1 `?`, which we have stripped off. Any `?` that
 		// feature as part of the query string should be URL encoded.
-		return BadRequestError()
+		return ErrBadRequest()
 	}
 
 	for query := range strings.SplitSeq(rawQuery, "&") {
@@ -86,11 +86,11 @@ func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError 
 		key, rest, _ := strings.Cut(query, "=")
 		key, err := url.QueryUnescape(key)
 		if err != nil {
-			return BadRequestError()
+			return ErrBadRequest()
 		}
 		val, err := url.QueryUnescape(rest)
 		if err != nil {
-			return BadRequestError()
+			return ErrBadRequest()
 		}
 		(*queryParams)[key] = val
 	}

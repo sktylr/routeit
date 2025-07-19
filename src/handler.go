@@ -118,7 +118,7 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 		return h.options(rw, req)
 	}
 
-	return MethodNotAllowedError(h.allowed...)
+	return ErrMethodNotAllowed(h.allowed...)
 }
 
 // Dynamically loads static assets from disk.

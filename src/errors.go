@@ -28,23 +28,23 @@ type ErrorMapper func(e error) *HttpError
  * 4xx Errors
  */
 
-func BadRequestError() *HttpError {
-	return &HttpError{status: StatusBadRequest, headers: headers{}}
+func ErrBadRequest() *HttpError {
+	return httpErrorForStatus(StatusBadRequest)
 }
 
-func UnauthorizedError() *HttpError {
-	return &HttpError{status: StatusUnauthorized, headers: headers{}}
+func ErrUnauthorized() *HttpError {
+	return httpErrorForStatus(StatusUnauthorized)
 }
 
-func ForbiddenError() *HttpError {
-	return &HttpError{status: StatusForbidden, headers: headers{}}
+func ErrForbidden() *HttpError {
+	return httpErrorForStatus(StatusForbidden)
 }
 
-func NotFoundError() *HttpError {
-	return &HttpError{status: StatusNotFound, headers: headers{}}
+func ErrNotFound() *HttpError {
+	return httpErrorForStatus(StatusNotFound)
 }
 
-func MethodNotAllowedError(allowed ...HttpMethod) *HttpError {
+func ErrMethodNotAllowed(allowed ...HttpMethod) *HttpError {
 	allow := make([]string, 0, len(allowed))
 	for _, m := range allowed {
 		allow = append(allow, m.name)
@@ -54,7 +54,7 @@ func MethodNotAllowedError(allowed ...HttpMethod) *HttpError {
 	return &HttpError{status: StatusMethodNotAllowed, headers: headers}
 }
 
-func UnsupportedMediaTypeError(accepted ...ContentType) *HttpError {
+func ErrUnsupportedMediaType(accepted ...ContentType) *HttpError {
 	headers := headers{}
 	if len(accepted) != 0 {
 		var sb strings.Builder
@@ -68,24 +68,28 @@ func UnsupportedMediaTypeError(accepted ...ContentType) *HttpError {
 	return &HttpError{status: StatusUnsupportedMediaType, headers: headers}
 }
 
-func UnprocessableContentError() *HttpError {
-	return &HttpError{status: StatusUnprocessableContent, headers: headers{}}
+func ErrUnprocessableContent() *HttpError {
+	return httpErrorForStatus(StatusUnprocessableContent)
 }
 
 /*
  * 5xx Errors
  */
 
-func InternalServerError() *HttpError {
-	return &HttpError{status: StatusInternalServerError, headers: headers{}}
+func ErrInternalServerError() *HttpError {
+	return httpErrorForStatus(StatusInternalServerError)
 }
 
-func NotImplementedError() *HttpError {
-	return &HttpError{status: StatusNotImplemented, headers: headers{}}
+func ErrNotImplemented() *HttpError {
+	return httpErrorForStatus(StatusNotImplemented)
 }
 
-func HttpVersionNotSupportedError() *HttpError {
-	return &HttpError{status: StatusHttpVersionNotSupported, headers: headers{}}
+func ErrHttpVersionNotSupported() *HttpError {
+	return httpErrorForStatus(StatusHttpVersionNotSupported)
+}
+
+func httpErrorForStatus(s HttpStatus) *HttpError {
+	return &HttpError{status: s, headers: headers{}}
 }
 
 // Converts from a general error into a HttpError, is possible. Falls back to
@@ -96,12 +100,12 @@ func toHttpError(err error, em ErrorMapper) *HttpError {
 		return mapped
 	}
 	if errors.Is(err, fs.ErrPermission) {
-		return ForbiddenError()
+		return ErrForbidden()
 	}
 	if errors.Is(err, fs.ErrNotExist) {
-		return NotFoundError()
+		return ErrNotFound()
 	}
-	return InternalServerError()
+	return ErrInternalServerError()
 }
 
 // Add a custom message to the response exception. This is destructive and

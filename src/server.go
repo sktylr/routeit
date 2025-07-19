@@ -60,8 +60,19 @@ type ServerConfig struct {
 	URLRewritePath string
 }
 
+// The internal server config, which only stores the necessary values
+type serverConfig struct {
+	Port          uint16
+	RequestSize   RequestSize
+	ReadDeadline  time.Duration
+	WriteDeadline time.Duration
+	// TODO: may not need the namespace here?
+	Namespace string
+	Debug     bool
+}
+
 type Server struct {
-	conf       ServerConfig
+	conf       serverConfig
 	router     *router
 	log        *slog.Logger
 	middleware *middleware
@@ -70,18 +81,6 @@ type Server struct {
 // Constructs a new server given the config. Defaults are provided for all
 // options to ensure that the server can run with sane values from the get-go.
 func NewServer(conf ServerConfig) *Server {
-	if conf.RequestSize == 0 {
-		conf.RequestSize = KiB
-	}
-	if conf.Port == 0 {
-		conf.Port = 8080
-	}
-	if conf.ReadDeadline == 0 {
-		conf.ReadDeadline = 10 * time.Second
-	}
-	if conf.WriteDeadline == 0 {
-		conf.WriteDeadline = 10 * time.Second
-	}
 	router := newRouter()
 	router.GlobalNamespace(conf.Namespace)
 	router.NewStaticDir(conf.StaticDir)
@@ -92,9 +91,9 @@ func NewServer(conf ServerConfig) *Server {
 		logOpts.Level = slog.LevelInfo
 	}
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &logOpts)
-	s := &Server{conf: conf, router: router, log: slog.New(jsonHandler)}
+	s := &Server{conf: conf.internalise(), router: router, log: slog.New(jsonHandler)}
 	s.middleware = newMiddleware(s.handlingMiddleware)
-	s.configureRewrites()
+	s.configureRewrites(conf.URLRewritePath)
 	return s
 }
 
@@ -274,14 +273,14 @@ func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) 
 
 // Parses the URL rewrite file, if provided, and adds all rewrite entries to
 // the router. Will panic if the input is malformed or invalid in any way.
-func (s *Server) configureRewrites() {
-	if s.conf.URLRewritePath == "" {
+func (s *Server) configureRewrites(rewritePath string) {
+	if rewritePath == "" {
 		return
 	}
 
-	path := path.Clean(s.conf.URLRewritePath)
+	path := path.Clean(rewritePath)
 	if !strings.HasSuffix(path, ".conf") {
-		panic(fmt.Errorf(`URL rewrite file %#q is not a ".conf" file`, s.conf.URLRewritePath))
+		panic(fmt.Errorf(`URL rewrite file %#q is not a ".conf" file`, rewritePath))
 	}
 
 	file, err := os.Open(path)
@@ -298,4 +297,28 @@ func (s *Server) configureRewrites() {
 	if err := scanner.Err(); err != nil {
 		panic(fmt.Errorf(`error while parsing URL rewrite config %v`, err))
 	}
+}
+
+func (sc ServerConfig) internalise() serverConfig {
+	out := serverConfig{
+		Port:          sc.Port,
+		RequestSize:   sc.RequestSize,
+		ReadDeadline:  sc.ReadDeadline,
+		WriteDeadline: sc.WriteDeadline,
+		Namespace:     sc.Namespace,
+		Debug:         sc.Debug,
+	}
+	if sc.RequestSize == 0 {
+		out.RequestSize = KiB
+	}
+	if sc.Port == 0 {
+		out.Port = 8080
+	}
+	if sc.ReadDeadline == 0 {
+		out.ReadDeadline = 10 * time.Second
+	}
+	if sc.WriteDeadline == 0 {
+		out.WriteDeadline = 10 * time.Second
+	}
+	return out
 }

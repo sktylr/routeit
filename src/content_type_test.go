@@ -5,90 +5,98 @@ import (
 	"testing"
 )
 
-func TestStringNoCharset(t *testing.T) {
-	ct := CTApplicationJavaScript
-
-	out := ct.string()
-	if out != "application/javascript" {
-		t.Errorf(`ct.string() = %#q, wanted "application/javascript"`, out)
-	}
-}
-
-func TestStringWithCharset(t *testing.T) {
-	ct := CTImagePng
-	ct.charset = "UTF-8"
-
-	out := ct.string()
-	if out != "image/png; charset=UTF-8" {
-		t.Errorf(`ct.string() = %#q, wanted "image/png; charset=UTF-8"`, out)
-	}
-}
-
-func TestEqualsTrue(t *testing.T) {
+func TestContentTypeString(t *testing.T) {
 	tests := []struct {
-		a ContentType
-		b ContentType
+		name string
+		in   ContentType
+		want string
 	}{
 		{
-			a: CTApplicationFormUrlEncoded,
-			b: CTApplicationFormUrlEncoded,
+			name: "no charset",
+			in:   CTApplicationJavaScript,
+			want: "application/javascript",
 		},
 		{
-			a: CTTextCss,
-			b: CTTextCss,
+			name: "with charset (upper case)",
+			in:   CTImagePng.WithCharset("UTF-8"),
+			want: "image/png; charset=utf-8",
 		},
 		{
-			a: CTTextPlain.WithCharset("UTF-8"),
-			b: CTTextPlain,
-		},
-		{
-			a: CTTextPlain.WithCharset("utf-8"),
-			b: CTTextPlain,
-		},
-		{
-			a: CTTextPlain.WithCharset("utf-8"),
-			b: CTTextPlain.WithCharset("UTF-8"),
+			name: "with charset (lower case)",
+			in:   CTImagePng.WithCharset("utf-8"),
+			want: "image/png; charset=utf-8",
 		},
 	}
 
 	for _, tc := range tests {
-		name := fmt.Sprintf(`"%s".equals("%s")`, tc.a.string(), tc.b.string())
-		t.Run(name, func(t *testing.T) {
-			if !tc.a.Equals(tc.b) {
-				t.Errorf(`expected equality for a=%#q, b=%#q`, tc.a.string(), tc.b.string())
+		t.Run(tc.name, func(t *testing.T) {
+			out := tc.in.string()
+			if out != tc.want {
+				t.Errorf(`ContentType.string() = %#q, wanted %#q`, out, tc.want)
 			}
 		})
 	}
 }
 
-func TestEqualsFalse(t *testing.T) {
+func TestContentTypeEquals(t *testing.T) {
 	tests := []struct {
-		a ContentType
-		b ContentType
+		a    ContentType
+		b    ContentType
+		want bool
 	}{
 		{
-			a: CTApplicationFormUrlEncoded,
-			b: CTApplicationJson,
+			a:    CTApplicationFormUrlEncoded,
+			b:    CTApplicationFormUrlEncoded,
+			want: true,
 		},
 		{
-			a: CTApplicationJavaScript,
-			b: CTTextJavaScript,
+			a:    CTTextCss,
+			b:    CTTextCss,
+			want: true,
 		},
 		{
-			a: CTTextPlain.WithCharset("UTF-8"),
-			b: CTTextPlain.WithCharset("UTF-16"),
+			a:    CTTextPlain.WithCharset("UTF-8"),
+			b:    CTTextPlain,
+			want: true,
 		},
 		{
-			a: CTImagePng,
-			b: CTImagePng.WithCharset("UTF-16"),
+			a:    CTTextPlain.WithCharset("utf-8"),
+			b:    CTTextPlain,
+			want: true,
+		},
+		{
+			a:    CTTextPlain.WithCharset("utf-8"),
+			b:    CTTextPlain.WithCharset("UTF-8"),
+			want: true,
+		},
+
+		{
+			a:    CTApplicationFormUrlEncoded,
+			b:    CTApplicationJson,
+			want: false,
+		},
+		{
+			a:    CTApplicationJavaScript,
+			b:    CTTextJavaScript,
+			want: false,
+		},
+		{
+			a:    CTTextPlain.WithCharset("UTF-8"),
+			b:    CTTextPlain.WithCharset("UTF-16"),
+			want: false,
+		},
+		{
+			a:    CTImagePng,
+			b:    CTImagePng.WithCharset("UTF-16"),
+			want: false,
 		},
 	}
 
 	for _, tc := range tests {
 		name := fmt.Sprintf(`"%s".equals("%s")`, tc.a.string(), tc.b.string())
 		t.Run(name, func(t *testing.T) {
-			if tc.a.Equals(tc.b) {
-				t.Errorf(`expected inequality for a=%#q, b=%#q`, tc.a.string(), tc.b.string())
+			if tc.a.Equals(tc.b) != tc.want {
+				t.Errorf(`%#q.equals(%#q) = %t, wanted %t`, tc.a.string(), tc.b.string(), tc.a.Equals(tc.b), tc.want)
 			}
 		})
 	}
@@ -109,7 +117,10 @@ func TestParseContentType(t *testing.T) {
 			"", ContentType{},
 		},
 		{
-			"application/javascript; charset=UTF-16", CTApplicationJavaScript.WithCharset("UTF-16"),
+			"application/javascript; charset=UTF-16", CTApplicationJavaScript.WithCharset("utf-16"),
+		},
+		{
+			"image/png; charset=utf-16", CTImagePng.WithCharset("utf-16"),
 		},
 	}
 

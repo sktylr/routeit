@@ -90,29 +90,29 @@ type HttpStatus struct {
 }
 
 func (s HttpStatus) Is1xx() bool {
-	return s.isxx(100, 200)
+	return s.isxx(100)
 }
 
 func (s HttpStatus) Is2xx() bool {
-	return s.isxx(200, 300)
+	return s.isxx(200)
 }
 
 func (s HttpStatus) Is3xx() bool {
-	return s.isxx(300, 400)
+	return s.isxx(300)
 }
 
 func (s HttpStatus) Is4xx() bool {
-	return s.isxx(400, 500)
+	return s.isxx(400)
 }
 
 func (s HttpStatus) Is5xx() bool {
-	return s.isxx(500, 600)
+	return s.isxx(500)
 }
 
-func (s HttpStatus) isxx(min uint16, max uint16) bool {
-	return min <= s.code && s.code < max
+func (s HttpStatus) isxx(min uint16) bool {
+	return min <= s.code && s.code < min+100
 }
 
 func (s HttpStatus) isValid() bool {
-	return s.code != 0
+	return s.Is1xx() || s.Is2xx() || s.Is3xx() || s.Is4xx() || s.Is5xx()
 }

@@ -20,7 +20,7 @@ func GetServer() *routeit.Server {
 	srv.RegisterRoutesUnderNamespace("/api", routeit.RouteRegistry{
 		"/contact": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			var in ContactForm
-			err := req.BodyToJson(&in)
+			err := req.BodyFromJson(&in)
 			if err != nil {
 				return err
 			}

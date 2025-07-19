@@ -26,7 +26,7 @@ $ curl http://localhost:8080/error
 500: Internal Server Error
 ```
 
-`/crash`: This endpoint also returns an error, but uses the `InternalServerError()` function defined in the `routeit` package.
+`/crash`: This endpoint also returns an error, but uses the `ErrInternalServerError()` function defined in the `routeit` package.
 ```bash
 $ curl http://localhost:8080/crash
 500: Internal Server Error

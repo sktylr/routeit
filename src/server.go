@@ -237,7 +237,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 			case error:
 				rw = toHttpError(e, s.em).toResponse()
 			default:
-				rw = InternalServerError().toResponse()
+				rw = ErrInternalServerError().toResponse()
 			}
 		}
 		// TODO: need improved error handling semantics here!
@@ -276,7 +276,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) error {
 	handler, found := s.router.Route(req)
 	if !found {
-		return NotFoundError().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
+		return ErrNotFound().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
 	}
 	return handler.handle(rw, req)
 }

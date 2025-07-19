@@ -21,7 +21,7 @@ func GetServer() *routeit.Server {
 func AuthorisationMiddleware(c *routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
 	auth, found := req.Header("Authorization")
 	if !found || auth != "LET ME IN" {
-		return routeit.UnauthorizedError()
+		return routeit.ErrUnauthorized()
 	}
 
 	return c.Proceed(rw, req)

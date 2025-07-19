@@ -43,7 +43,7 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 		if strings.TrimSpace(k) != k {
 			// The key cannot contain any leading nor trailing whitespace per
 			// RFC-9112
-			return nil, BadRequestError()
+			return nil, ErrBadRequest()
 		}
 		h.Set(k, strings.TrimSpace(v))
 	}

@@ -65,7 +65,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	// return after the Host header and 1 carriage return after all the headers.
 	// This means there will be at least 4 sections.
 	if len(sections) < 4 {
-		return nil, BadRequestError()
+		return nil, ErrBadRequest()
 	}
 
 	prtclRaw := sections[0]
@@ -88,7 +88,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	_, hasHost := reqHdrs.Get("Host")
 	if !hasHost {
 		// The Host header is required as part of HTTP/1.1
-		return nil, BadRequestError()
+		return nil, ErrBadRequest()
 	}
 
 	cLen := reqHdrs.ContentLength()
@@ -113,7 +113,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 			// all. Either the client has not sent it all (e.g. due to a slow
 			// connection), or the request is malformed. Return 400 Bad Request
 			// since the failure is with the client.
-			return nil, BadRequestError()
+			return nil, ErrBadRequest()
 		}
 		body = string(buf)
 	}
@@ -169,7 +169,7 @@ func (req *Request) QueryParam(key string) (string, bool) {
 // not a pointer.
 func (req *Request) BodyToJson(to any) error {
 	if !req.ContentType().Equals(CTApplicationJson) {
-		return UnsupportedMediaTypeError(CTApplicationJson)
+		return ErrUnsupportedMediaType(CTApplicationJson)
 	}
 	return req.UnsafeBodyToJson(to)
 }
@@ -193,7 +193,7 @@ func (req *Request) UnsafeBodyToJson(to any) error {
 // Type error if that is not the case.
 func (req *Request) BodyToText() (string, error) {
 	if !req.ContentType().Equals(CTTextPlain) {
-		return "", UnsupportedMediaTypeError(CTTextPlain)
+		return "", ErrUnsupportedMediaType(CTTextPlain)
 	}
 	return req.body, nil
 }
@@ -213,20 +213,20 @@ func (req *Request) ContentType() ContentType {
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	startLineSplit := bytes.Split(raw, []byte(" "))
 	if len(startLineSplit) != 3 {
-		return protocolLine{}, BadRequestError()
+		return protocolLine{}, ErrBadRequest()
 	}
 
 	mthdRaw, uriRaw, prtcl := startLineSplit[0], string(startLineSplit[1]), string(startLineSplit[2])
 	mthd, found := methodLookup[string(mthdRaw)]
 	if !found {
-		return protocolLine{}, NotImplementedError()
+		return protocolLine{}, ErrNotImplemented()
 	}
 	if prtcl != "HTTP/1.1" {
-		return protocolLine{}, HttpVersionNotSupportedError()
+		return protocolLine{}, ErrHttpVersionNotSupported()
 	}
 	if uriRaw == "*" && mthd != OPTIONS {
 		// TODO: check error message - should this be a 400 or something else?
-		return protocolLine{}, BadRequestError()
+		return protocolLine{}, ErrBadRequest()
 	}
 
 	// TODO: need to return 414: URI Too Long if URI is too long

@@ -56,7 +56,7 @@ func GetServer() *routeit.Server {
 			// This route deliberately returns a 500 Internal Server Error,
 			// which shows how an integration could deliberately return an
 			// error that is propagated into the http response
-			return routeit.InternalServerError()
+			return routeit.ErrInternalServerError()
 		}),
 		"/panic": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			// Panics in application code are mapped to 500 Internal Server
@@ -105,7 +105,7 @@ func GetServer() *routeit.Server {
 				var in Nested
 				err := req.BodyToJson(&in)
 				if err != nil {
-					return routeit.BadRequestError()
+					return routeit.ErrBadRequest()
 				}
 
 				res := Example{

@@ -78,11 +78,11 @@ func ErrorMapper(err error) *routeit.HttpError {
 	}
 
 	if errors.Is(err, ErrIncorrectPassword) {
-		return routeit.BadRequestError()
+		return routeit.ErrBadRequest()
 	}
 
 	if errors.Is(err, ErrMissingInformation) {
-		return routeit.UnprocessableContentError()
+		return routeit.ErrUnprocessableContent()
 	}
 
 	// Routeit will handle the rest of the error mapping using sensible

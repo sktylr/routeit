@@ -42,6 +42,17 @@ import (
 	"strings"
 )
 
+// This regex matches against a string that stats with a :, followed by at
+// least 1 alphanumeric (or _ or -) character, optionally followed by 0, 1 or 2
+// pipes (|) that can contain alphanumeric characters after each pipe. It is
+// used to represent the expected syntax for dynamic path components. These
+// components must contain a name (the characters between : and the first |),
+// and optionally require a prefix (between the first and second |) or a suffix
+// (after the last |). For example, the pattern :foo|bar|qux would match
+// against strings starting with "bar" and ending with "qux", and apply the
+// name "foo" to those that match.
+var dynamicKeyRegex = regexp.MustCompile(`^:([\w-]+)(?:\|[\w-]*)?(?:\|[\w-]*)?$`)
+
 type trie[T any, E any] struct {
 	root    *node[T]
 	extract dynamicExtractor[T, E]
@@ -53,13 +64,23 @@ type node[T any] struct {
 	children []*node[T]
 }
 
+// The [wildcard] struct allows for basic wildcard matching against an incoming
+// key. The wildcard matches any incoming string that has the same prefix and
+// suffix defined in the struct, and strictly more characters than minLen.
+// Where the prefix and suffix are both empty, the wildcard matches against
+// anything.
+type wildcard struct {
+	prefix string
+	suffix string
+	minLen int
+}
+
 // Trie keys can match exactly, or dynamically against the input key. This
 // struct allows the trie to keep track of the kind of key, to ensure that
 // insertion and lookup obeys the concept.
 type trieKey struct {
-	exact string
-	// TODO: look into just removing this?
-	wildcard bool
+	exact    string
+	wildcard *wildcard
 }
 
 type trieValue[T any] struct {
@@ -90,11 +111,13 @@ func newTrie[T any, D any](extract dynamicExtractor[T, D]) *trie[T, D] {
 }
 
 func newKey(part string) trieKey {
-	if strings.HasPrefix(part, ":") {
-		// This is a wildcard matcher and will match against anything
-		return trieKey{wildcard: true}
+	isWildcard, prefix, suffix := splitDynamicPrefixAndSuffix(part)
+	if !isWildcard {
+		return trieKey{exact: part}
 	}
-	return trieKey{exact: part}
+
+	minLen := len(prefix) + len(suffix)
+	return trieKey{wildcard: &wildcard{prefix: prefix, suffix: suffix, minLen: minLen}}
 }
 
 // TODO: can probably move this to its own package
@@ -172,7 +195,7 @@ func (t *trie[T, D]) Insert(path string, value *T) {
 }
 
 func (n *node[T]) GetOrCreateChild(key string) *node[T] {
-	wildcard := strings.HasPrefix(key, ":")
+	wildcard, prefix, suffix := splitDynamicPrefixAndSuffix(key)
 	var best *node[T]
 	for _, child := range n.children {
 		if child.key.exact == key {
@@ -180,14 +203,18 @@ func (n *node[T]) GetOrCreateChild(key string) *node[T] {
 			// match all static paths against dynamic paths, causing some nodes
 			// to be overwritten depending on the order of insertions.
 			return child
-		} else if wildcard && child.key.wildcard {
-			// Doing this ensure that we only ever have 1 dynamic node per
-			// group of children. Since the name used for the dynamic segment
-			// is stored on the value, we can ignore it here. This keeps the
-			// trie leaner, but also means we don't end up with impossibly
-			// ambiguous inserts, such as /:foo/bar/:bar and /:foo/bar/:baz,
-			// where there is no sensible way to determine which to return
-			// given a string like /foo/bar/baz.
+		} else if wildcard &&
+			child.key.IsWildcard() &&
+			child.key.wildcard.prefix == prefix &&
+			child.key.wildcard.suffix == suffix {
+			// Doing this ensures that we have 1 dynamic mode per (prefix,
+			// suffix) combination per group of children. We don't care about
+			// the name used for the dynamic match here - only the required
+			// prefixes and suffixes. Since the vast majority of dynamic
+			// matches will be inserted without prefixes or suffixes, this
+			// generally means that each node will have at most 1 dynamic node
+			// in its group of children. We do this to keep the trie sparse,
+			// which helps with repeated lookups.
 			best = child
 		}
 	}
@@ -218,6 +245,7 @@ func (n *node[T]) HigherPriority(other *node[T]) bool {
 	if other.value.dm == nil {
 		return false
 	}
+	// TODO: need to figure out how prefixes and suffixes fit into this calculation
 	if n.value.dm.total < other.value.dm.total {
 		return true
 	}
@@ -227,11 +255,29 @@ func (n *node[T]) HigherPriority(other *node[T]) bool {
 	return false
 }
 
+func (wc *wildcard) Matches(cmp string) bool {
+	prefixEmpty, suffixEmpty := wc.prefix == "", wc.suffix == ""
+	if prefixEmpty && suffixEmpty {
+		return cmp != ""
+	}
+	if prefixEmpty {
+		return strings.HasSuffix(cmp, wc.suffix) && len(cmp) > wc.minLen
+	}
+	if suffixEmpty {
+		return strings.HasPrefix(cmp, wc.prefix) && len(cmp) > wc.minLen
+	}
+	return strings.HasPrefix(cmp, wc.prefix) && strings.HasSuffix(cmp, wc.suffix) && len(cmp) > wc.minLen
+}
+
 func (k *trieKey) Matches(cmp string) bool {
-	if k.wildcard {
-		return true
+	if k.IsWildcard() {
+		return k.wildcard.Matches(cmp)
 	}
 	return k.exact == cmp
+}
+
+func (k *trieKey) IsWildcard() bool {
+	return k.wildcard != nil
 }
 
 // Collects the path parameters of the matched path
@@ -297,13 +343,29 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 		if !strings.HasPrefix(seg, ":") {
 			sb.WriteString(seg)
 		} else {
-			// We have a segment that is ":name". We want to convert this into
-			// a named character group that allows ASCII characters, stopping
-			// at the first /.
-			name := seg[1:]
+			// We have a segment that is ":name", optionally followed by 0, 1
+			// or 2 pipes (|). Each pipe is succeeded by an alphanumeric string
+			// of length 0+. In this context, we only care about the `name`
+			// component, but we should validate that the shape of the entire
+			// string is valid, otherwise we panic. We take the `name` and
+			// convert it into a named character group that allows ASCII
+			// characters, stopping at the first /.
+			matches := dynamicKeyRegex.FindStringSubmatch(seg)
+			if matches == nil {
+				panic("invalid dynamic matcher sequence")
+			}
+			name := matches[1]
 			sb.WriteString("(?P<")
 			sb.WriteString(name)
-			sb.WriteString(">[^/]+)")
+			sb.WriteRune('>')
+			if len(matches) > 2 {
+				sb.WriteString(matches[2])
+			}
+			sb.WriteString("[^/]+")
+			if len(matches) > 3 {
+				sb.WriteString(matches[3])
+			}
+			sb.WriteRune(')')
 			total++
 			if i < first {
 				first = i
@@ -324,6 +386,26 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 		}
 	}
 
+	if total == 0 {
+		// Although the path contained at least 1 colon, it was not in the
+		// right place to signify a dynamic match, so we treat it statically
+		return nil
+	}
+
 	re := regexp.MustCompile(sb.String())
 	return &dynamicMatcher{re: re, total: total, first: first}
+}
+
+func splitDynamicPrefixAndSuffix(in string) (bool, string, string) {
+	if !strings.HasPrefix(in, ":") {
+		return false, "", ""
+	}
+
+	parts := strings.Split(in, "|")
+	if len(parts) > 2 {
+		return true, parts[1], parts[2]
+	} else if len(parts) > 1 {
+		return true, parts[1], ""
+	}
+	return true, "", ""
 }

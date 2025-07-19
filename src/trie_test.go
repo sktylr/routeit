@@ -29,6 +29,34 @@ func TestTrieLookup(t *testing.T) {
 				map[string]int{"/foo/:bar/baz": 42},
 				"/foo/bar",
 			},
+			{
+				"dynamic with prefix, search without prefix",
+				map[string]int{"/foo/:bar|baz": 42},
+				"/foo/bar",
+			},
+			{
+				"dynamic with suffix, search without suffix",
+				map[string]int{"/foo/:bar||baz": 42},
+				"/foo/bar",
+			},
+			{
+				"dynamic with prefix and suffix, search with prefix, without suffix",
+				map[string]int{"/foo/:bar|baz|qux": 42},
+				"/foo/baza",
+			},
+			{
+				"dynamic with prefix and suffix, search without prefix, with suffix",
+				map[string]int{"/foo/:bar|baz|qux": 42},
+				"/foo/aqux",
+			},
+			{
+				// The reason we don't want this to match is because the name
+				// part is supposed to represent a capture group - it should
+				// not be empty.
+				"dynamic with prefix and suffix, search is exactly prefix + suffix",
+				map[string]int{"/foo/:bar|baz|qux": 42},
+				"/foo/bazqux",
+			},
 		}
 
 		for _, tc := range tests {
@@ -61,67 +89,84 @@ func TestTrieLookup(t *testing.T) {
 			wantParams pathParameters
 		}{
 			{
-				"one element",
-				map[string]int{"/foo": 13},
-				"/foo",
-				13,
-				pathParameters{},
+				name:   "one element",
+				in:     map[string]int{"/foo": 13},
+				search: "/foo",
+				want:   13,
 			},
 			{
-				"multiple elements leaf",
-				map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
-				"/foo/bar/baz",
-				15,
-				pathParameters{},
+				name:   "multiple elements leaf",
+				in:     map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
+				search: "/foo/bar/baz",
+				want:   15,
 			},
 			{
-				"multiple elements non-leaf",
-				map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
-				"/foo/bar",
-				42,
-				pathParameters{},
+				name:   "multiple elements non-leaf",
+				in:     map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
+				search: "/foo/bar",
+				want:   42,
 			},
 			{
-				"dynamic leaf",
-				map[string]int{"/foo/:bar": 14},
-				"/foo/some-variable",
-				14,
-				pathParameters{"bar": "some-variable"},
+				name:       "dynamic leaf",
+				in:         map[string]int{"/foo/:bar": 14},
+				search:     "/foo/some-variable",
+				want:       14,
+				wantParams: pathParameters{"bar": "some-variable"},
 			},
 			{
-				"dynamic valid non-leaf",
-				map[string]int{"/foo/:bar": 15, "/foo/:bar/:baz": 13},
-				"/foo/some-variable",
-				15,
-				pathParameters{"bar": "some-variable"},
+				name:       "dynamic valid non-leaf",
+				in:         map[string]int{"/foo/:bar": 15, "/foo/:bar/:baz": 13},
+				search:     "/foo/some-variable",
+				want:       15,
+				wantParams: pathParameters{"bar": "some-variable"},
 			},
 			{
-				"prioritises exact match",
-				map[string]int{"/foo/bar": 13, "/foo/:var": 100, "/foo/baz": 42},
-				"/foo/baz",
-				42,
-				pathParameters{},
+				name:   "prioritises exact match",
+				in:     map[string]int{"/foo/bar": 13, "/foo/:var": 100, "/foo/baz": 42},
+				search: "/foo/baz",
+				want:   42,
 			},
 			{
-				"handles complex dynamic matches",
-				map[string]int{"/foo/:bar": 15},
-				"/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
-				15,
-				pathParameters{"bar": "this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8"},
+				name:       "handles complex dynamic matches",
+				in:         map[string]int{"/foo/:bar": 15},
+				search:     "/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
+				want:       15,
+				wantParams: pathParameters{"bar": "this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8"},
 			},
 			{
-				"prioritises more specific dynamic matches",
-				map[string]int{"/foo/:bar": 17, "/:foo/bar": 13},
-				"/foo/bar",
-				17,
-				pathParameters{"bar": "bar"},
+				name:       "prioritises more specific dynamic matches",
+				in:         map[string]int{"/foo/:bar": 17, "/:foo/bar": 13},
+				search:     "/foo/bar",
+				want:       17,
+				wantParams: pathParameters{"bar": "bar"},
 			},
 			{
-				"prioritises dynamic nodes with more static components",
-				map[string]int{"/foo/:bar/:baz": 42, "/foo/:bar/baz": 13},
-				"/foo/bar/baz",
-				13,
-				pathParameters{"bar": "bar"},
+				name:       "prioritises dynamic nodes with more static components",
+				in:         map[string]int{"/foo/:bar/:baz": 42, "/foo/:bar/baz": 13},
+				search:     "/foo/bar/baz",
+				want:       13,
+				wantParams: pathParameters{"bar": "bar"},
+			},
+			{
+				name:       "dynamic match with prefix",
+				in:         map[string]int{"/foo/:bar|baz": 42},
+				search:     "/foo/baz_search",
+				want:       42,
+				wantParams: pathParameters{"bar": "baz_search"},
+			},
+			{
+				name:       "dynamic match with suffix",
+				in:         map[string]int{"/foo/:bar||baz": 42},
+				search:     "/foo/search_baz",
+				want:       42,
+				wantParams: pathParameters{"bar": "search_baz"},
+			},
+			{
+				name:       "dynamic match with prefix and suffix",
+				in:         map[string]int{"/foo/:bar|baz|qux": 42},
+				search:     "/foo/bazaqux",
+				want:       42,
+				wantParams: pathParameters{"bar": "bazaqux"},
 			},
 		}
 
@@ -173,6 +218,16 @@ func TestTrieInsertion(t *testing.T) {
 					trie.Insert("/:foo/bar/:baz", &v)
 					return trie
 				}(),
+			},
+			{
+				"dynamic too many separators",
+				"/:foo|pre|suf|",
+				newTrie((*trieValue[int]).PathParams),
+			},
+			{
+				"dynamic too many sections",
+				"/:foo|pre|suf|extra",
+				newTrie((*trieValue[int]).PathParams),
 			},
 		}
 

@@ -128,7 +128,6 @@ func (r *router) NewRewrite(raw string) {
 		return
 	}
 
-	// TODO: this (probably?) allows for something like /${bar}{baz} or /${bar}{baz}, /${bar}} etc, which should probably be prohibited due to it matching weirdly within regex
 	// Rewrite the key from the regex for using ${} to signify variables to the
 	// trie form using :
 	var kb strings.Builder

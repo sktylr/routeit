@@ -41,6 +41,14 @@ func TestEqualsTrue(t *testing.T) {
 			a: CTTextPlain.WithCharset("UTF-8"),
 			b: CTTextPlain,
 		},
+		{
+			a: CTTextPlain.WithCharset("utf-8"),
+			b: CTTextPlain,
+		},
+		{
+			a: CTTextPlain.WithCharset("utf-8"),
+			b: CTTextPlain.WithCharset("UTF-8"),
+		},
 	}
 
 	for _, tc := range tests {

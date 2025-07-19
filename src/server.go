@@ -58,6 +58,10 @@ type ServerConfig struct {
 	// to /baz. The [Request.Path] method always returns the request path
 	// **after** rewriting.
 	URLRewritePath string
+	// An optional mapper to map application errors to routeit [HttpError]s
+	// that are transformed to valid responses. Called whenever the application
+	// code returns or panics an error
+	ErrorMapper ErrorMapper
 }
 
 // The internal server config, which only stores the necessary values
@@ -76,6 +80,7 @@ type Server struct {
 	router     *router
 	log        *slog.Logger
 	middleware *middleware
+	em         ErrorMapper
 }
 
 // Constructs a new server given the config. Defaults are provided for all
@@ -94,6 +99,11 @@ func NewServer(conf ServerConfig) *Server {
 	s := &Server{conf: conf.internalise(), router: router, log: slog.New(jsonHandler)}
 	s.middleware = newMiddleware(s.handlingMiddleware)
 	s.configureRewrites(conf.URLRewritePath)
+	if conf.ErrorMapper == nil {
+		s.em = func(e error) *HttpError { return nil }
+	} else {
+		s.em = conf.ErrorMapper
+	}
 	return s
 }
 
@@ -225,7 +235,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 			fmt.Printf("Application code panicked: %s\n", r)
 			switch e := r.(type) {
 			case error:
-				rw = toHttpError(e).toResponse()
+				rw = toHttpError(e, s.em).toResponse()
 			default:
 				rw = InternalServerError().toResponse()
 			}
@@ -256,7 +266,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 	// If the error is not a well formed httpError, then we attempt to infer
 	// the type of Http error it corresponds to, falling back to 500: Internal
 	// Server Error if that fails.
-	return toHttpError(err).toResponse()
+	return toHttpError(err, s.em).toResponse()
 }
 
 // After all middleware is processed, the last piece is for the server to

@@ -6,8 +6,6 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-// TODO: routeit cType comparison is case sensitive!
-
 func TestAbout(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 	verifyMeta := func(t *testing.T, res *routeit.TestResponse) {

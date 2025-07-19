@@ -66,8 +66,7 @@ func parseContentType(raw string) ContentType {
 	for _, param := range splitParams[1:] {
 		kvp := strings.Split(strings.TrimSpace(param), "=")
 		if len(kvp) == 2 && kvp[0] == "charset" {
-			ct.charset = kvp[1]
-			return ct
+			return ct.WithCharset(kvp[1])
 		}
 	}
 
@@ -76,7 +75,7 @@ func parseContentType(raw string) ContentType {
 
 // Destructively sets the charset of the content type
 func (ct ContentType) WithCharset(cs string) ContentType {
-	ct.charset = cs
+	ct.charset = strings.ToLower(cs)
 	return ct
 }
 
@@ -89,7 +88,7 @@ func (a ContentType) Equals(b ContentType) bool {
 	if a.part != b.part || a.subtype != b.subtype {
 		return false
 	}
-	if (a.charset == "" || a.charset == "UTF-8") && (b.charset == "" || b.charset == "UTF-8") {
+	if (a.charset == "" || a.charset == "utf-8") && (b.charset == "" || b.charset == "utf-8") {
 		return true
 	}
 	return a.charset == b.charset

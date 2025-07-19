@@ -7,158 +7,114 @@ import (
 	"time"
 )
 
-func TestNewServerDefaults(t *testing.T) {
-	srv := NewServer(ServerConfig{})
-
-	verifyDefaultPort(t, srv.conf)
-	verifyDefaultRequestSize(t, srv.conf)
-	verifyDefaultReadTimeout(t, srv.conf)
-	verifyDefaultWriteTimeout(t, srv.conf)
-	verifyDefaultNamespace(t, srv.conf)
-	verifyDefaultDebugLevel(t, srv)
-}
-
-func TestNewServerOnlyPort(t *testing.T) {
-	srv := NewServer(ServerConfig{Port: 3000})
-	wantPort := uint16(3000)
-
-	if srv.conf.Port != wantPort {
-		t.Errorf(`custom port = %d, want %d`, srv.conf.Port, wantPort)
-	}
-	verifyDefaultRequestSize(t, srv.conf)
-	verifyDefaultReadTimeout(t, srv.conf)
-	verifyDefaultWriteTimeout(t, srv.conf)
-	verifyDefaultNamespace(t, srv.conf)
-	verifyDefaultDebugLevel(t, srv)
-}
-
-func TestNewServerOnlyRequestBufferSize(t *testing.T) {
-	srv := NewServer(ServerConfig{RequestSize: 3 * MiB})
-	wantReqSize := RequestSize(1024 * 1024 * 3)
-
-	verifyDefaultPort(t, srv.conf)
-	if srv.conf.RequestSize != wantReqSize {
-		t.Errorf(`custom request buffer size = %d, want %d`, srv.conf.RequestSize, wantReqSize)
-	}
-	verifyDefaultReadTimeout(t, srv.conf)
-	verifyDefaultWriteTimeout(t, srv.conf)
-	verifyDefaultNamespace(t, srv.conf)
-	verifyDefaultDebugLevel(t, srv)
-}
-
-func TestNewServerOnlyReadTimeout(t *testing.T) {
-	srv := NewServer(ServerConfig{ReadDeadline: 3 * time.Minute})
-	wantReadTmo := 3 * time.Minute
-
-	verifyDefaultPort(t, srv.conf)
-	verifyDefaultRequestSize(t, srv.conf)
-	if srv.conf.ReadDeadline != wantReadTmo {
-		t.Errorf(`custom read timeout = %d, want %d`, srv.conf.ReadDeadline, wantReadTmo)
-	}
-	verifyDefaultWriteTimeout(t, srv.conf)
-	verifyDefaultNamespace(t, srv.conf)
-	verifyDefaultDebugLevel(t, srv)
-}
-
-func TestNewServerOnlyWriteTimeout(t *testing.T) {
-	srv := NewServer(ServerConfig{WriteDeadline: 4 * time.Second})
-	wantWriteTmo := 4 * time.Second
-
-	verifyDefaultPort(t, srv.conf)
-	verifyDefaultRequestSize(t, srv.conf)
-	verifyDefaultReadTimeout(t, srv.conf)
-	if srv.conf.WriteDeadline != wantWriteTmo {
-		t.Errorf(`custom write timeout = %d, want %d`, srv.conf.WriteDeadline, wantWriteTmo)
-	}
-	verifyDefaultNamespace(t, srv.conf)
-	verifyDefaultDebugLevel(t, srv)
-}
-
-func TestNewServerOnlyNamespace(t *testing.T) {
-	srv := NewServer(ServerConfig{Namespace: "/api"})
-
-	verifyDefaultPort(t, srv.conf)
-	verifyDefaultRequestSize(t, srv.conf)
-	verifyDefaultReadTimeout(t, srv.conf)
-	verifyDefaultWriteTimeout(t, srv.conf)
-	if srv.conf.Namespace != "/api" {
-		t.Errorf(`custom namespace = %q, wanted "/api"`, srv.conf.Namespace)
-	}
-	verifyDefaultDebugLevel(t, srv)
-}
-
-func TestNewServerOnlyDebug(t *testing.T) {
-	srv := NewServer(ServerConfig{Debug: true})
-
-	verifyDefaultPort(t, srv.conf)
-	verifyDefaultRequestSize(t, srv.conf)
-	verifyDefaultReadTimeout(t, srv.conf)
-	verifyDefaultWriteTimeout(t, srv.conf)
-	verifyDefaultNamespace(t, srv.conf)
-	if !srv.conf.Debug {
-		t.Error("expected Debug to be true")
-	}
-	if !srv.log.Enabled(context.Background(), slog.LevelDebug) {
-		t.Error("expected DEBUG logging to be enabled")
-	}
-}
-
-func TestNewServerPanicsURLRewritePathNotConfFile(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected NewServer to panic, did not")
+func TestNewServer(t *testing.T) {
+	t.Run("sensible defaults", func(t *testing.T) {
+		// Internally the router strips the leading and any trailing slashes for
+		// the global namespace, so it should be empty by default. The trie
+		// structure will handle the routing beyond that.
+		defaultConf := serverConfig{
+			Port:          8080,
+			RequestSize:   KiB,
+			ReadDeadline:  10 * time.Second,
+			WriteDeadline: 10 * time.Second,
 		}
-	}()
+		tests := []struct {
+			name string
+			in   ServerConfig
+			want func(s serverConfig) serverConfig
+		}{
+			{
+				name: "defaults",
+				in:   ServerConfig{},
+				want: func(s serverConfig) serverConfig { return s },
+			},
+			{
+				name: "only port",
+				in:   ServerConfig{Port: 3000},
+				want: func(s serverConfig) serverConfig {
+					s.Port = 3000
+					return s
+				},
+			},
+			{
+				name: "only request buffer size",
+				in:   ServerConfig{RequestSize: 3 * MiB},
+				want: func(s serverConfig) serverConfig {
+					s.RequestSize = 3 * MiB
+					return s
+				},
+			},
+			{
+				name: "only read deadline",
+				in:   ServerConfig{ReadDeadline: 3 * time.Minute},
+				want: func(s serverConfig) serverConfig {
+					s.ReadDeadline = 3 * time.Minute
+					return s
+				},
+			},
+			{
+				name: "only write deadline",
+				in:   ServerConfig{WriteDeadline: 3 * time.Minute},
+				want: func(s serverConfig) serverConfig {
+					s.WriteDeadline = 3 * time.Minute
+					return s
+				},
+			},
+			{
+				name: "only namespace",
+				in:   ServerConfig{Namespace: "/api"},
+				want: func(s serverConfig) serverConfig {
+					s.Namespace = "/api"
+					return s
+				},
+			},
+			{
+				name: "only debug",
+				in:   ServerConfig{Debug: true},
+				want: func(s serverConfig) serverConfig {
+					s.Debug = true
+					return s
+				},
+			},
+		}
 
-	NewServer(ServerConfig{URLRewritePath: "foo.bar"})
-}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				s := NewServer(tc.in)
+				want := tc.want(defaultConf)
 
-func verifyDefaultPort(t *testing.T, conf ServerConfig) {
-	t.Helper()
-	if conf.Port != 8080 {
-		t.Errorf(`default port = %d, want 8080`, conf.Port)
-	}
-}
+				if s.conf.Port != want.Port {
+					t.Errorf(`default port = %d, want %d`, s.conf.Port, want.Port)
+				}
+				if s.conf.RequestSize != want.RequestSize {
+					t.Errorf(`default request buffer size = %d, want %d`, s.conf.RequestSize, want.RequestSize)
+				}
+				if s.conf.ReadDeadline != want.ReadDeadline {
+					t.Errorf(`default read timeout = %d, want %d`, s.conf.ReadDeadline, want.ReadDeadline)
+				}
+				if s.conf.WriteDeadline != want.WriteDeadline {
+					t.Errorf(`default write timeout = %d, want %d`, s.conf.WriteDeadline, want.WriteDeadline)
+				}
+				if s.conf.Namespace != want.Namespace {
+					t.Errorf(`default namespace = %#q, want %#q`, s.conf.Namespace, want.Namespace)
+				}
+				if s.conf.Debug != want.Debug {
+					t.Errorf("Debug = %t, wanted %t", s.conf.Debug, want.Debug)
+				}
+				if want.Debug && !s.log.Enabled(context.Background(), slog.LevelDebug) {
+					t.Error("DEBUG logging not enabled but wanted Debug to be on")
+				}
+			})
+		}
+	})
 
-func verifyDefaultRequestSize(t *testing.T, conf ServerConfig) {
-	t.Helper()
-	if conf.RequestSize != 1024 {
-		t.Errorf(`default request buffer size = %d, want 1024`, conf.RequestSize)
-	}
-}
+	t.Run("panics when URL Rewrite Path not a .conf file", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected NewServer to panic, did not")
+			}
+		}()
 
-func verifyDefaultReadTimeout(t *testing.T, conf ServerConfig) {
-	t.Helper()
-	// 10s = 10^10 ns
-	if conf.ReadDeadline != 10_000_000_000 {
-		t.Errorf(`default read timeout = %d, want 10_000_000_000`, conf.ReadDeadline)
-	}
-}
-
-func verifyDefaultWriteTimeout(t *testing.T, conf ServerConfig) {
-	t.Helper()
-	// 10s = 10^10 ns
-	if conf.WriteDeadline != 10_000_000_000 {
-		t.Errorf(`default write timeout = %d, want 10_000_000_000`, conf.WriteDeadline)
-	}
-}
-
-func verifyDefaultNamespace(t *testing.T, conf ServerConfig) {
-	t.Helper()
-	// Internally the router strips the leading and any trailing slashes for
-	// the global namespace, so this should be empty by default. The trie
-	// structure will handle the routing beyond that.
-	if conf.Namespace != "" {
-		t.Errorf(`default namespace = %q, want ""`, conf.Namespace)
-	}
-}
-
-func verifyDefaultDebugLevel(t *testing.T, srv *Server) {
-	t.Helper()
-	if srv.conf.Debug {
-		t.Error("did not expect Debug to be true")
-	}
-	if srv.log.Enabled(context.Background(), slog.LevelDebug) {
-		t.Error("did not expect DEBUG logging to be enabled")
-	}
+		NewServer(ServerConfig{URLRewritePath: "foo.bar"})
+	})
 }

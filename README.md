@@ -77,9 +77,13 @@ They are currently all exposed to the integrator, meaning that the application d
 
 Application code can return errors of any type to the library in their handlers.
 A number of helpful error functions are exposed which allow the application code to conform their errors to HTTP responses.
-If non-library errors are returned (or the application code panics), we attempt to infer the reason or cause and map that to a HTTP error.
+If non-library errors are returned (or the application code panics with an error), we attempt to infer the reason or cause and map that to a HTTP error.
+The integrator can provide a custom mapper using the `ServerConfig.ErrorMapper` which can provide additional custom logic in mapping from an `error` type to an error the server understands.
+If the `ErrorMapper` cannot assign a more appropriate error type, it can return `nil` which will pass off the default inference which maps common errors to sensible defaults.
 For example, if an `ErrNotExist` error is returned, we map that to a 404: Not Found HTTP error.
 We fallback to mapping to a 500: Internal Server Error if we cannot establish a mapping.
+
+[`examples/errors`](/examples/errors/) contains examples for how custom error handling can be performed using `routeit`.
 
 #### Routing
 

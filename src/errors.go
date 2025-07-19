@@ -68,6 +68,10 @@ func UnsupportedMediaTypeError(accepted ...ContentType) *HttpError {
 	return &HttpError{status: StatusUnsupportedMediaType, headers: headers}
 }
 
+func UnprocessableContentError() *HttpError {
+	return &HttpError{status: StatusUnprocessableContent, headers: headers{}}
+}
+
 /*
  * 5xx Errors
  */

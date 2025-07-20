@@ -111,11 +111,25 @@ Currently dynamic routing only supports full string matching and does not suppor
 
 A more comprehensive example can be found in [`examples/routing/dynamic`](/examples/routing/dynamic).
 
+To provide more control over dynamic matches, they can also optionally require a prefix and/or suffix on the match.
+The syntax uses pipes (`|`) to separate the path parameter name from the prefix and suffix, and both components are optional.
+`/:foo|prefix` will match against anything that has exactly 1 path component that starts with `prefix`.
+It requires that at least 1 alphanumeric character (or - or \_) follows `prefix`.
+So `/prefix-` and `/prefixed` will match, but `/prefix` on its own will not.
+
+`/:foo||suffix` will match against any incoming path that has exactly 1 path component that ends with `suffix`.
+`/_suffix` and `/mysuffix` will match, but `/suffix` will not.
+
+These can be combined to a pattern like `/:foo|prefix|suffix`, which requires both a prefix and a suffix.
+Again, paths like `/prefix-suffix` or `/prefixandsuffix` will match, but `/prefixsuffix` will not.
+All path components in the above examples can be extracted from the request using `routeit.Request.PathParam("foo")`.
+It is worth calling out that although the syntax above enforces certain prefixes or suffixes are used when matching, the entire path component is returned from `PathParam`, regardless of the prefixes or suffixes required for matching.
+
+Server setup will panic if any of the dynamic syntax is invalid.
+
 When traversing the trie, eligible candidates are gathered into a slice and iterated over to perform a BFS.
 Eligible nodes are rejected if their children do not feature a valid node.
 Once all eligible value nodes are found, they are iterated to find the one of highest priority.
-
-<!-- TODO: need to update this for the new prefix/suffix syntax -->
 
 Static matches have the highest priority.
 Dynamic matches are judged on their specificity.
@@ -137,6 +151,14 @@ An example is shown in the table below.
 | `/foo/:bar/baz`         | `/:foo/bar/:baz` | `/foo/bar/baz`  | A             | Less dynamic components                                           |
 | `/foo/:bar`             | `/foo/:bar\|baz` | `/foo/baza`     | B             | More prefixes                                                     |
 | `/foo/:bar/:baz\|\|qux` | `/foo/:bar/:baz` | `/foo/bar/aqux` | A             | More suffixes                                                     |
+
+> [!NOTE]
+> Due to how prefixes and suffixes are chosen, there can be ambiguity with separate routes that match against the same path space that use prefixes and suffixes.
+> For example, the routes `/foo/:bar|baz` and `/foo/:bar||qux` could both match against the same input (e.g. `/foo/bazqux`).
+> Currently, `routeit` does not provide higher precedence to individual prefixes or suffixes, so these cannot be separated.
+> It is best to avoid these types of matches and only use dynamic routes with prefixes and suffixes sparingly.
+
+A specific example using dynamic components with prefixes and suffixes can be found in [`examples/routing/complex`](/examples/routing/complex/).
 
 #### URL Rewrites
 

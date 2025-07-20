@@ -85,129 +85,110 @@ func TestTrieLookup(t *testing.T) {
 			name       string
 			in         map[string]int
 			search     string
-			want       int
 			wantParams pathParameters
 		}{
 			{
 				name:   "one element",
-				in:     map[string]int{"/foo": 13},
+				in:     map[string]int{"/foo": 42},
 				search: "/foo",
-				want:   13,
 			},
 			{
 				name:   "multiple elements leaf",
-				in:     map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
+				in:     map[string]int{"/foo": 13, "/foo/bar": 15, "/foo/bar/baz": 42},
 				search: "/foo/bar/baz",
-				want:   15,
 			},
 			{
 				name:   "multiple elements non-leaf",
 				in:     map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
 				search: "/foo/bar",
-				want:   42,
 			},
 			{
 				name:       "dynamic leaf",
-				in:         map[string]int{"/foo/:bar": 14},
+				in:         map[string]int{"/foo/:bar": 42},
 				search:     "/foo/some-variable",
-				want:       14,
 				wantParams: pathParameters{"bar": "some-variable"},
 			},
 			{
 				name:       "dynamic valid non-leaf",
-				in:         map[string]int{"/foo/:bar": 15, "/foo/:bar/:baz": 13},
+				in:         map[string]int{"/foo/:bar": 42, "/foo/:bar/:baz": 13},
 				search:     "/foo/some-variable",
-				want:       15,
 				wantParams: pathParameters{"bar": "some-variable"},
 			},
 			{
 				name:   "prioritises exact match",
 				in:     map[string]int{"/foo/bar": 13, "/foo/:var": 100, "/foo/baz": 42},
 				search: "/foo/baz",
-				want:   42,
 			},
 			{
 				name:       "handles complex dynamic matches",
-				in:         map[string]int{"/foo/:bar": 15},
+				in:         map[string]int{"/foo/:bar": 42},
 				search:     "/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
-				want:       15,
 				wantParams: pathParameters{"bar": "this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8"},
 			},
 			{
 				name:       "prioritises more specific dynamic matches",
-				in:         map[string]int{"/foo/:bar": 17, "/:foo/bar": 13},
+				in:         map[string]int{"/foo/:bar": 42, "/:foo/bar": 13},
 				search:     "/foo/bar",
-				want:       17,
 				wantParams: pathParameters{"bar": "bar"},
 			},
 			{
 				name:       "prioritises dynamic nodes with more static components",
-				in:         map[string]int{"/foo/:bar/:baz": 42, "/foo/:bar/baz": 13},
+				in:         map[string]int{"/foo/:bar/:baz": 13, "/foo/:bar/baz": 42},
 				search:     "/foo/bar/baz",
-				want:       13,
 				wantParams: pathParameters{"bar": "bar"},
 			},
 			{
 				name:       "prioritises same dynamic matches, more prefixes",
 				in:         map[string]int{"/foo/:bar|baz": 42, "/foo/:bar": 13},
 				search:     "/foo/baza",
-				want:       42,
 				wantParams: pathParameters{"bar": "baza"},
 			},
 			{
 				name:       "prioritises same dynamic matches, more suffixes",
 				in:         map[string]int{"/foo/:bar||baz": 42, "/foo/:bar": 13},
 				search:     "/foo/abaz",
-				want:       42,
 				wantParams: pathParameters{"bar": "abaz"},
 			},
 			{
 				name:       "prioritises same dynamic matches, 1 suffix + prefix over 1 prefix",
 				in:         map[string]int{"/foo/:bar|baz|bar": 42, "/foo/:bar|baz": 13},
 				search:     "/foo/bazabar",
-				want:       42,
 				wantParams: pathParameters{"bar": "bazabar"},
 			},
 			{
 				name:       "prioritises same dynamic matches, 1 suffix + prefix over 1 suffix",
 				in:         map[string]int{"/foo/:bar|baz|bar": 42, "/foo/:bar||bar": 13},
 				search:     "/foo/bazabar",
-				want:       42,
 				wantParams: pathParameters{"bar": "bazabar"},
 			},
 			{
 				name:       "prioritises less dynamic matches over more dynamic matches with 1 suffix + prefix",
 				in:         map[string]int{"/foo/:bar/qux": 42, "/foo/:bar|baz|bar/:qux": 13},
 				search:     "/foo/bazabar/qux",
-				want:       42,
 				wantParams: pathParameters{"bar": "bazabar"},
 			},
 			{
 				name:       "prioritises more specific dynamic matches (1 prefix) for same count, different position",
 				in:         map[string]int{"/foo/:bar|baz/qux": 42, "/foo/baza/:bar": 13},
 				search:     "/foo/baza/qux",
-				want:       42,
 				wantParams: pathParameters{"bar": "baza"},
 			},
 			{
 				name:       "dynamic match with prefix",
 				in:         map[string]int{"/foo/:bar|baz": 42},
 				search:     "/foo/baz_search",
-				want:       42,
 				wantParams: pathParameters{"bar": "baz_search"},
 			},
 			{
 				name:       "dynamic match with suffix",
 				in:         map[string]int{"/foo/:bar||baz": 42},
 				search:     "/foo/search_baz",
-				want:       42,
 				wantParams: pathParameters{"bar": "search_baz"},
 			},
 			{
 				name:       "dynamic match with prefix and suffix",
 				in:         map[string]int{"/foo/:bar|baz|qux": 42},
 				search:     "/foo/bazaqux",
-				want:       42,
 				wantParams: pathParameters{"bar": "bazaqux"},
 			},
 		}
@@ -223,8 +204,8 @@ func TestTrieLookup(t *testing.T) {
 				if !found {
 					t.Errorf("Trie.Find(%#q) expected to find element", tc.search)
 				}
-				if *actual != tc.want {
-					t.Errorf(`trie["%s"] = %d, wanted %d`, tc.search, *actual, tc.want)
+				if *actual != 42 {
+					t.Errorf(`trie["%s"] = %d, wanted 42`, tc.search, *actual)
 				}
 				if len(*params) != len(tc.wantParams) {
 					t.Errorf(`Trie.Find(%#q) returned %d length params, wanted %d`, tc.search, len(*params), len(tc.wantParams))

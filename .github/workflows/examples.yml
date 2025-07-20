@@ -11,6 +11,7 @@ jobs:
             example:
                 - errors/mapping
                 - middleware/simple
+                - routing/complex
                 - routing/dynamic
                 - routing/namespaced
                 - routing/simple

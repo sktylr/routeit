@@ -148,6 +148,85 @@ func TestRoute(t *testing.T) {
 				path:           "/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
 				wantPathParams: pathParameters{"bar": "this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8"},
 			},
+
+			{
+				name: "prioritises same dynamic matches, more prefixes",
+				reg: RouteRegistry{
+					"/foo/:bar|baz": Get(wantHandler),
+					"/foo/:bar":     Get(doNotWantHandler),
+				},
+				path:           "/foo/baza",
+				wantPathParams: pathParameters{"bar": "baza"},
+			},
+			{
+				name: "prioritises same dynamic matches, more suffixes",
+				reg: RouteRegistry{
+					"/foo/:bar||baz": Get(wantHandler),
+					"/foo/:bar":      Get(doNotWantHandler),
+				},
+				path:           "/foo/abaz",
+				wantPathParams: pathParameters{"bar": "abaz"},
+			},
+			{
+				name: "prioritises same dynamic matches, 1 suffix + prefix over 1 prefix",
+				reg: RouteRegistry{
+					"/foo/:bar|baz|bar": Get(wantHandler),
+					"/foo/:bar|baz":     Get(doNotWantHandler),
+				},
+				path:           "/foo/bazabar",
+				wantPathParams: pathParameters{"bar": "bazabar"},
+			},
+			{
+				name: "prioritises same dynamic matches, 1 suffix + prefix over 1 suffix",
+				reg: RouteRegistry{
+					"/foo/:bar|baz|bar": Get(wantHandler),
+					"/foo/:bar||bar":    Get(doNotWantHandler),
+				},
+				path:           "/foo/bazabar",
+				wantPathParams: pathParameters{"bar": "bazabar"},
+			},
+			{
+				name: "prioritises less dynamic matches over more dynamic matches with 1 suffix + prefix",
+				reg: RouteRegistry{
+					"/foo/:bar/qux":          Get(wantHandler),
+					"/foo/:bar|baz|bar/:qux": Get(doNotWantHandler),
+				},
+				path:           "/foo/bazabar/qux",
+				wantPathParams: pathParameters{"bar": "bazabar"},
+			},
+			{
+				name: "prioritises more specific dynamic matches (1 prefix) for same count, different position",
+				reg: RouteRegistry{
+					"/foo/:bar|baz/qux": Get(wantHandler),
+					"/foo/baza/:bar":    Get(doNotWantHandler),
+				},
+				path:           "/foo/baza/qux",
+				wantPathParams: pathParameters{"bar": "baza"},
+			},
+			{
+				name: "dynamic match with prefix",
+				reg: RouteRegistry{
+					"/foo/:bar|baz": Get(wantHandler),
+				},
+				path:           "/foo/baz_search",
+				wantPathParams: pathParameters{"bar": "baz_search"},
+			},
+			{
+				name: "dynamic match with suffix",
+				reg: RouteRegistry{
+					"/foo/:bar||baz": Get(wantHandler),
+				},
+				path:           "/foo/search_baz",
+				wantPathParams: pathParameters{"bar": "search_baz"},
+			},
+			{
+				name: "dynamic match with prefix and suffix",
+				reg: RouteRegistry{
+					"/foo/:bar|baz|qux": Get(wantHandler),
+				},
+				path:           "/foo/bazaqux",
+				wantPathParams: pathParameters{"bar": "bazaqux"},
+			},
 		}
 
 		for _, tc := range tests {

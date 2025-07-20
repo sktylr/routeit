@@ -15,10 +15,13 @@
 //
 // A match is most specific if it is a completely static match - no dynamic
 // components at all. Trie construction guarantees that there is only ever at
-// most one of these matches. Dynamic matches are compared using two degrees of
-// specificity. A dynamic match, A, is strictly more specific than another, B,
-// if A has strictly less dynamic components than B. If A and B have the same
-// number of dynamic components, then whichever has more _leading_ static
+// most one of these matches. Dynamic matches are compared using three degrees
+// of specificity. A dynamic match, A, is strictly more specific than another,
+// B, if A has strictly less dynamic components than B. If A and B have the
+// same number of dynamic components, then we compare the required prefixes and
+// suffixes of the dynamic components. Out of A and B, whichever has more
+// required prefixes and suffixes is strictly more specific. If they have the
+// same number of prefixes and suffixes, whichever has more _leading_ static
 // components is more specific e.g. /foo/bar/* is more specific than /foo/*/baz.
 // If they still cannot be separated, then whichever appeared first in lookup
 // is chosen. The order of lookup appearance depends on insertion order.
@@ -233,8 +236,14 @@ func (n *node[T]) GetOrCreateChild(key string) *node[T] {
 // other takes priority. If both are dynamic, then we compare their dynamic
 // components. If n has strictly less dynamic components than other, n takes
 // priority. If they have the same, we compare the specificity of the dynamic
-// components. Dynamic components that appear earlier in the path are less
-// specific.
+// components. A dynamic component that requires a prefix or suffix is more
+// specific than one that does not. So dynamic paths featuring more required
+// prefixes or suffixes are strictly more specific. If the number of prefixes
+// and suffixes is the same, and the number of dynamic path components is the
+// same, then we compare the first appearance of a dynamic path component. A
+// later first dynamic path component is strictly more specific, since it
+// features more leading static components, which must match exactly by their
+// nature.
 func (n *node[T]) HigherPriority(other *node[T]) bool {
 	if other == nil {
 		return true
@@ -246,18 +255,22 @@ func (n *node[T]) HigherPriority(other *node[T]) bool {
 	if other.value.dm == nil {
 		return false
 	}
-	if n.value.dm.total < other.value.dm.total {
+	return n.value.dm.HigherPriority(other.value.dm)
+}
+
+func (dm *dynamicMatcher) HigherPriority(other *dynamicMatcher) bool {
+	if dm.total < other.total {
 		return true
 	}
-	if n.value.dm.total == other.value.dm.total {
-		if n.value.dm.prefixSuffixCount > other.value.dm.prefixSuffixCount {
-			return true
-		} else if n.value.dm.prefixSuffixCount < other.value.dm.prefixSuffixCount {
-			return false
-		}
-		return n.value.dm.first > other.value.dm.first
+	if dm.total > other.total {
+		return false
 	}
-	return false
+	if dm.prefixSuffixCount > other.prefixSuffixCount {
+		return true
+	} else if dm.prefixSuffixCount < other.prefixSuffixCount {
+		return false
+	}
+	return dm.first > other.first
 }
 
 func (wc *wildcard) Matches(cmp string) bool {
@@ -334,7 +347,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 	// TODO: some of the leading slash stuff makes this more confusing than it should be
 
 	frequencies := map[string]int{}
-	first, total, prefixes, suffixes := int(^uint(0)>>1), 0, 0, 0
+	first, total, prefixSuffixCount := int(^uint(0)>>1), 0, 0
 	var sb strings.Builder
 	sb.WriteRune('^')
 	for i, seg := range strings.Split(path, "/") {
@@ -359,24 +372,14 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			if matches == nil {
 				panic("invalid dynamic matcher sequence")
 			}
-			name := matches[1]
-			sb.WriteString("(?P<")
-			sb.WriteString(name)
-			sb.WriteRune('>')
-			if len(matches) > 2 {
-				sb.WriteString(matches[2])
-				if matches[2] != "" {
-					prefixes++
-				}
+			name, prefix, suffix := matches[1], matches[2], matches[3]
+			sb.WriteString(fmt.Sprintf(`(?P<%s>%s[^/]+%s)`, name, prefix, suffix))
+			if prefix != "" {
+				prefixSuffixCount++
 			}
-			sb.WriteString("[^/]+")
-			if len(matches) > 3 {
-				sb.WriteString(matches[3])
-				if matches[3] != "" {
-					suffixes++
-				}
+			if suffix != "" {
+				prefixSuffixCount++
 			}
-			sb.WriteRune(')')
 			total++
 			if i < first {
 				first = i
@@ -404,7 +407,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 	}
 
 	re := regexp.MustCompile(sb.String())
-	return &dynamicMatcher{re: re, total: total, first: first, prefixSuffixCount: prefixes + suffixes}
+	return &dynamicMatcher{re: re, total: total, first: first, prefixSuffixCount: prefixSuffixCount}
 }
 
 func splitDynamicPrefixAndSuffix(in string) (bool, string, string) {

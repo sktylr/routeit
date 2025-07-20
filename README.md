@@ -115,16 +115,28 @@ When traversing the trie, eligible candidates are gathered into a slice and iter
 Eligible nodes are rejected if their children do not feature a valid node.
 Once all eligible value nodes are found, they are iterated to find the one of highest priority.
 
+<!-- TODO: need to update this for the new prefix/suffix syntax -->
+
 Static matches have the highest priority.
 Dynamic matches are judged on their specificity.
-A dynamic route is more specific than another if it has strictly less dynamic components (where a dynamic component is a path segment that dynamically matches) than the other, or has the same number of dynamic components and features more leading static components in the URI.
+
+A dynamic route is more specific than another if it has strictly less dynamic components (where a dynamic component is a path segment that dynamically matches) than the other.
+If the number of dynamic paths is equal, we compare for required prefixes and suffixes, by counting the total number of required prefixes and suffixes over a given dynamic route.
+This is always capped by 2 \* the total number of dynamic components for a route.
+If route A has strictly more prefixes and suffixes than route B, A is strictly more specific than B if they have the same number of dynamic components.
+If A and B have the same number of dynamic components and prefixes and suffixes, we compare the first occurrence of a dynamic component in their path.
+A is strictly more specific than B (given the same number of dynamic components and prefixes and suffixes) if A's first dynamic component appears _after_ B's first dynamic component.
+This is because A has more leading static components, so therefore is more specific.
+If the routes still cannot be separated, the route which was inserted first is chosen.
 An example is shown in the table below.
 
-| A               | B                | Comparing      | More specific | Reason                                                            |
-| --------------- | ---------------- | -------------- | ------------- | ----------------------------------------------------------------- |
-| `/foo/bar`      | `/foo/:baz`      | `/foo/bar`     | A             | Static path                                                       |
-| `/:foo/bar`     | `/foo/:bar`      | `/foo/bar`     | B             | Same number of dynamic components, more leading static components |
-| `/foo/:bar/baz` | `/:foo/bar/:baz` | `/foo/bar/baz` | A             | Less dynamic components                                           |
+| A                       | B                | Comparing       | More specific | Reason                                                            |
+| ----------------------- | ---------------- | --------------- | ------------- | ----------------------------------------------------------------- |
+| `/foo/bar`              | `/foo/:baz`      | `/foo/bar`      | A             | Static path                                                       |
+| `/:foo/bar`             | `/foo/:bar`      | `/foo/bar`      | B             | Same number of dynamic components, more leading static components |
+| `/foo/:bar/baz`         | `/:foo/bar/:baz` | `/foo/bar/baz`  | A             | Less dynamic components                                           |
+| `/foo/:bar`             | `/foo/:bar\|baz` | `/foo/baza`     | B             | More prefixes                                                     |
+| `/foo/:bar/:baz\|\|qux` | `/foo/:bar/:baz` | `/foo/bar/aqux` | A             | More suffixes                                                     |
 
 #### URL Rewrites
 

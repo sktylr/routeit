@@ -51,7 +51,7 @@ import (
 // (after the last |). For example, the pattern :foo|bar|qux would match
 // against strings starting with "bar" and ending with "qux", and apply the
 // name "foo" to those that match.
-var dynamicKeyRegex = regexp.MustCompile(`^:([\w-]+)(?:\|[\w-]*)?(?:\|[\w-]*)?$`)
+var dynamicKeyRegex = regexp.MustCompile(`^:([\w-]+)(?:\|([\w-]*))?(?:\|([\w-]*))?$`)
 
 type trie[T any, E any] struct {
 	root    *node[T]
@@ -94,9 +94,10 @@ type trieValue[T any] struct {
 // number of dynamic components and the position of the first occurrence of a
 // dynamic component in the path, which are both used for prioritisation.
 type dynamicMatcher struct {
-	re    *regexp.Regexp
-	total int
-	first int
+	re                *regexp.Regexp
+	total             int
+	first             int
+	prefixSuffixCount int
 }
 
 // A dynamic extractor operates on a [trieValue] to extract meaningful
@@ -245,11 +246,15 @@ func (n *node[T]) HigherPriority(other *node[T]) bool {
 	if other.value.dm == nil {
 		return false
 	}
-	// TODO: need to figure out how prefixes and suffixes fit into this calculation
 	if n.value.dm.total < other.value.dm.total {
 		return true
 	}
 	if n.value.dm.total == other.value.dm.total {
+		if n.value.dm.prefixSuffixCount > other.value.dm.prefixSuffixCount {
+			return true
+		} else if n.value.dm.prefixSuffixCount < other.value.dm.prefixSuffixCount {
+			return false
+		}
 		return n.value.dm.first > other.value.dm.first
 	}
 	return false
@@ -329,7 +334,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 	// TODO: some of the leading slash stuff makes this more confusing than it should be
 
 	frequencies := map[string]int{}
-	first, total := int(^uint(0)>>1), 0
+	first, total, prefixes, suffixes := int(^uint(0)>>1), 0, 0, 0
 	var sb strings.Builder
 	sb.WriteRune('^')
 	for i, seg := range strings.Split(path, "/") {
@@ -360,10 +365,16 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			sb.WriteRune('>')
 			if len(matches) > 2 {
 				sb.WriteString(matches[2])
+				if matches[2] != "" {
+					prefixes++
+				}
 			}
 			sb.WriteString("[^/]+")
 			if len(matches) > 3 {
 				sb.WriteString(matches[3])
+				if matches[3] != "" {
+					suffixes++
+				}
 			}
 			sb.WriteRune(')')
 			total++
@@ -393,7 +404,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 	}
 
 	re := regexp.MustCompile(sb.String())
-	return &dynamicMatcher{re: re, total: total, first: first}
+	return &dynamicMatcher{re: re, total: total, first: first, prefixSuffixCount: prefixes + suffixes}
 }
 
 func splitDynamicPrefixAndSuffix(in string) (bool, string, string) {

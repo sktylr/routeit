@@ -616,6 +616,22 @@ func TestNewRewrite(t *testing.T) {
 				name: "two braced strings same path component - key",
 				raw:  "/foo/${bar}{baz} /foo",
 			},
+			{
+				name: "too many pipes",
+				raw:  "/foo/${bar|||} /foo",
+			},
+			{
+				name: "non-alphanumeric prefix",
+				raw:  "/foo/${bar|\n} /foo",
+			},
+			{
+				name: "non-alphanumeric suffix",
+				raw:  "/foo/${bar||\n} /foo",
+			},
+			{
+				name: "pipe in dynamic value",
+				raw:  "/foo/${bar} /baz/${bar|prefix}",
+			},
 		}
 
 		for _, tc := range tests {
@@ -722,6 +738,21 @@ func TestNewRewrite(t *testing.T) {
 				// /favicon.ico
 				raw:  "/favicon.ico /assets/images/foo.png",
 				want: map[string]string{"/favicon.ico": "/assets/images/foo.png", "/contact": "/assets/contact.html"},
+			},
+			{
+				name: "dynamic path with prefix",
+				raw:  "/foo/${bar|prefix} /baz/${bar}",
+				want: map[string]string{"/foo/prefixed": "/baz/prefixed"},
+			},
+			{
+				name: "dynamic path with suffix",
+				raw:  "/foo/${bar||suffix} /baz/${bar}",
+				want: map[string]string{"/foo/my-suffix": "/baz/my-suffix"},
+			},
+			{
+				name: "dynamic path with prefix and suffix",
+				raw:  "/foo/${bar|prefix|suffix} /baz/${bar}",
+				want: map[string]string{"/foo/prefix-suffix": "/baz/prefix-suffix"},
 			},
 		}
 

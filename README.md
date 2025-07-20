@@ -196,6 +196,12 @@ Within the key, the dynamic syntax can only be used in a single path component i
 So `/foo/${bar}` will allow for dynamic matching of any two-part path starting with `/foo` (e.g. `/foo/bar`, `/foo/qux`), but `/foo/${bar}baz` will only match exactly against `/foo/${bar}baz`.
 The same is true for incomplete variable escaping, such as `/foo/${bar`, which will only match the exact string `/foo/${bar`.
 
+Optional prefixes or suffixes can be specified in the key of the URL rewrite, to increase specificity.
+These prefixes and suffixes are judged on their specificity in the same way that dynamic routes are managed in the router, which is covered above in [Routing](#routing).
+The syntax is nearly the same - `${name|prefix|suffix}`, where `|prefix` and `|suffix` are both optional, but if you wish to match against a suffix but not a prefix, you must do `${name||suffix}`.
+As with dynamic routing, the prefixes and suffixes used in dynamic URL rewrites are not stripped from the match, so if we had `/${name||.css} /css/${name}` and passed in `/styles.css`, this would be rewritten to `/css/styles.css`.
+The same non-determinism issue mentioned above for dynamic routing can _not_ be introduced for URL rewrites, since the configuration file is read in in-order, so the order of children is always the same (unless the file is changed in some way).
+
 Static and dynamic rules that collide (such as `/hello -> ...` and `/${name} -> ...`) are allowed, since the Trie structure will unambiguously be able to choose the static selection if it receives the exact string.
 However, conflicting dynamic rules are not allowed, in the same way conflicting static rules are not.
 This means that the following config would cause the server to panic.

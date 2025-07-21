@@ -1,6 +1,6 @@
 ### examples/simple
 
-This example is a simple example that exposes 8 endpoints.
+This example is a simple example that exposes 9 endpoints.
 Due to the different HTTP methods supported by `routeit`, the server will only respond to the correct HTTP method in the request.
 If a route exists but it does not support the method, the server will respond with a `405: Method Not Allowed` response and include the allowed methods in the `Allow` header.
 The application can be run using `go run main.go`.
@@ -79,4 +79,11 @@ For simplicity it just echoes the request body back to the client.
 ```bash
 $ curl http://localhost:8080/modify -X PUT -H "Content-Type: text/plain" -d 'Hello /modify endpoint!'
 Hello /modify endpoint!
+```
+
+`/delete`. This is an example `DELETE` endpoint.
+It just uses `routeit`'s default response for a `DELETE` request, which is a status of `204: No Content`, and an empty body.
+
+```bash
+$ curl http://localhost:8080/delete -X DELETE
 ```

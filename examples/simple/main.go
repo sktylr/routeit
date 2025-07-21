@@ -138,6 +138,12 @@ func GetServer() *routeit.Server {
 			rw.Text(body)
 			return nil
 		}),
+		"/delete": routeit.Delete(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			// Typically we would extract a path parameter or similar to
+			// actually perform the deletion, but in this case we will just use
+			// the default response for a deletion.
+			return nil
+		}),
 	})
 	return srv
 }

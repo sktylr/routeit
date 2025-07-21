@@ -19,6 +19,9 @@ func TestGet(t *testing.T) {
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
 	}
+	if h.delete != nil {
+		t.Error("expected handler.delete() to be nil")
+	}
 	if h.options == nil {
 		t.Error("did not expect handler.options() to be nil")
 	}
@@ -39,6 +42,9 @@ func TestPost(t *testing.T) {
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
 	}
+	if h.delete != nil {
+		t.Error("expected handler.delete() to be nil")
+	}
 	if h.options == nil {
 		t.Error("did not expect handler.options() to be nil")
 	}
@@ -58,6 +64,32 @@ func TestPut(t *testing.T) {
 	}
 	if h.post != nil {
 		t.Error("expected handler.post() to be nil")
+	}
+	if h.delete != nil {
+		t.Error("expected handler.delete() to be nil")
+	}
+	if h.options == nil {
+		t.Error("did not expect handler.options() to be nil")
+	}
+}
+
+func TestDelete(t *testing.T) {
+	h := Delete(func(rw *ResponseWriter, req *Request) error { return nil })
+
+	if h.delete == nil {
+		t.Error("did not expect handler.delete() to be nil")
+	}
+	if h.get != nil {
+		t.Error("expected handler.get() to be nil")
+	}
+	if h.head != nil {
+		t.Error("expected handler.head() to be nil")
+	}
+	if h.post != nil {
+		t.Error("expected handler.post() to be nil")
+	}
+	if h.put != nil {
+		t.Error("expected handler.put() to be nil")
 	}
 	if h.options == nil {
 		t.Error("did not expect handler.options() to be nil")
@@ -81,6 +113,9 @@ func TestMultiMethodOnlyGet(t *testing.T) {
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
 	}
+	if h.delete != nil {
+		t.Error("expected handler.delete() to be nil")
+	}
 	if h.options == nil {
 		t.Error("did not expect handler.options() to be nil")
 	}
@@ -102,6 +137,9 @@ func TestMultiMethodOnlyPost(t *testing.T) {
 	}
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
+	}
+	if h.delete != nil {
+		t.Error("expected handler.delete() to be nil")
 	}
 	if h.options == nil {
 		t.Error("did not expect handler.options() to be nil")
@@ -125,6 +163,9 @@ func TestMultiMethod(t *testing.T) {
 	}
 	if h.put != nil {
 		t.Error("expected handler.put() to be nil")
+	}
+	if h.delete != nil {
+		t.Error("expected handler.delete() to be nil")
 	}
 	if h.options == nil {
 		t.Error("did not expect handler.options() to be nil")
@@ -234,6 +275,32 @@ func TestHandleOptions(t *testing.T) {
 	}
 	if allow != "POST, OPTIONS" {
 		t.Errorf(`Allow = %#q, wanted "POST, OPTIONS"`, allow)
+	}
+}
+
+func TestHandleDelete(t *testing.T) {
+	h := Delete(func(rw *ResponseWriter, req *Request) error {
+		rw.Text("From inside the handler")
+		return nil
+	})
+	req := requestWithUrlAndMethod("/foo", DELETE)
+	rw := newResponseWithStatus(StatusOK)
+	wantMsg := "From inside the handler"
+
+	err := h.handle(rw, req)
+
+	if err != nil {
+		t.Errorf("did not want error to be present, was %#q", err.Error())
+	}
+	if string(rw.bdy) != wantMsg {
+		t.Errorf(`body = %#q, wanted %#q`, string(rw.bdy), wantMsg)
+	}
+	cType, found := rw.hdrs.Get("Content-Type")
+	if !found {
+		t.Error("expected Content-Type header to be present")
+	}
+	if cType != "text/plain" {
+		t.Errorf(`Content-Type = %#q, wanted "text/plain"`, cType)
 	}
 }
 

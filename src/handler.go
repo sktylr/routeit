@@ -16,14 +16,16 @@ type Handler struct {
 	head    HandlerFunc
 	post    HandlerFunc
 	put     HandlerFunc
+	delete  HandlerFunc
 	options HandlerFunc
 	allowed []HttpMethod
 }
 
 type MultiMethodHandler struct {
-	Get  HandlerFunc
-	Post HandlerFunc
-	Put  HandlerFunc
+	Get    HandlerFunc
+	Post   HandlerFunc
+	Put    HandlerFunc
+	Delete HandlerFunc
 }
 
 // Creates a handler that will handle GET request. Internally this will also
@@ -44,6 +46,11 @@ func Put(fn HandlerFunc) Handler {
 	return MultiMethod(MultiMethodHandler{Put: fn})
 }
 
+// Creates a handler that responds to DELETE requests
+func Delete(fn HandlerFunc) Handler {
+	return MultiMethod(MultiMethodHandler{Delete: fn})
+}
+
 // Creates a handler that responds to multiple HTTP methods (e.g. GET and POST
 // on the same route). The router internally will decide which handler to
 // invoke depending on the method of the request. An implementation does not
@@ -52,7 +59,7 @@ func Put(fn HandlerFunc) Handler {
 // to. The handler will ensure that any non-implemented methods return a 405:
 // Method Not Allowed response.
 func MultiMethod(mmh MultiMethodHandler) Handler {
-	h := Handler{get: mmh.Get, post: mmh.Post, put: mmh.Put}
+	h := Handler{get: mmh.Get, post: mmh.Post, put: mmh.Put, delete: mmh.Delete}
 	if mmh.Get != nil {
 		h.head = func(rw *ResponseWriter, req *Request) error {
 			// The HEAD method is the same as GET, except it does not return a
@@ -79,6 +86,9 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 	}
 	if h.put != nil {
 		allow = append(allow, PUT)
+	}
+	if h.delete != nil {
+		allow = append(allow, DELETE)
 	}
 	h.allowed = allow
 
@@ -113,6 +123,9 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	}
 	if req.Method() == PUT && h.put != nil {
 		return h.put(rw, req)
+	}
+	if req.Method() == DELETE && h.delete != nil {
+		return h.delete(rw, req)
 	}
 	if req.Method() == OPTIONS && h.options != nil {
 		return h.options(rw, req)

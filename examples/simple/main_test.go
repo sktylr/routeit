@@ -260,5 +260,31 @@ func TestGlobalOptions(t *testing.T) {
 
 	res.AssertStatusCode(t, routeit.StatusNoContent)
 	res.AssertBodyEmpty(t)
-	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, OPTIONS")
+	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, DELETE, OPTIONS")
+}
+
+func TestDelete(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	t.Run("DELETE", func(t *testing.T) {
+		res := client.Delete("/delete")
+
+		res.AssertStatusCode(t, routeit.StatusNoContent)
+		res.AssertBodyEmpty(t)
+	})
+
+	t.Run("OPTIONS", func(t *testing.T) {
+		res := client.Options("/delete")
+
+		res.AssertStatusCode(t, routeit.StatusNoContent)
+		res.AssertBodyEmpty(t)
+		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS")
+	})
+
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/delete")
+
+		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
+		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS")
+	})
 }

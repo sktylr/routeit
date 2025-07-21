@@ -131,7 +131,6 @@ func (r *router) NewRewrite(raw string) {
 	// Rewrite the key from the regex for using ${} to signify variables to the
 	// trie form using :
 	var kb strings.Builder
-	isDynamic := false
 	for i, seg := range strings.Split(rawKey, "/") {
 		if i == 0 && seg == "" {
 			continue
@@ -142,32 +141,9 @@ func (r *router) NewRewrite(raw string) {
 		} else {
 			kb.WriteRune(':')
 			kb.WriteString(seg[2 : len(seg)-1])
-			isDynamic = true
 		}
 	}
 	key := kb.String()
-
-	// We want to prevent conflicting duplicates, but need to make sure that we
-	// don't reject "duplicates" that would actually be unambiguously
-	// interpreted by the underlying trie when looking up a key.
-	// For example, given the rewrites:
-	// 	- /favicon.ico -> /assets/images/favicon.png
-	//	- /${page} -> /assets/${page}.html
-	// The trie will be able to determine which of the routes to resolve
-	// unambiguously given the input /favicon.ico, so we should allow this.
-	// However, if given something like this:
-	//	- /foo -> /bar
-	//	- /foo -> /baz
-	// The trie will not be able to determine which to choose as both are
-	// equally specific maps. We want to reject these at setup time to force
-	// the integrator to adjust their URL rewrite rules.
-	existingS, existingD, found := r.rewrites.Find(key)
-	existingIsDynamic := existingD != nil && *existingD != ""
-	haveSame := isDynamic == existingIsDynamic
-	if found && haveSame && *existingS != value {
-		panic(fmt.Errorf("found conflicting URL rewrite rules for %#q - found both %#q and %#q", key, *existingS, value))
-
-	}
 
 	r.rewrites.Insert(key, &value)
 }

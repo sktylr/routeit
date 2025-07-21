@@ -632,6 +632,21 @@ func TestNewRewrite(t *testing.T) {
 				name: "pipe in dynamic value",
 				raw:  "/foo/${bar} /baz/${bar|prefix}",
 			},
+			{
+				name:   "conflicting dynamic duplication with prefix",
+				raw:    "/${foo|pref} /bar/${foo}.png",
+				before: map[string]string{"/${foo|pref}": "/baz/${foo}"},
+			},
+			{
+				name:   "conflicting dynamic duplication with suffix",
+				raw:    "/${foo||suf} /bar/${foo}.png",
+				before: map[string]string{"/${bar||suf}": "/baz/${bar}"},
+			},
+			{
+				name:   "conflicting dynamic duplication with prefix and suffix",
+				raw:    "/${foo|pref|suf} /bar/${foo}.png",
+				before: map[string]string{"/${bar|pref|suf}": "/baz/${bar}"},
+			},
 		}
 
 		for _, tc := range tests {
@@ -753,6 +768,37 @@ func TestNewRewrite(t *testing.T) {
 				name: "dynamic path with prefix and suffix",
 				raw:  "/foo/${bar|prefix|suffix} /baz/${bar}",
 				want: map[string]string{"/foo/prefix-suffix": "/baz/prefix-suffix"},
+			},
+			{
+				name:     "colliding but 1 with prefix",
+				existing: []string{"/${foo} /bar"},
+				raw:      "/${foo|pref} /bar/baz",
+				want:     map[string]string{"/pref-foo": "/bar/baz", "/pre": "/bar"},
+			},
+			{
+				name:     "colliding but 1 with suffix",
+				existing: []string{"/${foo} /bar"},
+				raw:      "/${foo||suf} /bar/baz",
+				want:     map[string]string{"/foo-suf": "/bar/baz", "/suf": "/bar"},
+			},
+			{
+				// TODO: need to confirm if this is okay??
+				name:     "colliding but 1 with prefix, other with suffix",
+				existing: []string{"/${foo|pref} /bar"},
+				raw:      "/${foo||suf} /bar/baz",
+				want:     map[string]string{"/foo-suf": "/bar/baz", "/pref-foo": "/bar"},
+			},
+			{
+				name:     "colliding but 1 with prefix, other with both",
+				existing: []string{"/${foo|pref} /bar"},
+				raw:      "/${foo|pref|suf} /bar/baz",
+				want:     map[string]string{"/pref-suf": "/bar/baz", "/pref-foo": "/bar"},
+			},
+			{
+				name:     "colliding but 1 with suffix, other with both",
+				existing: []string{"/${foo||suf} /bar"},
+				raw:      "/${foo|pref|suf} /bar/baz",
+				want:     map[string]string{"/pref-suf": "/bar/baz", "/pre-suf": "/bar"},
 			},
 		}
 

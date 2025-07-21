@@ -39,7 +39,6 @@
 package routeit
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -54,7 +53,7 @@ import (
 // (after the last |). For example, the pattern :foo|bar|qux would match
 // against strings starting with "bar" and ending with "qux", and apply the
 // name "foo" to those that match.
-var dynamicKeyRegex = regexp.MustCompile(`^:([\w-]+)(?:\|([\w-]*))?(?:\|([\w-]*))?$`)
+var dynamicKeyRegex = regexp.MustCompile(`^:([\w-]+)(?:\|([\w.-]*))?(?:\|([\w.-]*))?$`)
 
 type trie[T any, E any] struct {
 	root    *node[T]
@@ -185,14 +184,14 @@ func (t *trie[T, D]) Insert(path string, value *T) {
 		current = current.GetOrCreateChild(seg)
 	}
 
+	if current.value != nil && current.value.val != value {
+		panic(fmt.Errorf(`found multiple conflicting dynamic routes for %#q - found "%+v" and "%+v"`, path, current.value.val, value))
+	}
+
 	dynamicMatcher := dynamicPathToMatcher(path)
 	if dynamicMatcher == nil {
 		current.value = &trieValue[T]{val: value}
 		return
-	}
-
-	if current.value != nil && current.value.dm.re.String() != dynamicMatcher.re.String() {
-		panic(errors.New("multiple dynamic handlers registered to the same route"))
 	}
 
 	current.value = &trieValue[T]{val: value, dm: dynamicMatcher}
@@ -370,7 +369,7 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			// characters, stopping at the first /.
 			matches := dynamicKeyRegex.FindStringSubmatch(seg)
 			if matches == nil {
-				panic("invalid dynamic matcher sequence")
+				panic(fmt.Errorf("invalid dynamic matcher sequence: offender=%#q, full sequence=%#q", seg, path))
 			}
 			name, prefix, suffix := matches[1], matches[2], matches[3]
 			sb.WriteString(fmt.Sprintf(`(?P<%s>%s[^/]+%s)`, name, prefix, suffix))

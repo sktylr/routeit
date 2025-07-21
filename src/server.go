@@ -244,6 +244,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		return httpErr.toResponse()
 	}
 
+	var err error
 	// This comes after the parsing of the request, since the parsing cannot
 	// panic. By doing this, it means that we have access to the parsed request
 	// when handling application panics.
@@ -252,7 +253,11 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		// server entirely. We recover the panic and return a generic
 		// 500 Internal Server Error since the fault is on the server,
 		// not the client.
-		rw = s.errorHandler.HandleErrors(recover(), rw, req)
+		r := recover()
+		if r == nil {
+			r = err
+		}
+		rw = s.errorHandler.HandleErrors(r, rw, req)
 		// TODO: need improved error handling semantics here!
 		if req.mthd == HEAD {
 			rw.bdy = []byte{}
@@ -264,22 +269,14 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		req.uri.rewrittenPath = rewrite
 	}
 	rw = newResponseForMethod(req.mthd)
-	var err error
 	chain := s.middleware.NewChain()
 	err = chain.Proceed(rw, req)
 
-	if err == nil {
-		return rw
-	}
-
-	if errors.As(err, &httpErr) {
-		return httpErr.toResponse()
-	}
-
-	// If the error is not a well formed HttpError, then we attempt to infer
-	// the type of Http error it corresponds to, falling back to 500: Internal
-	// Server Error if that fails.
-	return s.errorHandler.toHttpError(err).toResponse()
+	// Error handling is all done in the defer block, so we can proceed here
+	// without checking the error value. The reason for doing this is we have
+	// multiple streams that the error can come from, since we also want to
+	// avoid letting panics halt the whole server.
+	return rw
 }
 
 // After all middleware is processed, the last piece is for the server to

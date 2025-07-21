@@ -148,12 +148,12 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 		req.headers.Set("User-Agent", "test-client")
 	}
 
-	// TODO: consolidate the buffers and builders here
 	var rb bytes.Buffer
 	rb.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", req.method.name, req.path))
-	var headersRaw strings.Builder
-	req.headers.WriteTo(&headersRaw)
-	rb.WriteString(headersRaw.String())
+	_, err := req.headers.WriteTo(&rb)
+	if err != nil {
+		panic(fmt.Errorf("encountered error writing header for test %v", err))
+	}
 	rb.Write(req.body)
 
 	rw := tc.s.handleNewRequest(rb.Bytes())

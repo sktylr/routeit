@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -52,12 +53,18 @@ func headersFromRaw(raw [][]byte) (headers, *HttpError) {
 
 // Writes the headers to the given string builder. Sanitises the keys and
 // values before writing.
-func (h headers) WriteTo(sb *strings.Builder) {
+func (h headers) WriteTo(writer io.Writer) (int64, error) {
+	total := int64(0)
 	for _, v := range h {
 		key := strings.Map(sanitiseHeader, strings.TrimSpace(v.original))
 		val := strings.Map(sanitiseHeader, v.val)
-		fmt.Fprintf(sb, "%s: %s\r\n", key, val)
+		written, err := fmt.Fprintf(writer, "%s: %s\r\n", key, val)
+		total += int64(written)
+		if err != nil {
+			return total, err
+		}
 	}
+	return total, nil
 }
 
 // Sets a key-value pair in the headers. This is a case insensitive operation

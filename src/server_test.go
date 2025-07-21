@@ -118,3 +118,47 @@ func TestNewServer(t *testing.T) {
 		NewServer(ServerConfig{URLRewritePath: "foo.bar"})
 	})
 }
+
+func TestAtomicity(t *testing.T) {
+	expectPanic := func(t *testing.T) {
+		if r := recover(); r == nil {
+			t.Error("expected panic, none came")
+		}
+	}
+	srv := NewServer(ServerConfig{})
+	srv.started.Store(true)
+
+	t.Run("RegisterRoutes", func(t *testing.T) {
+		defer expectPanic(t)
+		srv.RegisterRoutes(RouteRegistry{
+			"/hello": Get(func(rw *ResponseWriter, req *Request) error { return nil }),
+		})
+	})
+
+	t.Run("RegisterRoutesUnderNamespace", func(t *testing.T) {
+		defer expectPanic(t)
+		srv.RegisterRoutesUnderNamespace("/api", RouteRegistry{
+			"/hello": Get(func(rw *ResponseWriter, req *Request) error { return nil }),
+		})
+	})
+
+	t.Run("RegisterMiddleware", func(t *testing.T) {
+		defer expectPanic(t)
+		srv.RegisterMiddleware(func(c *Chain, rw *ResponseWriter, req *Request) error { return nil })
+	})
+
+	t.Run("StartOrPanic", func(t *testing.T) {
+		defer expectPanic(t)
+		srv.StartOrPanic()
+	})
+
+	t.Run("Start", func(t *testing.T) {
+		err := srv.Start()
+		if err == nil {
+			t.Error("expected Start() to return an error when already started")
+		}
+		if err.Error() != "server has already been started" {
+			t.Errorf(`Error() = %#q, wanted ""server has already been started"`, err.Error())
+		}
+	})
+}

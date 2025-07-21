@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -81,6 +82,7 @@ type Server struct {
 	log        *slog.Logger
 	middleware *middleware
 	em         ErrorMapper
+	started    atomic.Bool
 }
 
 // Constructs a new server given the config. Defaults are provided for all
@@ -112,6 +114,7 @@ func NewServer(conf ServerConfig) *Server {
 // a destructive operation, meaning that if there are multiple calls to
 // RegisterRoutes with overlapping values, the latest value takes precedence.
 func (s *Server) RegisterRoutes(rreg RouteRegistry) {
+	s.panicIfStarted("register routes")
 	s.router.RegisterRoutes(rreg)
 }
 
@@ -133,6 +136,7 @@ func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 //	RegisterRoutesUnderNamespace("/foo/bar", {"/baz": ...})
 //	The route will be registered under /foo/bar/baz
 func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
+	s.panicIfStarted("register routes")
 	s.router.RegisterRoutesUnderNamespace(namespace, rreg)
 }
 
@@ -140,6 +144,7 @@ func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegist
 // the first middleware registered will be the first middleware called in the
 // chain, the second will be the second and so on.
 func (s *Server) RegisterMiddleware(ms ...Middleware) {
+	s.panicIfStarted("register middleware")
 	s.middleware.Register(ms...)
 }
 
@@ -152,12 +157,15 @@ func (s *Server) StartOrPanic() {
 
 // Starts the server using the config and registered routes. This should be the
 // last line of a main function as any code after this call is not executable.
-// The server's config is **not** thread-safe - meaning that if thread A
-// initialised the server, registered routes and started the server, and thread
-// B registered additional routes to the server, then thread B's modifications
-// would come into affect on the live server once the scheduler gave thread B
-// priority.
+// The server's config is thread-safe - meaning that if thread A initialised
+// the server, registered routes and started the server, and thread B attempted
+// to register additional routes to the same server, then thread B would panic.
+// The server may also not be stared multiple times from different threads as
+// this will also cause a panic
 func (s *Server) Start() error {
+	if !s.started.CompareAndSwap(false, true) {
+		return errors.New("server has already been started")
+	}
 	s.log.Info("Starting server, binding to port", "port", s.conf.Port)
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
 	if err != nil {
@@ -306,6 +314,12 @@ func (s *Server) configureRewrites(rewritePath string) {
 
 	if err := scanner.Err(); err != nil {
 		panic(fmt.Errorf(`error while parsing URL rewrite config %v`, err))
+	}
+}
+
+func (s *Server) panicIfStarted(action string) {
+	if s.started.Load() {
+		panic(fmt.Errorf("cannot %s after starting the server", action))
 	}
 }
 

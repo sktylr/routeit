@@ -144,3 +144,9 @@ Examples can be found in [`examples/middleware`](/examples/middleware).
 Linking is performed through a `Chain` struct which is passed as an argument to the middleware function.
 Multiple middleware functions can be attached to a single server.
 The order of attachment is important, as that is the order used when processing the middleware for each incoming request.
+
+#### Logging
+
+Each valid incoming request is logged with the corresponding method, path (both edge and rewritten) and response status.
+4xx responses are logged using the `WARN` log level, 5xx responses are logged using `ERROR` and all other responses are logged using `INFO`.
+Only requests that can be successfully parsed are logged.

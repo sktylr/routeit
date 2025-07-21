@@ -231,6 +231,9 @@ func httpErrorForStatus(s HttpStatus) *HttpError {
 }
 
 func newErrorHandler(em ErrorMapper) *errorHandler {
+	if em == nil {
+		em = func(e error) *HttpError { return nil }
+	}
 	return &errorHandler{handlers: map[HttpStatus]ErrorResponseHandler{}, em: em}
 }
 

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"os"
 	"path"
@@ -79,7 +78,7 @@ type serverConfig struct {
 type Server struct {
 	conf         serverConfig
 	router       *router
-	log          *slog.Logger
+	log          *logger
 	middleware   *middleware
 	started      atomic.Bool
 	errorHandler *errorHandler
@@ -91,19 +90,11 @@ func NewServer(conf ServerConfig) *Server {
 	router := newRouter()
 	router.GlobalNamespace(conf.Namespace)
 	router.NewStaticDir(conf.StaticDir)
-	logOpts := slog.HandlerOptions{}
-	if conf.Debug {
-		logOpts.Level = slog.LevelDebug
-	} else {
-		logOpts.Level = slog.LevelInfo
-	}
-	jsonHandler := slog.NewJSONHandler(os.Stdout, &logOpts)
-	s := &Server{conf: conf.internalise(), router: router, log: slog.New(jsonHandler)}
+	errorHandler := newErrorHandler(conf.ErrorMapper)
+	log := newLogger(conf.Debug)
+	s := &Server{conf: conf.internalise(), router: router, log: log, errorHandler: errorHandler}
 	s.middleware = newMiddleware(s.handlingMiddleware)
 	s.configureRewrites(conf.URLRewritePath)
-	if conf.ErrorMapper == nil {
-		conf.ErrorMapper = func(e error) *HttpError { return nil }
-	}
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
 	return s
 }
@@ -262,6 +253,9 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		if req.mthd == HEAD {
 			rw.bdy = []byte{}
 		}
+		// TODO: could look into channels or goroutines here to avoid blocking on
+		// the log call, since the response has been entirely computed here and can be returned to the user.
+		s.log.LogRequestAndResponse(rw, req)
 	}()
 
 	rewrite, didRewrite := s.router.Rewrite(req.Path())

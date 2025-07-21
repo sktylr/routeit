@@ -91,6 +91,17 @@ func (tc TestClient) Options(path string, h ...string) *TestResponse {
 	return tc.makeRequest(req)
 }
 
+// Makes a DELETE request against the resource. Can include an arbitrary number
+// of headers, specific individually by their keys and values
+func (tc TestClient) Delete(path string, h ...string) *TestResponse {
+	req := testRequest{
+		path:    path,
+		method:  DELETE,
+		headers: tc.constructHeaders(h...),
+	}
+	return tc.makeRequest(req)
+}
+
 func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string) *TestResponse {
 	bodyJson, err := json.Marshal(body)
 	if err != nil {

@@ -22,7 +22,7 @@ func newResponseForMethod(method HttpMethod) *ResponseWriter {
 	switch method {
 	case POST:
 		return newResponseWithStatus(StatusCreated)
-	case OPTIONS:
+	case DELETE, OPTIONS:
 		return newResponseWithStatus(StatusNoContent)
 	default:
 		return newResponseWithStatus(StatusOK)

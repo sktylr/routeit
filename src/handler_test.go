@@ -4,171 +4,83 @@ import (
 	"testing"
 )
 
-func TestGet(t *testing.T) {
-	h := Get(func(rw *ResponseWriter, req *Request) error { return nil })
+func TestHandlerConstructors(t *testing.T) {
+	fn := func(rw *ResponseWriter, req *Request) error { return nil }
 
-	if h.get == nil {
-		t.Error("did not expect handler.get() to be nil")
+	type wantMethods struct {
+		get, head, post, put, delete, options bool
 	}
-	if h.head == nil {
-		t.Error("did not expect handler.head() to be nil")
-	}
-	if h.post != nil {
-		t.Error("expected handler.post() to be nil")
-	}
-	if h.put != nil {
-		t.Error("expected handler.put() to be nil")
-	}
-	if h.delete != nil {
-		t.Error("expected handler.delete() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
-	}
-}
 
-func TestPost(t *testing.T) {
-	h := Post(func(rw *ResponseWriter, req *Request) error { return nil })
+	tests := []struct {
+		name    string
+		handler Handler
+		want    wantMethods
+	}{
+		{
+			name:    "GET",
+			handler: Get(fn),
+			want:    wantMethods{get: true, head: true, options: true},
+		},
+		{
+			name:    "POST",
+			handler: Post(fn),
+			want:    wantMethods{post: true, options: true},
+		},
+		{
+			name:    "PUT",
+			handler: Put(fn),
+			want:    wantMethods{put: true, options: true},
+		},
+		{
+			name:    "DELETE",
+			handler: Delete(fn),
+			want:    wantMethods{delete: true, options: true},
+		},
+		{
+			name: "MultiMethod GET only",
+			handler: MultiMethod(MultiMethodHandler{
+				Get: fn,
+			}),
+			want: wantMethods{get: true, head: true, options: true},
+		},
+		{
+			name: "MultiMethod POST only",
+			handler: MultiMethod(MultiMethodHandler{
+				Post: fn,
+			}),
+			want: wantMethods{post: true, options: true},
+		},
+		{
+			name: "MultiMethod GET + POST",
+			handler: MultiMethod(MultiMethodHandler{
+				Get:  fn,
+				Post: fn,
+			}),
+			want: wantMethods{get: true, head: true, post: true, options: true},
+		},
+	}
 
-	if h.post == nil {
-		t.Error("did not expect handler.post() to be nil")
-	}
-	if h.get != nil {
-		t.Error("expected handler.get() to be nil")
-	}
-	if h.head != nil {
-		t.Error("expected handler.head() to be nil")
-	}
-	if h.put != nil {
-		t.Error("expected handler.put() to be nil")
-	}
-	if h.delete != nil {
-		t.Error("expected handler.delete() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
-	}
-}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			checks := []struct {
+				name     string
+				actual   HandlerFunc
+				expected bool
+			}{
+				{"get", tc.handler.get, tc.want.get},
+				{"head", tc.handler.head, tc.want.head},
+				{"post", tc.handler.post, tc.want.post},
+				{"put", tc.handler.put, tc.want.put},
+				{"delete", tc.handler.delete, tc.want.delete},
+				{"options", tc.handler.options, tc.want.options},
+			}
 
-func TestPut(t *testing.T) {
-	h := Put(func(rw *ResponseWriter, req *Request) error { return nil })
-
-	if h.put == nil {
-		t.Error("did not expect handler.put() to be nil")
-	}
-	if h.get != nil {
-		t.Error("expected handler.get() to be nil")
-	}
-	if h.head != nil {
-		t.Error("expected handler.head() to be nil")
-	}
-	if h.post != nil {
-		t.Error("expected handler.post() to be nil")
-	}
-	if h.delete != nil {
-		t.Error("expected handler.delete() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
-	}
-}
-
-func TestDelete(t *testing.T) {
-	h := Delete(func(rw *ResponseWriter, req *Request) error { return nil })
-
-	if h.delete == nil {
-		t.Error("did not expect handler.delete() to be nil")
-	}
-	if h.get != nil {
-		t.Error("expected handler.get() to be nil")
-	}
-	if h.head != nil {
-		t.Error("expected handler.head() to be nil")
-	}
-	if h.post != nil {
-		t.Error("expected handler.post() to be nil")
-	}
-	if h.put != nil {
-		t.Error("expected handler.put() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
-	}
-}
-
-func TestMultiMethodOnlyGet(t *testing.T) {
-	h := MultiMethod(MultiMethodHandler{
-		Get: func(rw *ResponseWriter, req *Request) error { return nil },
-	})
-
-	if h.get == nil {
-		t.Error("did not expect handler.get() to be nil")
-	}
-	if h.head == nil {
-		t.Error("did not expect handler.head() to be nil")
-	}
-	if h.post != nil {
-		t.Error("expected handler.post() to be nil")
-	}
-	if h.put != nil {
-		t.Error("expected handler.put() to be nil")
-	}
-	if h.delete != nil {
-		t.Error("expected handler.delete() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
-	}
-}
-
-func TestMultiMethodOnlyPost(t *testing.T) {
-	h := MultiMethod(MultiMethodHandler{
-		Post: func(rw *ResponseWriter, req *Request) error { return nil },
-	})
-
-	if h.post == nil {
-		t.Error("did not expect handler.post() to be nil")
-	}
-	if h.get != nil {
-		t.Error("expected handler.get() to be nil")
-	}
-	if h.head != nil {
-		t.Error("expected handler.head() to be nil")
-	}
-	if h.put != nil {
-		t.Error("expected handler.put() to be nil")
-	}
-	if h.delete != nil {
-		t.Error("expected handler.delete() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
-	}
-}
-
-func TestMultiMethod(t *testing.T) {
-	h := MultiMethod(MultiMethodHandler{
-		Get:  func(rw *ResponseWriter, req *Request) error { return nil },
-		Post: func(rw *ResponseWriter, req *Request) error { return nil },
-	})
-
-	if h.get == nil {
-		t.Error("did not expect handler.get() to be nil")
-	}
-	if h.head == nil {
-		t.Error("did not expect handler.head() to be nil")
-	}
-	if h.post == nil {
-		t.Error("did not expect handler.post() to be nil")
-	}
-	if h.put != nil {
-		t.Error("expected handler.put() to be nil")
-	}
-	if h.delete != nil {
-		t.Error("expected handler.delete() to be nil")
-	}
-	if h.options == nil {
-		t.Error("did not expect handler.options() to be nil")
+			for _, check := range checks {
+				if (check.actual != nil) != check.expected {
+					t.Errorf("handler.%s != nil = %t; want %t", check.name, check.actual != nil, check.expected)
+				}
+			}
+		})
 	}
 }
 

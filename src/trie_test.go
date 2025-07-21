@@ -252,6 +252,21 @@ func TestTrieInsertion(t *testing.T) {
 				"/:foo|pre|suf|extra",
 				newTrie((*trieValue[int]).PathParams),
 			},
+			{
+				"dynamic match no name",
+				"/:",
+				newTrie((*trieValue[int]).PathParams),
+			},
+			{
+				"dynamic match no name - prefix pipe",
+				"/:|",
+				newTrie((*trieValue[int]).PathParams),
+			},
+			{
+				"dynamic match no name - prefix and suffix pipe",
+				"/:||",
+				newTrie((*trieValue[int]).PathParams),
+			},
 		}
 
 		for _, tc := range tests {

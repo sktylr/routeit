@@ -296,6 +296,9 @@ func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *R
 	if r != nil {
 		fmt.Printf("Application code panicked: %s\n", r)
 		switch e := r.(type) {
+		case (*HttpError):
+			rw = e.toResponse()
+			err = e.cause
 		case error:
 			rw = eh.toHttpError(e).toResponse()
 			err = e
@@ -311,7 +314,6 @@ func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *R
 
 		erw := &ErrorResponseWriter{rw: rw, err: err}
 		h(erw, req)
-		// TODO: might need to re-assign to rw here - but I don't think so?
 	}
 	return rw
 }

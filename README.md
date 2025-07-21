@@ -200,6 +200,7 @@ Optional prefixes or suffixes can be specified in the key of the URL rewrite, to
 These prefixes and suffixes are judged on their specificity in the same way that dynamic routes are managed in the router, which is covered above in [Routing](#routing).
 The syntax is nearly the same - `${name|prefix|suffix}`, where `|prefix` and `|suffix` are both optional, but if you wish to match against a suffix but not a prefix, you must do `${name||suffix}`.
 As with dynamic routing, the prefixes and suffixes used in dynamic URL rewrites are not stripped from the match, so if we had `/${name||.css} /css/${name}` and passed in `/styles.css`, this would be rewritten to `/css/styles.css`.
+See [`examples/static/rewrites/complex`](/examples/static/rewrites/complex/) for an example of how to use these.
 The same non-determinism issue mentioned above for dynamic routing can _not_ be introduced for URL rewrites, since the configuration file is read in in-order, so the order of children is always the same (unless the file is changed in some way).
 
 Static and dynamic rules that collide (such as `/hello -> ...` and `/${name} -> ...`) are allowed, since the Trie structure will unambiguously be able to choose the static selection if it receives the exact string.

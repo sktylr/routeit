@@ -10,6 +10,7 @@ import (
 
 type HttpError struct {
 	status  HttpStatus
+	cause   error
 	message string
 	headers headers
 }
@@ -23,6 +24,23 @@ type HttpError struct {
 // 500: Internal Server Error. If the custom [ErrorMapper] cannot identify the
 // [HttpError] it should return, it may return nil
 type ErrorMapper func(e error) *HttpError
+
+// The [ErrorResponseWriter] is very similar to the [ResponseWriter], except it
+// does not allow mutation of the status code of the response. It is used in
+// custom error handlers that can provide a uniform response to the client in
+// the event of a 4xx or 5xx error. Common use cases include a custom 404
+// response.
+type ErrorResponseWriter struct {
+	rw  *ResponseWriter
+	err error
+}
+
+type ErrorResponseHandler func(erw *ErrorResponseWriter, req *Request)
+
+type errorHandler struct {
+	handlers map[HttpStatus]ErrorResponseHandler
+	em       ErrorMapper
+}
 
 /*
  * 4xx Errors
@@ -212,26 +230,19 @@ func httpErrorForStatus(s HttpStatus) *HttpError {
 	return &HttpError{status: s, headers: headers{}}
 }
 
-// Converts from a general error into a HttpError, is possible. Falls back to
-// a 500: Internal Server Error if no match is possible.
-func toHttpError(err error, em ErrorMapper) *HttpError {
-	mapped := em(err)
-	if mapped != nil && mapped.isValid() {
-		return mapped
-	}
-	if errors.Is(err, fs.ErrPermission) {
-		return ErrForbidden()
-	}
-	if errors.Is(err, fs.ErrNotExist) {
-		return ErrNotFound()
-	}
-	return ErrInternalServerError()
+func newErrorHandler(em ErrorMapper) *errorHandler {
+	return &errorHandler{handlers: map[HttpStatus]ErrorResponseHandler{}, em: em}
 }
 
 // Add a custom message to the response exception. This is destructive and
 // overwrites the previous message if present.
 func (he *HttpError) WithMessage(message string) *HttpError {
 	he.message = message
+	return he
+}
+
+func (he *HttpError) WithCause(cause error) *HttpError {
+	he.cause = cause
 	return he
 }
 
@@ -245,6 +256,66 @@ func (e *HttpError) Error() string {
 	return sb.String()
 }
 
+// Returns the underlying error that caused the application to return a 4xx or
+// 5xx response. This error is not always present, such as when the server
+// returns 404: Not Found.
+func (erw *ErrorResponseWriter) Error() (error, bool) {
+	return erw.err, erw.err != nil
+}
+
+// TODO: need to rethink this API - should it return an error??
+func (erw *ErrorResponseWriter) Json(v any) error {
+	return erw.rw.Json(v)
+}
+
+func (erw *ErrorResponseWriter) Text(text string) {
+	erw.rw.Text(text)
+}
+
+func (erw *ErrorResponseWriter) Textf(format string, a ...any) {
+	erw.rw.Textf(format, a...)
+}
+
+func (erw *ErrorResponseWriter) Raw(raw []byte) {
+	erw.rw.Raw(raw)
+}
+
+func (erw *ErrorResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
+	erw.rw.RawWithContentType(raw, ct)
+}
+
+func (eh *errorHandler) RegisterHandler(s HttpStatus, h ErrorResponseHandler) {
+	if !s.isError() {
+		panic(fmt.Errorf("cannot specify an error handler for status code %d", s.code))
+	}
+	eh.handlers[s] = h
+}
+
+func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *ResponseWriter {
+	var err error
+	if r != nil {
+		fmt.Printf("Application code panicked: %s\n", r)
+		switch e := r.(type) {
+		case error:
+			rw = eh.toHttpError(e).toResponse()
+			err = e
+		default:
+			rw = ErrInternalServerError().toResponse()
+		}
+	}
+	if rw.s.isError() {
+		h, found := eh.handlers[rw.s]
+		if !found {
+			return rw
+		}
+
+		erw := &ErrorResponseWriter{rw: rw, err: err}
+		h(erw, req)
+		// TODO: might need to re-assign to rw here - but I don't think so?
+	}
+	return rw
+}
+
 func (e *HttpError) toResponse() *ResponseWriter {
 	rw := newResponseWithStatus(e.status)
 	rw.Text(e.Error())
@@ -254,4 +325,20 @@ func (e *HttpError) toResponse() *ResponseWriter {
 
 func (e *HttpError) isValid() bool {
 	return e.status.isValid()
+}
+
+// Converts from a general error into a HttpError, is possible. Falls back to
+// a 500: Internal Server Error if no match is possible.
+func (eh *errorHandler) toHttpError(err error) *HttpError {
+	mapped := eh.em(err)
+	if mapped != nil && mapped.isValid() {
+		return mapped
+	}
+	if errors.Is(err, fs.ErrPermission) {
+		return ErrForbidden().WithCause(err)
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return ErrNotFound().WithCause(err)
+	}
+	return ErrInternalServerError().WithCause(err)
 }

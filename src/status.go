@@ -114,5 +114,9 @@ func (s HttpStatus) isxx(min uint16) bool {
 }
 
 func (s HttpStatus) isValid() bool {
-	return s.Is1xx() || s.Is2xx() || s.Is3xx() || s.Is4xx() || s.Is5xx()
+	return s.Is1xx() || s.Is2xx() || s.Is3xx() || s.isError()
+}
+
+func (s HttpStatus) isError() bool {
+	return s.Is4xx() || s.Is5xx()
 }

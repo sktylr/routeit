@@ -9,6 +9,7 @@ jobs:
     strategy:
         matrix:
             example:
+                - errors/handling
                 - errors/mapping
                 - middleware/simple
                 - routing/complex

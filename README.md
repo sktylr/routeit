@@ -83,6 +83,10 @@ If the `ErrorMapper` cannot assign a more appropriate error type, it can return 
 For example, if an `ErrNotExist` error is returned, we map that to a 404: Not Found HTTP error.
 We fallback to mapping to a 500: Internal Server Error if we cannot establish a mapping.
 
+Additionally, custom handling can be provided for specific HTTP status codes, if `routeit`'s default response is not sufficient.
+Common use cases include for `404: Not Found`, and `500: Internal Server Error`.
+These can be registered using `routeit.Server.RegisterErrorHandlers`.
+
 [`examples/errors`](/examples/errors/) contains examples for how custom error handling can be performed using `routeit`.
 
 #### Routing

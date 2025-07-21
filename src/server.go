@@ -77,12 +77,12 @@ type serverConfig struct {
 }
 
 type Server struct {
-	conf       serverConfig
-	router     *router
-	log        *slog.Logger
-	middleware *middleware
-	em         ErrorMapper
-	started    atomic.Bool
+	conf         serverConfig
+	router       *router
+	log          *slog.Logger
+	middleware   *middleware
+	started      atomic.Bool
+	errorHandler *errorHandler
 }
 
 // Constructs a new server given the config. Defaults are provided for all
@@ -102,10 +102,9 @@ func NewServer(conf ServerConfig) *Server {
 	s.middleware = newMiddleware(s.handlingMiddleware)
 	s.configureRewrites(conf.URLRewritePath)
 	if conf.ErrorMapper == nil {
-		s.em = func(e error) *HttpError { return nil }
-	} else {
-		s.em = conf.ErrorMapper
+		conf.ErrorMapper = func(e error) *HttpError { return nil }
 	}
+	s.errorHandler = newErrorHandler(conf.ErrorMapper)
 	return s
 }
 
@@ -146,6 +145,20 @@ func (s *Server) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegist
 func (s *Server) RegisterMiddleware(ms ...Middleware) {
 	s.panicIfStarted("register middleware")
 	s.middleware.Register(ms...)
+}
+
+// Register specific handlers for a given status code. These are called
+// automatically after the entire request has finished processing, and allow
+// the integrator to uniformly respond to certain 4xx or 5xx status codes.
+// Common use cases include for 401 or 404 handling. For example, it may be
+// desired for all 404 responses to return application/json content, which can
+// be done in one place. The [RegisterErrorHandlers] method will panic if
+// handlers are attempted to be registered for non 4xx or 5xx status codes.
+func (s *Server) RegisterErrorHandlers(handlers map[HttpStatus]ErrorResponseHandler) {
+	s.panicIfStarted("register error handlers")
+	for st, h := range handlers {
+		s.errorHandler.RegisterHandler(st, h)
+	}
 }
 
 // Attempts to start the server, panicking if that fails
@@ -239,15 +252,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		// server entirely. We recover the panic and return a generic
 		// 500 Internal Server Error since the fault is on the server,
 		// not the client.
-		if r := recover(); r != nil {
-			fmt.Printf("Application code panicked: %s\n", r)
-			switch e := r.(type) {
-			case error:
-				rw = toHttpError(e, s.em).toResponse()
-			default:
-				rw = ErrInternalServerError().toResponse()
-			}
-		}
+		rw = s.errorHandler.HandleErrors(recover(), rw, req)
 		// TODO: need improved error handling semantics here!
 		if req.mthd == HEAD {
 			rw.bdy = []byte{}
@@ -271,10 +276,10 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		return httpErr.toResponse()
 	}
 
-	// If the error is not a well formed httpError, then we attempt to infer
+	// If the error is not a well formed HttpError, then we attempt to infer
 	// the type of Http error it corresponds to, falling back to 500: Internal
 	// Server Error if that fails.
-	return toHttpError(err, s.em).toResponse()
+	return s.errorHandler.toHttpError(err).toResponse()
 }
 
 // After all middleware is processed, the last piece is for the server to

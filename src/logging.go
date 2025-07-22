@@ -36,6 +36,7 @@ func (l *logger) LogRequestAndResponse(rw *ResponseWriter, req *Request) {
 		slog.String("method", req.mthd.name),
 		slog.String("path", req.Path()),
 		slog.String("edge_path", req.uri.edgePath),
+		slog.String("raw_path", req.RawPath()),
 		slog.Int("status", int(rw.s.code)),
 	}
 

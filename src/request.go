@@ -146,6 +146,12 @@ func (req *Request) Path() string {
 	return uri.rewrittenPath
 }
 
+// The raw path received at the edge of the server. This is not url-decoded and
+// has not been rewritten if URL rewriting is enabled for the server.
+func (req *Request) RawPath() string {
+	return req.uri.rawPath
+}
+
 // TODO: rethink the API here - should it return a bool???
 func (req *Request) PathParam(param string) (string, bool) {
 	val, found := req.uri.pathParams[param]

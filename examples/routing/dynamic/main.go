@@ -19,7 +19,7 @@ type CustomGreeting struct {
 }
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{})
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		// In this example, we demonstrate how routeit prioritises routes.
 		// Requests received on the POST /hello/bob endpoint can match against

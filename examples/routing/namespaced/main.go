@@ -7,7 +7,7 @@ import (
 )
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{Namespace: "/api"})
+	srv := routeit.NewServer(routeit.ServerConfig{Namespace: "/api", Debug: true})
 
 	registry := routeit.RouteRegistry{"/hello": EchoUrlHandler()}
 

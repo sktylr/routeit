@@ -1,5 +1,7 @@
 package routeit
 
+import "regexp"
+
 // A middleware function is called for all incoming requests that reach the
 // server. It can choose to block the request, or pass it off to the next
 // middleware in the chain using [Chain.Proceed]. Common use cases include
@@ -52,4 +54,30 @@ func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
 	next := c.m.mwares[c.i]
 	c.i++
 	return next(c, rw, req)
+}
+
+// Middleware that is always registered as the first piece of middleware for
+// the server, and rejects all incoming requests that do not match the server's
+// expected Host header pattern.
+func hostValidationMiddleware(re *regexp.Regexp) Middleware {
+	if re == nil {
+		return func(c *Chain, rw *ResponseWriter, req *Request) error {
+			return ErrBadRequest()
+		}
+	}
+
+	return func(c *Chain, rw *ResponseWriter, req *Request) error {
+		// TODO: can remove validation from requestFromRaw
+		// TODO: can store this on the request for easier access
+		host, hasHost := req.Header("Host")
+		if !hasHost {
+			return ErrBadRequest()
+		}
+
+		if !re.MatchString(host) {
+			return ErrBadRequest()
+		}
+
+		return c.Proceed(rw, req)
+	}
 }

@@ -142,7 +142,7 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	}
 
 	if _, found := req.headers.Get("Host"); !found {
-		req.headers.Set("Host", "routeit")
+		req.headers.Set("Host", "localhost:1234")
 	}
 	if _, found := req.headers.Get("User-Agent"); !found {
 		req.headers.Set("User-Agent", "test-client")

@@ -14,6 +14,7 @@ type ContactForm struct {
 
 func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
+		Debug:          true,
 		StaticDir:      "assets",
 		URLRewritePath: "conf/rewrites.conf",
 	})

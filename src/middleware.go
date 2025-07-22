@@ -70,8 +70,6 @@ func hostValidationMiddleware(re *regexp.Regexp) Middleware {
 	}
 
 	return func(c *Chain, rw *ResponseWriter, req *Request) error {
-		// TODO: can remove validation from requestFromRaw
-		// TODO: can store this on the request for easier access
 		host, hasHost := req.Header("Host")
 		if !hasHost {
 			return ErrBadRequest()
@@ -81,6 +79,7 @@ func hostValidationMiddleware(re *regexp.Regexp) Middleware {
 			return ErrBadRequest()
 		}
 
+		req.host = host
 		return c.Proceed(rw, req)
 	}
 }

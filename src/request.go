@@ -34,6 +34,7 @@ type Request struct {
 	// TODO: consider byte slice here
 	body string
 	ct   ContentType
+	host string
 }
 
 type HttpMethod struct {
@@ -154,6 +155,11 @@ func (req *Request) PathParam(param string) (string, bool) {
 func (req *Request) Header(key string) (string, bool) {
 	val, found := req.headers.Get(key)
 	return val, found
+}
+
+// The Host header of the request. This will always be present and non-empty
+func (req *Request) Host() string {
+	return req.host
 }
 
 // Access a query parameter if present

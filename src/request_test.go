@@ -50,21 +50,6 @@ func TestRequestFromRaw(t *testing.T) {
 				StatusBadRequest,
 			},
 			{
-				"no headers and body",
-				"POST / HTTP/1.1\r\n\r\nthe body\r\n",
-				StatusBadRequest,
-			},
-			{
-				"no headers or body",
-				"GET / HTTP/1.1\r\n\r\n",
-				StatusBadRequest,
-			},
-			{
-				"without Host header",
-				"GET / HTTP/1.1\r\nAccept: */*\r\n\r\n",
-				StatusBadRequest,
-			},
-			{
 				"malformed query string",
 				"GET /endpoint?q=foo?bar HTTP/1.1\r\nHost: localhost\r\n\r\n",
 				StatusBadRequest,

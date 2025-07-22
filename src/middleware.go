@@ -58,7 +58,10 @@ func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
 
 // Middleware that is always registered as the first piece of middleware for
 // the server, and rejects all incoming requests that do not match the server's
-// expected Host header pattern.
+// expected Host header pattern. Per RFC-9112 Sec 7.2, the server MUST reject
+// the request and return 400: Bad Request when it does not contain a Host
+// header. We do the same when the Host header does not match any expected
+// values.
 func hostValidationMiddleware(re *regexp.Regexp) Middleware {
 	if re == nil {
 		return func(c *Chain, rw *ResponseWriter, req *Request) error {

@@ -258,10 +258,7 @@ func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
 		s.log.LogRequestAndResponse(rw, req)
 	}()
 
-	rewrite, didRewrite := s.router.Rewrite(req.Path())
-	if didRewrite {
-		req.uri.rewrittenPath = rewrite
-	}
+	req.uri.RewritePath(s.router)
 	rw = newResponseForMethod(req.mthd)
 	chain := s.middleware.NewChain()
 	err = chain.Proceed(rw, req)

@@ -63,10 +63,10 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	// TODO: need to add support for all request-target forms (origin-form, absolute-form, authority-form, asterisk-form) that should be accepted by a HTTP only server.
 	sections := bytes.Split(raw, []byte("\r\n"))
 
-	// We are expecting 1 carriage return after the protocol line, 1 carriage
-	// return after the Host header and 1 carriage return after all the headers.
-	// This means there will be at least 4 sections.
-	if len(sections) < 4 {
+	// We are expecting 1 carriage return after the protocol line and 1
+	// carriage return after all the headers. This means there will be at least
+	// 3 sections.
+	if len(sections) < 3 {
 		return nil, ErrBadRequest()
 	}
 
@@ -83,14 +83,6 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 	reqHdrs, err := headersFromRaw(hdrsRaw)
 	if err != nil {
 		return nil, err
-	}
-
-	// TODO: in future, we should verify that this is an allowed host
-	// TODO: this is not being parsed properly due to the : in the port
-	_, hasHost := reqHdrs.Get("Host")
-	if !hasHost {
-		// The Host header is required as part of HTTP/1.1
-		return nil, ErrBadRequest()
 	}
 
 	cLen := reqHdrs.ContentLength()

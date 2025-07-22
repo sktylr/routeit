@@ -125,6 +125,54 @@ func TestInternalServerError(t *testing.T) {
 	}
 }
 
+func TestHostValidation(t *testing.T) {
+	t.Run("rejected", func(t *testing.T) {
+		hosts := []string{
+			"sub.web.example.com",
+			"127.0.1.1",
+			"127.0.0.1",
+			"[::2]",
+			"example.com.web",
+			"dev.localhost:3000A",
+		}
+		client := routeit.NewTestClient(GetServer())
+
+		for _, host := range hosts {
+			t.Run(host, func(t *testing.T) {
+				res := client.Get("/hello", "Host", host)
+				res.AssertStatusCode(t, routeit.StatusBadRequest)
+				res.AssertBodyMatchesString(t, "400: Bad Request")
+			})
+		}
+	})
+
+	t.Run("accepted", func(t *testing.T) {
+		hosts := []string{
+			"localhost",
+			"localhost:8080",
+			"localhost:1234",
+			"dev.localhost",
+			"dev.localhost:3000",
+			"[::1]",
+			"[::1]:8000",
+			"example.com",
+			"web.example.com",
+			"www.example.com",
+			"example.com:443",
+			"api.example.com:8080",
+		}
+		client := routeit.NewTestClient(GetServer())
+
+		for _, host := range hosts {
+			t.Run(host, func(t *testing.T) {
+				res := client.Get("/hello", "Host", host)
+				res.AssertStatusCode(t, routeit.StatusOK)
+				res.AssertBodyContainsString(t, `"name":"John Doe"`)
+			})
+		}
+	})
+}
+
 func TestRoot(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 

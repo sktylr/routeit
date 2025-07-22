@@ -5,6 +5,12 @@ Due to the different HTTP methods supported by `routeit`, the server will only r
 If a route exists but it does not support the method, the server will respond with a `405: Method Not Allowed` response and include the allowed methods in the `Allow` header.
 The application can be run using `go run main.go`.
 
+The server also contains non-default restrictions on the `Host` header.
+Requests whose `Host` header are not present, or do not match the following patterns are rejected but `routeit`'s default Host validation middleware.
+`.example.com` - any valid single-layered subdomain of `example.com`, including `example.com` itself.
+`.localhost` - any valid single-layered subdomain of `localhost`.
+`[::1]` - the exact match for the IPv6 version of the IPv4 address `127.0.0.1`.
+
 `/hello`: This endpoint returns a simple JSON payload. It is hardcoded and not dependent on the request input.
 
 ```bash

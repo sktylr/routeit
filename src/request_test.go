@@ -286,6 +286,47 @@ func TestRequestFromRaw(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("url", func(t *testing.T) {
+		tests := []struct {
+			in          string
+			wantRaw     string
+			wantDecoded string
+		}{
+			{
+				in:          "/simple",
+				wantRaw:     "/simple",
+				wantDecoded: "/simple",
+			},
+			{
+				in:          "missing/leading/slash",
+				wantRaw:     "/missing/leading/slash",
+				wantDecoded: "/missing/leading/slash",
+			},
+			{
+				in:          `/foo%20bar`,
+				wantRaw:     `/foo%20bar`,
+				wantDecoded: "/foo bar",
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.in, func(t *testing.T) {
+				in := fmt.Appendf(nil, "GET %s HTTP/1.1\r\nHost: localhost\r\n\r\n", tc.in)
+
+				req, err := requestFromRaw(in)
+				if err != nil {
+					t.Errorf("unexpected error %v", err)
+				}
+				expectBody(t, req.body, "")
+				expectUrl(t, req, tc.wantDecoded)
+				expectMethod(t, req.mthd, GET)
+				if req.uri.rawPath != tc.wantRaw {
+					t.Errorf(`rawPath = %#q, wanted %#q`, req.uri.rawPath, tc.wantRaw)
+				}
+			})
+		}
+	})
 }
 
 func expectBody(t *testing.T, got, want string) {

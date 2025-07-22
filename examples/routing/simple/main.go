@@ -7,7 +7,7 @@ import (
 )
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{})
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
 
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/":                       hello("the root"),

@@ -28,6 +28,7 @@ type LoginResponse struct {
 
 func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
+		Debug:       true,
 		ErrorMapper: ErrorMapper,
 	})
 	srv.RegisterRoutes(routeit.RouteRegistry{

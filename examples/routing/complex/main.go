@@ -9,7 +9,7 @@ type HelloResponse struct {
 }
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{})
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
 	rreg := routeit.RouteRegistry{}
 	routes := []string{
 		// The most general route, this will match against /<anything>, but has

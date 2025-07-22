@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -62,6 +63,17 @@ type ServerConfig struct {
 	// that are transformed to valid responses. Called whenever the application
 	// code returns or panics an error
 	ErrorMapper ErrorMapper
+	// The allowed hosts that this server can serve from. If the incoming
+	// request contains a Host header that is not satisfied by this list,
+	// routeit will reject the request. Fully qualified domains can be specific
+	// (e.g. www.example.com), or the domain can be prepended with . to match
+	// against all subdomains. For example, .example.com will match against
+	// api.example.com, www.example.com, example.com and any other subdomains
+	// of example.com. Only a single layer of subdomains is considered (i.e.
+	// this will not match against site.web.example.com). When Debug is enabled
+	// this defaults to [".localhost", "127.0.0.1", "[::1]"] if no list is
+	// specified.
+	AllowedHosts []string
 }
 
 // The internal server config, which only stores the necessary values
@@ -96,6 +108,7 @@ func NewServer(conf ServerConfig) *Server {
 	s.middleware = newMiddleware(s.handlingMiddleware)
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
+	s.constructAllowedHosts(conf.AllowedHosts)
 	return s
 }
 
@@ -314,6 +327,43 @@ func (s *Server) panicIfStarted(action string) {
 	if s.started.Load() {
 		panic(fmt.Errorf("cannot %s after starting the server", action))
 	}
+}
+
+func (s *Server) constructAllowedHosts(allowed []string) {
+	if len(allowed) == 0 {
+		if s.conf.Debug {
+			allowed = []string{".localhost", "127.0.0.1", "[::1]"}
+		} else {
+			s.RegisterMiddleware(hostValidationMiddleware(nil))
+			return
+		}
+	}
+
+	sbdmns, exact := []string{}, []string{}
+	for _, host := range allowed {
+		if strings.HasPrefix(host, ".") {
+			sbdmns = append(sbdmns, host[1:])
+		} else {
+			exact = append(exact, host)
+		}
+	}
+
+	var groups []string
+
+	if len(sbdmns) > 0 {
+		var parts []string
+		for _, sbdmn := range sbdmns {
+			parts = append(parts, regexp.QuoteMeta(sbdmn))
+		}
+		groups = append(groups, fmt.Sprintf(`([\w-]+\.)?(%s)`, strings.Join(parts, "|")))
+	}
+
+	for _, host := range exact {
+		groups = append(groups, regexp.QuoteMeta(host))
+	}
+
+	re := regexp.MustCompile(fmt.Sprintf(`^(%s)(:\d+)?$`, strings.Join(groups, "|")))
+	s.RegisterMiddleware(hostValidationMiddleware(re))
 }
 
 func (sc ServerConfig) internalise() serverConfig {

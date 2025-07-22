@@ -10,6 +10,7 @@ type Hello struct {
 func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
 		Port:           3000,
+		Debug:          true,
 		StaticDir:      "statics",
 		URLRewritePath: "conf/rewrites.conf",
 	})

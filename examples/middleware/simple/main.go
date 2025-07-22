@@ -3,7 +3,7 @@ package main
 import "github.com/sktylr/routeit"
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{})
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			rw.Text("Hello authorised user!")

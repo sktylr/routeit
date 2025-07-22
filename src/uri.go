@@ -63,6 +63,10 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 		rawPath = "/" + rawPath
 	}
 
+	if path != "/" {
+		path = strings.TrimSuffix(path, "/")
+	}
+
 	uri := &uri{edgePath: path, rawPath: rawPath, queryParams: queryParameters{}}
 
 	if hasQuery {

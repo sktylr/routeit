@@ -9,8 +9,6 @@ import (
 
 type HandlerFunc func(rw *ResponseWriter, req *Request) error
 
-// TODO: could look into consolidating Handler and MultiMethodHandler, maybe only exposing the public methods that should be settable?
-
 type Handler struct {
 	get     HandlerFunc
 	head    HandlerFunc

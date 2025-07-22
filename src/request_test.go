@@ -74,6 +74,16 @@ func TestRequestFromRaw(t *testing.T) {
 				"GET /foo%\"bar HTTP/1.1\r\nHost: localhost\r\n\r\n",
 				StatusBadRequest,
 			},
+			{
+				"body but no content type",
+				"POST / HTTP/1.1\r\nContent-Length: 6\r\n\r\nHello!",
+				StatusBadRequest,
+			},
+			{
+				"unparsable Content-Type but Content-Length",
+				"POST / HTTP/1.1\r\nContent-Length: 6\r\nContent-Type: text-plain\r\n\r\nHello!",
+				StatusBadRequest,
+			},
 		}
 
 		for _, tc := range tests {
@@ -166,7 +176,7 @@ func TestRequestFromRaw(t *testing.T) {
 
 	t.Run("body", func(t *testing.T) {
 		t.Run("only consumes content length", func(t *testing.T) {
-			in := []byte("POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nthis is a long body!")
+			in := []byte("POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nthis is a long body!")
 			want := "thi"
 
 			req, err := requestFromRaw(in)
@@ -181,7 +191,7 @@ func TestRequestFromRaw(t *testing.T) {
 
 			for _, m := range methods {
 				t.Run(m, func(t *testing.T) {
-					in := fmt.Appendf(nil, "%s / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\nbody", m)
+					in := fmt.Appendf(nil, "%s / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\nContent-Type: text/plain\r\n\r\nbody", m)
 
 					req, err := requestFromRaw(in)
 					if err != nil {
@@ -209,7 +219,7 @@ func TestRequestFromRaw(t *testing.T) {
   ]
 }`
 			bodyBytes := []byte(body)
-			in := fmt.Appendf(nil, "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: %d\r\n\r\n%s", len(bodyBytes), body)
+			in := fmt.Appendf(nil, "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: %d\r\nContent-Type: application/json\r\n\r\n%s", len(bodyBytes), body)
 
 			req, err := requestFromRaw(in)
 			if err != nil {
@@ -314,9 +324,9 @@ func TestRequestFromRaw(t *testing.T) {
 	})
 }
 
-func expectBody(t *testing.T, got, want string) {
+func expectBody(t *testing.T, got []byte, want string) {
 	t.Helper()
-	if got != want {
+	if string(got) != want {
 		t.Errorf(`requestFromRaw body = %q, wanted %#q`, got, want)
 	}
 }

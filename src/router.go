@@ -161,7 +161,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 	}
 
 	// TODO: need to improve the string manipulation here - it looks expensive!
-	sanitised := strings.TrimSuffix(strings.TrimPrefix(req.Path(), "/"), "/")
+	sanitised := strings.TrimPrefix(req.Path(), "/")
 	if !strings.HasPrefix(sanitised, r.namespace) {
 		// The route is not under the global namespace so we know it isn't valid
 		return nil, false

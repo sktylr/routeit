@@ -53,10 +53,6 @@ func TestRoute(t *testing.T) {
 				path: "/want",
 			},
 			{
-				name: "lookup ignores trailing slash",
-				path: "/want/",
-			},
-			{
 				name:       "simple global",
 				gNamespace: "/api",
 				path:       "/api/want",

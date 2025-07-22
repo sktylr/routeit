@@ -31,10 +31,9 @@ type Request struct {
 	// TODO: need to normalise this properly and have a (private) method for trimming the namespace etc.
 	uri     uri
 	headers headers
-	// TODO: consider byte slice here
-	body string
-	ct   ContentType
-	host string
+	body    []byte
+	ct      ContentType
+	host    string
 }
 
 type HttpMethod struct {
@@ -86,21 +85,31 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		return nil, err
 	}
 
+	ct := ContentType{}
+	ctRaw, hasCType := reqHdrs.Get("Content-Type")
+	if hasCType && ptcl.mthd.canHaveBody() {
+		ct = parseContentType(ctRaw)
+	}
 	cLen := reqHdrs.ContentLength()
-	var body string
+
+	if !ct.isValid() && cLen != 0 && ptcl.mthd.canHaveBody() {
+		return nil, ErrBadRequest().WithMessage("Cannot specify a Content-Length without Content-Type")
+	}
+
+	var body []byte
 	// TODO: make the buffer size also depend on the server max allowed request
-	if cLen <= 0 || ptcl.mthd == GET || ptcl.mthd == HEAD || ptcl.mthd == OPTIONS {
+	if cLen == 0 || !ptcl.mthd.canHaveBody() {
 		// For GET, HEAD or OPTIONS requests, the request body should be
 		// ignored even if provided. Servers can technically accept request
 		// bodies for OPTIONS requests, however it is up to the server
 		// implementation, and routeit chooses not to. Where we are consuming
 		// the body, we should only look for Content-Length bytes and no more.
-		body = ""
+		body = []byte{}
 	} else {
 		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds
 		reader := bytes.NewReader(bdyRaw)
-		buf := make([]byte, cLen)
-		_, err := io.ReadFull(reader, buf)
+		body = make([]byte, cLen)
+		_, err := io.ReadFull(reader, body)
 		if err != nil {
 			// Http servers are expected to read **exactly** Content-Length bytes
 			// from the request body. This error is returned if the reader contains
@@ -110,14 +119,6 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 			// since the failure is with the client.
 			return nil, ErrBadRequest()
 		}
-		body = string(buf)
-	}
-
-	ct := ContentType{}
-	// TODO: can probably also reject the request body if it doesn't include a CT
-	ctRaw, hasCType := reqHdrs.Get("Content-Type")
-	if hasCType && ptcl.mthd != GET && ptcl.mthd != HEAD {
-		ct = parseContentType(ctRaw)
 	}
 
 	req := Request{mthd: ptcl.mthd, uri: ptcl.uri, headers: reqHdrs, body: body, ct: ct}
@@ -145,7 +146,11 @@ func (req *Request) RawPath() string {
 	return req.uri.rawPath
 }
 
-// TODO: rethink the API here - should it return a bool???
+// Extract a path parameter from the request path. The name must exactly match
+// the name of the parameter when it was registered to the router. For example,
+// if the route was registered under `/:foO|prefix|suffix`, then this method
+// should be called with `"foO"`. Returns a boolean indicating if the path
+// parameter was extracted successfully.
 func (req *Request) PathParam(param string) (string, bool) {
 	val, found := req.uri.pathParams[param]
 	return val, found
@@ -168,12 +173,13 @@ func (req *Request) QueryParam(key string) (string, bool) {
 	return val, found
 }
 
-// TODO: should look into prohibiting (via a panic or error) this method for GET or HEAD requests, since they should not contain a req body and if they do the server shouldn't read it
 // Parses the Json request body into the destination. Ensures that the
 // Content-Type header is application/json and will return a 415: Unsupported
 // Media Type error if this is not the case. Will panic if the destination is
-// not a pointer.
+// not a pointer. Will also panic if the request cannot contain a request body,
+// such as GET requests.
 func (req *Request) BodyFromJson(to any) error {
+	req.mustAllowBodyReading()
 	if !req.ContentType().Equals(CTApplicationJson) {
 		return ErrUnsupportedMediaType(CTApplicationJson)
 	}
@@ -182,7 +188,8 @@ func (req *Request) BodyFromJson(to any) error {
 
 // Parses the Json request body into the destination. Does not check the
 // Content-Type header to confirm that the request body has application/json
-// type body. Will panic if the destination is not a pointer.
+// type body. Will panic if the destination is not a pointer, or the request
+// cannot support a body (such as GET requests).
 func (req *Request) UnsafeBodyFromJson(to any) error {
 	v := reflect.ValueOf(to)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
@@ -191,17 +198,20 @@ func (req *Request) UnsafeBodyFromJson(to any) error {
 		// Internal Server Error outside of the integrator's control.
 		panic(fmt.Sprintf("BodyFromJson requires a non-nil pointer destination, got %T", to))
 	}
+	req.mustAllowBodyReading()
 	return json.Unmarshal([]byte(req.body), to)
 }
 
 // Parses the text/plain content from the request. This method checks that the
 // Content-Type header is set to text/plain, returning a 415: Unsupported Media
-// Type error if that is not the case.
+// Type error if that is not the case. Panics if the request method is GET,
+// since GET requests cannot support bodies.
 func (req *Request) BodyFromText() (string, error) {
+	req.mustAllowBodyReading()
 	if !req.ContentType().Equals(CTTextPlain) {
 		return "", ErrUnsupportedMediaType(CTTextPlain)
 	}
-	return req.body, nil
+	return string(req.body), nil
 }
 
 // Access the content type of the request body. Does not return a meaningful
@@ -210,6 +220,16 @@ func (req *Request) BodyFromText() (string, error) {
 // to perform equality checks.
 func (req *Request) ContentType() ContentType {
 	return req.ct
+}
+
+func (req *Request) mustAllowBodyReading() {
+	if !req.mthd.canHaveBody() {
+		panic(fmt.Errorf("attempted to read body for request that cannot contain a body - method = %s", req.mthd.name))
+	}
+}
+
+func (m HttpMethod) canHaveBody() bool {
+	return m != GET && m != HEAD && m != OPTIONS
 }
 
 // Parses the first line of the request. This line should contain the HTTP
@@ -231,11 +251,12 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 		return protocolLine{}, ErrHttpVersionNotSupported()
 	}
 	if uriRaw == "*" && mthd != OPTIONS {
-		// TODO: check error message - should this be a 400 or something else?
-		return protocolLine{}, ErrBadRequest()
+		return protocolLine{}, ErrBadRequest().WithMessage("Invalid request-target for method")
 	}
 
-	// TODO: need to return 414: URI Too Long if URI is too long
+	if RequestSize(len(uriRaw)) > (8 * KiB) {
+		return protocolLine{}, ErrURITooLong()
+	}
 
 	uri, err := parseUri(uriRaw)
 	if err != nil {

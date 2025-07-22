@@ -123,7 +123,6 @@ func newKey(part string) trieKey {
 	return trieKey{wildcard: &wildcard{prefix: prefix, suffix: suffix, minLen: minLen}}
 }
 
-// TODO: can probably move this to its own package
 func (t *trie[T, D]) Find(path string) (*T, *D, bool) {
 	if t.root == nil {
 		return nil, nil, false

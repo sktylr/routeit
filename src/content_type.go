@@ -94,6 +94,10 @@ func (a ContentType) Equals(b ContentType) bool {
 	return a.charset == b.charset
 }
 
+func (ct ContentType) isValid() bool {
+	return ct.part != "" && ct.subtype != ""
+}
+
 func (ct ContentType) string() string {
 	var sb strings.Builder
 	sb.WriteString(ct.part)

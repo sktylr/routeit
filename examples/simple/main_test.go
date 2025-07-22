@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/sktylr/routeit"
@@ -334,5 +335,27 @@ func TestDelete(t *testing.T) {
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS")
+	})
+}
+
+func TestURIValidation(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	t.Run("strips single trailing slash", func(t *testing.T) {
+		res := client.Get("/hello/")
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertBodyContainsString(t, `"name":"John Doe",`)
+	})
+
+	t.Run("rejects URIs longer than 8KiB", func(t *testing.T) {
+		uri := "/" + strings.Repeat("a", 8192)
+		res := client.Get(uri)
+		res.AssertStatusCode(t, routeit.StatusURITooLong)
+	})
+
+	t.Run("accepts URIs at 8KiB", func(t *testing.T) {
+		uri := "/" + strings.Repeat("a", 8191)
+		res := client.Get(uri)
+		res.AssertStatusCode(t, routeit.StatusNotFound)
 	})
 }

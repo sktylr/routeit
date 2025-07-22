@@ -1,10 +1,10 @@
 package routeit
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -91,26 +91,17 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 // values will be sanitised per HTTP spec before being added to the server's
 // response.
 func (rw *ResponseWriter) Header(key string, val string) {
-	// TODO: errors should use this!
 	// TODO: probably want to define some allow list (e.g. to avoid overwriting Content-Length etc.)
 	rw.hdrs.Set(key, val)
 }
 
 func (rw *ResponseWriter) write() []byte {
-	var sb strings.Builder
-
-	// Status line
-	sb.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", rw.s.code, rw.s.msg))
-
-	// Headers
-	// TODO: we should probs set the content length header here to avoid it being overwritten
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", rw.s.code, rw.s.msg))
 	now := time.Now().UTC()
 	rw.hdrs.Set("Date", now.Format("Mon, 02 Jan 2006 15:04:05 GMT"))
-	rw.hdrs.WriteTo(&sb)
-
-	// CRLF between headers and the response
-	sb.WriteString("\r\n")
-
-	sb.Write(rw.bdy)
-	return []byte(sb.String())
+	rw.hdrs.WriteTo(&buf)
+	buf.WriteString("\r\n")
+	buf.Write(rw.bdy)
+	return buf.Bytes()
 }

@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,6 +30,7 @@ var methodLookup = map[string]HttpMethod{
 }
 
 type Request struct {
+	ctx  context.Context
 	mthd HttpMethod
 	// TODO: need to normalise this properly and have a (private) method for trimming the namespace etc.
 	uri       uri
@@ -64,7 +66,7 @@ type protocolLine struct {
 // carriage return) also follows the headers before the optional body.
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
-func requestFromRaw(raw []byte) (*Request, *HttpError) {
+func requestFromRaw(raw []byte, ctx context.Context) (*Request, *HttpError) {
 	// TODO: need to add support for all request-target forms (origin-form, absolute-form, authority-form, asterisk-form) that should be accepted by a HTTP only server.
 	sections := bytes.Split(raw, []byte("\r\n"))
 
@@ -136,6 +138,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		ct:        ct,
 		userAgent: userAgent,
 		accept:    accept,
+		ctx:       ctx,
 	}
 	return &req, nil
 }
@@ -257,6 +260,10 @@ func (req *Request) AcceptsContentType(other ContentType) bool {
 		}
 	}
 	return false
+}
+
+func (req *Request) Context() context.Context {
+	return req.ctx
 }
 
 func (req *Request) mustAllowBodyReading() {

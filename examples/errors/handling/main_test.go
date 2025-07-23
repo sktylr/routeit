@@ -95,6 +95,20 @@ func TestBadRequest(t *testing.T) {
 	res.AssertBodyMatchesString(t, "400: Bad Request")
 }
 
+func TestSlow(t *testing.T) {
+	client := routeit.NewTestClient(GetServer())
+
+	res := client.Get("/slow")
+
+	verifyErrorDetailResponse(
+		t,
+		res,
+		routeit.StatusServiceUnavailable,
+		"service_unavailable",
+		"Our service is currently experiencing issues and is unavailable. Please try again in a few minutes.",
+	)
+}
+
 func verifyErrorDetailResponse(t *testing.T, res *routeit.TestResponse, wantStatus routeit.HttpStatus, wantCode string, wantMsg string) {
 	t.Helper()
 	want := ErrorResponse{

@@ -1,6 +1,6 @@
 ### examples/simple
 
-This example is a simple example that exposes 10 endpoints.
+This example is a simple example that exposes 11 endpoints.
 Due to the different HTTP methods supported by `routeit`, the server will only respond to the correct HTTP method in the request.
 If a route exists but it does not support the method, the server will respond with a `405: Method Not Allowed` response and include the allowed methods in the `Allow` header.
 The application can be run using `go run main.go`.
@@ -110,4 +110,13 @@ $ curl "http://localhost:8080/update?conflict=true" -X PATCH
 # Missing conflict parameter
 $ curl http://localhost:8080/update -X PATCH
 422: Unprocessable Content
+```
+
+`/slow`. This endpoint is designed to timeout.
+It exceeds the server's default write deadline of 10 seconds by 100 milliseconds.
+This should always return a `503` status code, since the fault is with the server.
+
+```bash
+$ curl http://localhost:8080/slow
+503: Service Unavailable
 ```

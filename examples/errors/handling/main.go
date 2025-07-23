@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"time"
 
 	"github.com/sktylr/routeit"
 )
@@ -19,7 +20,7 @@ type ErrorDetail struct {
 }
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true, WriteDeadline: 2 * time.Second})
 	srv.RegisterErrorHandlers(map[routeit.HttpStatus]routeit.ErrorResponseHandler{
 		routeit.StatusUnauthorized: BaseErrorHandler("unauthorised", func(req *routeit.Request) string {
 			return "Provide a valid access token"
@@ -38,6 +39,15 @@ func GetServer() *routeit.Server {
 				Error: ErrorDetail{
 					Message: sb.String(),
 					Code:    "internal_server_error",
+				},
+			}
+			erw.Json(res)
+		},
+		routeit.StatusServiceUnavailable: func(erw *routeit.ErrorResponseWriter, req *routeit.Request) {
+			res := ErrorResponse{
+				Error: ErrorDetail{
+					Message: "Our service is currently experiencing issues and is unavailable. Please try again in a few minutes.",
+					Code:    "service_unavailable",
 				},
 			}
 			erw.Json(res)
@@ -70,6 +80,10 @@ func GetServer() *routeit.Server {
 		}),
 		"/not-found": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			panic(fs.ErrNotExist)
+		}),
+		"/slow": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			time.Sleep(2*time.Second + 100*time.Millisecond)
+			return nil
 		}),
 	})
 	return srv

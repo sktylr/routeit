@@ -1,6 +1,7 @@
 package routeit
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -354,6 +355,9 @@ func (eh *errorHandler) toHttpError(err error) *HttpError {
 	}
 	if errors.Is(err, fs.ErrNotExist) {
 		return ErrNotFound().WithCause(err)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return ErrServiceUnavailable().WithCause(err)
 	}
 	return ErrInternalServerError().WithCause(err)
 }

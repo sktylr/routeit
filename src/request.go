@@ -194,7 +194,7 @@ func (req *Request) QueryParam(key string) (string, bool) {
 // such as GET requests.
 func (req *Request) BodyFromJson(to any) error {
 	req.mustAllowBodyReading()
-	if !req.ContentType().Equals(CTApplicationJson) {
+	if !req.ContentType().Matches(CTApplicationJson) {
 		return ErrUnsupportedMediaType(CTApplicationJson)
 	}
 	return req.UnsafeBodyFromJson(to)
@@ -222,7 +222,7 @@ func (req *Request) UnsafeBodyFromJson(to any) error {
 // since GET requests cannot support bodies.
 func (req *Request) BodyFromText() (string, error) {
 	req.mustAllowBodyReading()
-	if !req.ContentType().Equals(CTTextPlain) {
+	if !req.ContentType().Matches(CTTextPlain) {
 		return "", ErrUnsupportedMediaType(CTTextPlain)
 	}
 	return string(req.body), nil

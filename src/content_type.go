@@ -1,6 +1,7 @@
 package routeit
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -38,12 +39,15 @@ var (
 
 	CTMultipartByteranges = ContentType{part: "multipart", subtype: "byteranges"}
 	CTMultipartFormData   = ContentType{part: "multipart", subtype: "form-data"}
+
+	CTAcceptAll = ContentType{part: "*", subtype: "*"}
 )
 
 type ContentType struct {
 	part    string
 	subtype string
 	charset string
+	q       float32
 }
 
 func parseContentType(raw string) ContentType {
@@ -65,8 +69,17 @@ func parseContentType(raw string) ContentType {
 
 	for _, param := range splitParams[1:] {
 		kvp := strings.Split(strings.TrimSpace(param), "=")
-		if len(kvp) == 2 && kvp[0] == "charset" {
-			return ct.WithCharset(kvp[1])
+		if len(kvp) != 2 {
+			continue
+		}
+		switch kvp[0] {
+		case "charset":
+			ct = ct.WithCharset(kvp[1])
+		case "q":
+			q, err := strconv.ParseFloat(kvp[1], 32)
+			if err == nil {
+				ct.q = float32(q)
+			}
 		}
 	}
 
@@ -84,8 +97,10 @@ func (ct ContentType) WithCharset(cs string) ContentType {
 // is the same OR one charset is UTF-8 and the other is unset. This is because
 // UTF-8 is the default charset used by routeit but is sometimes omitted due to
 // being the de-facto standard across the web.
-func (a ContentType) Equals(b ContentType) bool {
-	if a.part != b.part || a.subtype != b.subtype {
+func (a ContentType) Matches(b ContentType) bool {
+	samePart := a.part == "*" || a.part == b.part
+	sameSubtype := a.subtype == "*" || a.subtype == b.subtype
+	if !(samePart && sameSubtype) {
 		return false
 	}
 	if (a.charset == "" || a.charset == "utf-8") && (b.charset == "" || b.charset == "utf-8") {

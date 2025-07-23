@@ -38,7 +38,7 @@ func TestContentTypeString(t *testing.T) {
 	}
 }
 
-func TestContentTypeEquals(t *testing.T) {
+func TestContentTypeMatches(t *testing.T) {
 	tests := []struct {
 		a    ContentType
 		b    ContentType
@@ -90,13 +90,33 @@ func TestContentTypeEquals(t *testing.T) {
 			b:    CTImagePng.WithCharset("UTF-16"),
 			want: false,
 		},
+		{
+			a:    CTAcceptAll,
+			b:    CTApplicationFormUrlEncoded,
+			want: true,
+		},
+		{
+			a:    CTAcceptAll,
+			b:    CTAcceptAll,
+			want: true,
+		},
+		{
+			a:    ContentType{part: "application", subtype: "*"},
+			b:    CTApplicationGraphQL,
+			want: true,
+		},
+		{
+			a:    ContentType{part: "application", subtype: "*"},
+			b:    CTTextJavaScript,
+			want: false,
+		},
 	}
 
 	for _, tc := range tests {
 		name := fmt.Sprintf(`"%s".equals("%s")`, tc.a.string(), tc.b.string())
 		t.Run(name, func(t *testing.T) {
-			if tc.a.Equals(tc.b) != tc.want {
-				t.Errorf(`%#q.equals(%#q) = %t, wanted %t`, tc.a.string(), tc.b.string(), tc.a.Equals(tc.b), tc.want)
+			if tc.a.Matches(tc.b) != tc.want {
+				t.Errorf(`%#q.equals(%#q) = %t, wanted %t`, tc.a.string(), tc.b.string(), tc.a.Matches(tc.b), tc.want)
 			}
 		})
 	}
@@ -127,7 +147,7 @@ func TestParseContentType(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.raw, func(t *testing.T) {
 			actual := parseContentType(tc.raw)
-			if !actual.Equals(tc.want) {
+			if !actual.Matches(tc.want) {
 				t.Errorf(`parseContentType(%#q) = %#q, wanted %#q`, tc.raw, actual.string(), tc.want.string())
 			}
 		})

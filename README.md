@@ -62,11 +62,11 @@ $ /abs/path/to/godoc -http=:3000
 
 If the server has a valid route for the request, but the route does not respond to the requested method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
 
-| Content Types      | Request supported? | Response supported? | Notes                                                                                                                                                 |
-| ------------------ | ------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `application/json` | ✅                 | ✅                  | Parsing and encoding is handled automatically by `routeit`                                                                                            |
-| `text/plain`       | ❌                 | ✅                  |                                                                                                                                                       |
-| ...                | ❌                 | ✅                  | Any response type can be supported, but the integrator must convert the response body to bytes and use the `ResponseWriter.RawWithContentType` method |
+| Content Types      | Request supported? | Response supported? | Notes                                                                                                                                                                                                              |
+| ------------------ | ------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `application/json` | ✅                 | ✅                  | Parsing and encoding is handled automatically by `routeit`                                                                                                                                                         |
+| `text/plain`       | ✅                 | ✅                  |                                                                                                                                                                                                                    |
+| ...                | ✅                 | ✅                  | Any request or response type can be supported, but the integrator must handling the parsing and marshalling. The `ResponseWriter.RawWithContentType` and `Request.BodyFromRaw` methods can be used correspondingly |
 
 #### Status codes
 

@@ -217,7 +217,7 @@ func (req *Request) QueryParam(key string) (string, bool) {
 // Content-Type header is application/json and will return a 415: Unsupported
 // Media Type error if this is not the case. Will panic if the destination is
 // not a pointer. Will also panic if the request cannot contain a request body,
-// such as GET requests.
+// such as GET requests. Should be preferred to [Request.UnsafeBodyFromJson].
 func (req *Request) BodyFromJson(to any) error {
 	req.mustAllowBodyReading()
 	if !req.ContentType().Matches(CTApplicationJson) {
@@ -245,13 +245,42 @@ func (req *Request) UnsafeBodyFromJson(to any) error {
 // Parses the text/plain content from the request. This method checks that the
 // Content-Type header is set to text/plain, returning a 415: Unsupported Media
 // Type error if that is not the case. Panics if the request method is GET,
-// since GET requests cannot support bodies.
+// since GET requests cannot support bodies. Should be preferred to
+// [Request.UnsafeBodyFromText].
 func (req *Request) BodyFromText() (string, error) {
 	req.mustAllowBodyReading()
 	if !req.ContentType().Matches(CTTextPlain) {
 		return "", ErrUnsupportedMediaType(CTTextPlain)
 	}
 	return string(req.body), nil
+}
+
+// Returns the raw body content as a string. Will panic if this is called on a
+// method that cannot support a request body, such as GET, HEAD or OPTIONS.
+func (req *Request) UnsafeBodyFromText() string {
+	req.mustAllowBodyReading()
+	return string(req.body)
+}
+
+// Returns the raw body content provided it matches the given content type,
+// otherwise a 415: Unsupported Media Type error is returned. Will panic if
+// this is called on a method that cannot support a request body, such as GET,
+// HEAD or OPTIONS. Should be preferred to [Request.UnsafeBodyFromRaw].
+func (req *Request) BodyFromRaw(ct ContentType) ([]byte, error) {
+	req.mustAllowBodyReading()
+	if !req.ContentType().Matches(ct) {
+		return nil, ErrUnsupportedMediaType(ct)
+	}
+	return req.body, nil
+}
+
+// Returns the raw body content. Will panic if this is called on a method that
+// cannot support a request body, such as GET, HEAD or OPTIONS. This does not
+// assert that the body is present nor contains a corresponding Content-Type
+// header
+func (req *Request) UnsafeBodyFromRaw() []byte {
+	req.mustAllowBodyReading()
+	return req.body
 }
 
 // Access the content type of the request body. Does not return a meaningful

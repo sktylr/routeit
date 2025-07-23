@@ -81,6 +81,20 @@ func (tc TestClient) PutText(path string, text string, h ...string) *TestRespons
 	return tc.xText(path, text, PUT, h...)
 }
 
+// Makes a PATCH request against the specified path, using a Json request body.
+// Will panic if the Json marshalling fails. Can include an arbitrary number of
+// headers, specified as key, value pairs after the request body.
+func (tc TestClient) PatchJson(path string, body any, h ...string) *TestResponse {
+	return tc.xJson(path, body, PATCH, h...)
+}
+
+// Makes a PATCH request against the specified path, using a text request body.
+// Allows for inclusion of an arbitrary number of headers, specified in key,
+// value format after the body.
+func (tc TestClient) PatchText(path string, text string, h ...string) *TestResponse {
+	return tc.xText(path, text, PATCH, h...)
+}
+
 // Makes an OPTIONS request against the specified endpoint. Can include key,
 // value pairs representing the headers of the request.
 func (tc TestClient) Options(path string, h ...string) *TestResponse {

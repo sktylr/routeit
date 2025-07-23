@@ -1,6 +1,6 @@
 ### examples/simple
 
-This example is a simple example that exposes 9 endpoints.
+This example is a simple example that exposes 10 endpoints.
 Due to the different HTTP methods supported by `routeit`, the server will only respond to the correct HTTP method in the request.
 If a route exists but it does not support the method, the server will respond with a `405: Method Not Allowed` response and include the allowed methods in the `Allow` header.
 The application can be run using `go run main.go`.
@@ -92,4 +92,22 @@ It just uses `routeit`'s default response for a `DELETE` request, which is a sta
 
 ```bash
 $ curl http://localhost:8080/delete -X DELETE
+```
+
+`/update`. This endpoint responds to `PATCH` requests.
+The endpoint does not perform any "business logic", but shows how a sample `PATCH` handler can be implemented.
+The endpoint will reject the request if the `conflict` query parameter is missing or exactly matches `"true"`, using a 422 in the first case and 409 in the latter as the response status code.
+
+```bash
+# Success case
+$ curl "http://localhost:8080/update?conflict=false" -X PATCH
+Resource updated successfully
+
+# Simulate conflict
+$ curl "http://localhost:8080/update?conflict=true" -X PATCH
+409: Conflict
+
+# Missing conflict parameter
+$ curl http://localhost:8080/update -X PATCH
+422: Unprocessable Content
 ```

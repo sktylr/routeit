@@ -339,7 +339,7 @@ func TestGlobalOptions(t *testing.T) {
 
 	res.AssertStatusCode(t, routeit.StatusNoContent)
 	res.AssertBodyEmpty(t)
-	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, DELETE, OPTIONS")
+	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS")
 }
 
 func TestDelete(t *testing.T) {
@@ -363,6 +363,54 @@ func TestDelete(t *testing.T) {
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS")
+	})
+}
+
+func TestUpdate(t *testing.T) {
+	t.Run("PATCH", func(t *testing.T) {
+		t.Run("success", func(t *testing.T) {
+			res := client.PatchText("/update?conflict=false", "")
+			res.AssertStatusCode(t, routeit.StatusOK)
+			res.AssertBodyMatchesString(t, "Resource updated successfully\n")
+		})
+
+		t.Run("failure", func(t *testing.T) {
+			tests := []struct {
+				q    string
+				want routeit.HttpStatus
+			}{
+				{
+					"",
+					routeit.StatusUnprocessableContent,
+				},
+				{
+					"conflict=true",
+					routeit.StatusConflict,
+				},
+			}
+
+			for _, tc := range tests {
+				t.Run(fmt.Sprintf("query = %#q", tc.q), func(t *testing.T) {
+					res := client.PatchText("/update?"+tc.q, "")
+					res.AssertStatusCode(t, tc.want)
+				})
+			}
+		})
+	})
+
+	t.Run("OPTIONS", func(t *testing.T) {
+		res := client.Options("/update")
+
+		res.AssertStatusCode(t, routeit.StatusNoContent)
+		res.AssertBodyEmpty(t)
+		res.AssertHeaderMatches(t, "Allow", "PATCH, OPTIONS")
+	})
+
+	t.Run("GET", func(t *testing.T) {
+		res := client.Get("/update")
+
+		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
+		res.AssertHeaderMatches(t, "Allow", "PATCH, OPTIONS")
 	})
 }
 

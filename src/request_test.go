@@ -55,7 +55,7 @@ func TestRequestFromRaw(t *testing.T) {
 			},
 			{
 				"unsupported method",
-				"PATCH / HTTP/1.1\r\nHost: localhost\r\n\r\n",
+				"FOO / HTTP/1.1\r\nHost: localhost\r\n\r\n",
 				StatusNotImplemented,
 			},
 			{

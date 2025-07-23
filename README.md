@@ -58,7 +58,7 @@ $ /abs/path/to/godoc -http=:3000
 | CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                             |
 | OPTIONS     | ✅         | Baked into the server implementation.                                                |
 | TRACE       | ❌         |                                                                                      |
-| PATCH       | ❌         |                                                                                      |
+| PATCH       | ✅         |                                                                                      |
 
 If the server has a valid route for the request, but the route does not respond to the requested method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
 

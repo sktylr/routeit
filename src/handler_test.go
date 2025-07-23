@@ -8,7 +8,7 @@ func TestHandlerConstructors(t *testing.T) {
 	fn := func(rw *ResponseWriter, req *Request) error { return nil }
 
 	type wantMethods struct {
-		get, head, post, put, delete, options bool
+		get, head, post, put, delete, patch, options bool
 	}
 
 	tests := []struct {
@@ -35,6 +35,11 @@ func TestHandlerConstructors(t *testing.T) {
 			name:    "DELETE",
 			handler: Delete(fn),
 			want:    wantMethods{delete: true, options: true},
+		},
+		{
+			name:    "PATCH",
+			handler: Patch(fn),
+			want:    wantMethods{patch: true, options: true},
 		},
 		{
 			name: "MultiMethod GET only",
@@ -137,6 +142,14 @@ func TestHandle(t *testing.T) {
 			h:          Delete(fn),
 			wantBody:   "From inside the handler",
 			wantStatus: StatusNoContent,
+			wantCType:  "text/plain",
+			wantCLen:   23,
+		},
+		{
+			method:     PATCH,
+			h:          Patch(fn),
+			wantBody:   "From inside the handler",
+			wantStatus: StatusOK,
 			wantCType:  "text/plain",
 			wantCLen:   23,
 		},

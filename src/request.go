@@ -14,6 +14,7 @@ var (
 	POST    = HttpMethod{name: "POST"}
 	PUT     = HttpMethod{name: "PUT"}
 	DELETE  = HttpMethod{name: "DELETE"}
+	PATCH   = HttpMethod{name: "PATCH"}
 	OPTIONS = HttpMethod{name: "OPTIONS"}
 )
 
@@ -23,6 +24,7 @@ var methodLookup = map[string]HttpMethod{
 	"POST":    POST,
 	"PUT":     PUT,
 	"DELETE":  DELETE,
+	"PATCH":   PATCH,
 	"OPTIONS": OPTIONS,
 }
 

@@ -74,16 +74,23 @@ type ServerConfig struct {
 	// this defaults to [".localhost", "127.0.0.1", "[::1]"] if no list is
 	// specified.
 	AllowedHosts []string
+	// When enabled, the server will only return responses to the client that
+	// strictly match the client's Accept header, if it is included in the
+	// request. If the application code returns a non-compliant response
+	// Content-Type, the server will automatically transform this to a 406: Not
+	// Acceptable response.
+	StrictClientAcceptance bool
 }
 
 // The internal server config, which only stores the necessary values
 type serverConfig struct {
-	Port          uint16
-	RequestSize   RequestSize
-	ReadDeadline  time.Duration
-	WriteDeadline time.Duration
-	Namespace     string
-	Debug         bool
+	Port                   uint16
+	RequestSize            RequestSize
+	ReadDeadline           time.Duration
+	WriteDeadline          time.Duration
+	Namespace              string
+	Debug                  bool
+	StrictClientAcceptance bool
 }
 
 type Server struct {
@@ -297,7 +304,19 @@ func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) 
 	if !found {
 		return ErrNotFound().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
 	}
-	return handler.handle(rw, req)
+	err := handler.handle(rw, req)
+	if !s.conf.StrictClientAcceptance || err != nil {
+		return err
+	}
+	// TODO: could store the content type on the ResponseWriter in its parsed form?
+	ct, hasCt := rw.hdrs.Get("Content-Type")
+	if !hasCt {
+		return nil
+	}
+	if !req.AcceptsContentType(parseContentType(ct)) {
+		return ErrNotAcceptable()
+	}
+	return nil
 }
 
 // Parses the URL rewrite file, if provided, and adds all rewrite entries to
@@ -373,12 +392,13 @@ func (s *Server) constructAllowedHosts(allowed []string) {
 
 func (sc ServerConfig) internalise() serverConfig {
 	out := serverConfig{
-		Port:          sc.Port,
-		RequestSize:   sc.RequestSize,
-		ReadDeadline:  sc.ReadDeadline,
-		WriteDeadline: sc.WriteDeadline,
-		Namespace:     sc.Namespace,
-		Debug:         sc.Debug,
+		Port:                   sc.Port,
+		RequestSize:            sc.RequestSize,
+		ReadDeadline:           sc.ReadDeadline,
+		WriteDeadline:          sc.WriteDeadline,
+		Namespace:              sc.Namespace,
+		Debug:                  sc.Debug,
+		StrictClientAcceptance: sc.StrictClientAcceptance,
 	}
 	if sc.RequestSize == 0 {
 		out.RequestSize = KiB

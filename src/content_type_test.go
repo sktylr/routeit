@@ -110,6 +110,11 @@ func TestContentTypeMatches(t *testing.T) {
 			b:    CTTextJavaScript,
 			want: false,
 		},
+		{
+			a:    ContentType{part: "application", subtype: "json", q: -1},
+			b:    CTApplicationJson,
+			want: false,
+		},
 	}
 
 	for _, tc := range tests {
@@ -142,12 +147,15 @@ func TestParseContentType(t *testing.T) {
 		{
 			"image/png; charset=utf-16", CTImagePng.WithCharset("utf-16"),
 		},
+		{
+			"image/png;q=0.0", ContentType{part: "image", subtype: "png", q: -1},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.raw, func(t *testing.T) {
 			actual := parseContentType(tc.raw)
-			if !actual.Matches(tc.want) {
+			if actual != tc.want {
 				t.Errorf(`parseContentType(%#q) = %#q, wanted %#q`, tc.raw, actual.string(), tc.want.string())
 			}
 		})

@@ -78,7 +78,14 @@ func parseContentType(raw string) ContentType {
 		case "q":
 			q, err := strconv.ParseFloat(kvp[1], 32)
 			if err == nil {
-				ct.q = float32(q)
+				if q <= 0.0 {
+					// Golang's 0 value for a float32 is 0, so we explicitly
+					// set this to a negative number to differentiate between
+					// unset and 0 values.
+					ct.q = -1
+				} else {
+					ct.q = float32(q)
+				}
 			}
 		}
 	}
@@ -98,6 +105,9 @@ func (ct ContentType) WithCharset(cs string) ContentType {
 // UTF-8 is the default charset used by routeit but is sometimes omitted due to
 // being the de-facto standard across the web.
 func (a ContentType) Matches(b ContentType) bool {
+	if a.q < 0 {
+		return false
+	}
 	samePart := a.part == "*" || a.part == b.part
 	sameSubtype := a.subtype == "*" || a.subtype == b.subtype
 	if !(samePart && sameSubtype) {

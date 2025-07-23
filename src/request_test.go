@@ -8,6 +8,35 @@ import (
 // TODO: (currently) if a path contains a %-encoded / symbol, then this will be interpreted as a path delimiter, so will cause incorrect routing in the trie. This could be addressed by splitting on `/` first, then accepting a list in the trie, instead of the full path.
 
 func TestRequestFromRaw(t *testing.T) {
+	expectBody := func(t *testing.T, got []byte, want string) {
+		t.Helper()
+		if string(got) != want {
+			t.Errorf(`body = %q, wanted %#q`, got, want)
+		}
+	}
+	expectUrl := func(t *testing.T, got *Request, want string) {
+		t.Helper()
+		if got.Path() != want {
+			t.Errorf(`Path() = %q, wanted %#q`, got.Path(), want)
+		}
+	}
+	expectHeader := func(t *testing.T, key string, hdrs headers, want string) {
+		t.Helper()
+		got, exists := hdrs.Get(key)
+		if !exists {
+			t.Errorf(`expected header %#q to exist`, key)
+		}
+		if got != want {
+			t.Errorf(`headers[%q] = %q, wanted %#q`, key, got, want)
+		}
+	}
+	expectMethod := func(t *testing.T, got, want HttpMethod) {
+		t.Helper()
+		if got != want {
+			t.Errorf(`mthd = %q, wanted %#q`, got, want)
+		}
+	}
+
 	t.Run("invalid", func(t *testing.T) {
 		tests := []struct {
 			name       string
@@ -397,37 +426,5 @@ func TestAcceptsContentType(t *testing.T) {
 				t.Errorf(`AcceptsContentType(%#q) = %t, wanted %t`, tc.in.string(), got, tc.want)
 			}
 		})
-	}
-}
-
-func expectBody(t *testing.T, got []byte, want string) {
-	t.Helper()
-	if string(got) != want {
-		t.Errorf(`requestFromRaw body = %q, wanted %#q`, got, want)
-	}
-}
-
-func expectUrl(t *testing.T, got *Request, want string) {
-	t.Helper()
-	if got.Path() != want {
-		t.Errorf(`requestFromRaw Path() = %q, wanted %#q`, got.Path(), want)
-	}
-}
-
-func expectHeader(t *testing.T, key string, hdrs headers, want string) {
-	t.Helper()
-	got, exists := hdrs.Get(key)
-	if !exists {
-		t.Errorf(`requestFromRaw expected header %#q to exist`, key)
-	}
-	if got != want {
-		t.Errorf(`requestFromRaw headers[%q] = %q, wanted %#q`, key, got, want)
-	}
-}
-
-func expectMethod(t *testing.T, got, want HttpMethod) {
-	t.Helper()
-	if got != want {
-		t.Errorf(`requestFromRaw mthd = %q, wanted %#q`, got, want)
 	}
 }

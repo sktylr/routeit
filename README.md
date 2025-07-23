@@ -30,7 +30,7 @@ $ cd src
 $ godoc -http=:3000
 ```
 
-The documentation can now be viewed at http://localhost:3000/pkg/github.com/sktylr/routeit/.
+The documentation can now be viewed at [`localhost:3000/pkg/github.com/sktylr/routeit/`](http://localhost:3000/pkg/github.com/sktylr/routeit/).
 
 If your `$GOPATH` is not set, this may fail to run. The `$GOPATH` defaults to `$HOME/go` but go can sometimes have difficulty due to `src` containing a go module. Wherever your go binaries are installed needs to be in your `$PATH`, or you can reference the absolute path when running `godoc -http=:3000`.
 
@@ -46,7 +46,7 @@ $ /abs/path/to/godoc -http=:3000
 
 ### Features
 
-**HTTP Version Support**: Only HTTP/1.1 is supported. My implementation is mostly based off https://httpwg.org/specs/rfc9112.html and [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference) developer specs.
+**HTTP Version Support**: Only HTTP/1.1 is supported. My implementation is mostly based off [RFC-9112](https://httpwg.org/specs/rfc9112.html) and [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference) developer specs.
 
 | HTTP Method | Supported? | Notes                                                                                                                           |
 | ----------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |

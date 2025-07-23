@@ -324,6 +324,82 @@ func TestRequestFromRaw(t *testing.T) {
 	})
 }
 
+func TestAcceptsContentType(t *testing.T) {
+	tests := []struct {
+		name   string
+		accept []ContentType
+		in     ContentType
+		want   bool
+	}{
+		{
+			name:   "empty accept",
+			accept: []ContentType{},
+			in:     CTApplicationJson,
+			want:   false,
+		},
+		{
+			name:   "empty input, accept = */*",
+			accept: []ContentType{CTAcceptAll},
+			in:     ContentType{},
+			want:   true,
+		},
+		{
+			name:   "empty input, accept = application/*",
+			accept: []ContentType{{part: "application", subtype: "*"}},
+			in:     ContentType{},
+			want:   false,
+		},
+		{
+			name:   "exact match, single accept list",
+			accept: []ContentType{CTTextHtml},
+			in:     CTTextHtml,
+			want:   true,
+		},
+		{
+			name:   "exact match, multiple accept list",
+			accept: []ContentType{CTApplicationGraphQL, CTTextHtml},
+			in:     CTTextHtml,
+			want:   true,
+		},
+		{
+			name:   "match by subtype, part = *",
+			accept: []ContentType{{part: "*", subtype: "javascript"}},
+			in:     CTTextJavaScript,
+			want:   true,
+		},
+		{
+			name:   "match by part, subtype = *",
+			accept: []ContentType{{part: "multipart", subtype: "*"}},
+			in:     CTMultipartByteranges,
+			want:   true,
+		},
+		{
+			name:   "accept = */*",
+			accept: []ContentType{CTAcceptAll},
+			in:     CTTextCsv,
+			want:   true,
+		},
+		{
+			name:   "accept contains */*",
+			accept: []ContentType{CTTextHtml, CTTextCss, CTApplicationFormUrlEncoded, CTAcceptAll},
+			in:     CTTextCsv,
+			want:   true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &Request{accept: tc.accept}
+
+			got := req.AcceptsContentType(tc.in)
+
+			if got != tc.want {
+				t.Errorf(`AcceptsContentType(%#q) = %t, wanted %t`, tc.in.string(), got, tc.want)
+			}
+		})
+	}
+}
+
 func expectBody(t *testing.T, got []byte, want string) {
 	t.Helper()
 	if string(got) != want {

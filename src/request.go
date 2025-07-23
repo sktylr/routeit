@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -36,6 +37,7 @@ type Request struct {
 	host      string
 	userAgent string
 	ip        string
+	accept    []ContentType
 }
 
 type HttpMethod struct {
@@ -123,8 +125,32 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		}
 	}
 
+	var accept []ContentType
+	acceptRaw, hasAccept := reqHdrs.Get("Accept")
+	if !hasAccept {
+		// The Accept header is not required to be sent by the client, so we
+		// take a lenient approach and replace it with acceptance of all
+		// content types.
+		accept = []ContentType{CTAcceptAll}
+	} else {
+		for _, acc := range strings.Split(acceptRaw, "/") {
+			ct := parseContentType(acc)
+			if ct.isValid() {
+				accept = append(accept, ct)
+			}
+		}
+	}
+
 	userAgent, _ := reqHdrs.Get("User-Agent")
-	req := Request{mthd: ptcl.mthd, uri: ptcl.uri, headers: reqHdrs, body: body, ct: ct, userAgent: userAgent}
+	req := Request{
+		mthd:      ptcl.mthd,
+		uri:       ptcl.uri,
+		headers:   reqHdrs,
+		body:      body,
+		ct:        ct,
+		userAgent: userAgent,
+		accept:    accept,
+	}
 	return &req, nil
 }
 
@@ -234,6 +260,17 @@ func (req *Request) BodyFromText() (string, error) {
 // to perform equality checks.
 func (req *Request) ContentType() ContentType {
 	return req.ct
+}
+
+// Can be used to determine whether the client will accept the provided
+// [ContentType]
+func (req *Request) AcceptsContentType(other ContentType) bool {
+	for _, ct := range req.accept {
+		if ct.Matches(other) {
+			return true
+		}
+	}
+	return false
 }
 
 func (req *Request) mustAllowBodyReading() {

@@ -157,7 +157,7 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	}
 	rb.Write(req.body)
 
-	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte("127.0.0.1"), Port: 3000})
+	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000})
 	return &TestResponse{rw}
 }
 

@@ -306,6 +306,19 @@ func (req *Request) Context() context.Context {
 	return req.ctx
 }
 
+// Access a value stored on the request's context.
+func (req *Request) ContextValue(key any) (any, bool) {
+	val := req.ctx.Value(key)
+	return val, val != nil
+}
+
+// Store a value on the request's context. This is particularly useful for
+// middleware, which can set particular values the can be read in later
+// middleware or the handler itself.
+func (req *Request) NewContextValue(key any, val any) {
+	req.ctx = context.WithValue(req.ctx, key, val)
+}
+
 func (req *Request) mustAllowBodyReading() {
 	if !req.mthd.canHaveBody() {
 		panic(fmt.Errorf("attempted to read body for request that cannot contain a body - method = %s", req.mthd.name))

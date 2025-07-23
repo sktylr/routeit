@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strings"
 )
 
 var (
@@ -125,22 +124,7 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		}
 	}
 
-	var accept []ContentType
-	acceptRaw, hasAccept := reqHdrs.Get("Accept")
-	if !hasAccept {
-		// The Accept header is not required to be sent by the client, so we
-		// take a lenient approach and replace it with acceptance of all
-		// content types.
-		accept = []ContentType{CTAcceptAll}
-	} else {
-		for _, acc := range strings.Split(acceptRaw, "/") {
-			ct := parseContentType(acc)
-			if ct.isValid() {
-				accept = append(accept, ct)
-			}
-		}
-	}
-
+	accept := parseAcceptHeader(reqHdrs)
 	userAgent, _ := reqHdrs.Get("User-Agent")
 	req := Request{
 		mthd:      ptcl.mthd,

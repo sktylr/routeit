@@ -17,6 +17,7 @@ type Handler struct {
 	delete  HandlerFunc
 	patch   HandlerFunc
 	options HandlerFunc
+	trace   HandlerFunc
 	allowed []HttpMethod
 }
 
@@ -101,7 +102,7 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 	h.allowed = allow
 
 	if len(allow) != 0 {
-		h.allowed = append(h.allowed, OPTIONS)
+		h.allowed = append(h.allowed, OPTIONS, TRACE)
 		h.options = func(rw *ResponseWriter, req *Request) error {
 			// The OPTIONS request is used to ask the server what configuration
 			// it accepts. A simple implementation tells the client which
@@ -113,6 +114,14 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 				allowS = append(allowS, allow.name)
 			}
 			rw.Header("Allow", strings.Join(allowS, ", "))
+			return nil
+		}
+		h.trace = func(rw *ResponseWriter, req *Request) error {
+			// We can register this handler regardless of whether the server
+			// enables TRACE methods. We have additional middleware that will
+			// ensure TRACE methods are only let through (or mentioned in Allow
+			// headers) if the TRACE method is enabled for the server.
+			rw.RawWithContentType(req.body, ContentType{part: "message", subtype: "http"})
 			return nil
 		}
 	}
@@ -148,6 +157,10 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 	case OPTIONS:
 		if h.options != nil {
 			return h.options(rw, req)
+		}
+	case TRACE:
+		if h.trace != nil {
+			return h.trace(rw, req)
 		}
 	}
 

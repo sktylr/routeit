@@ -81,6 +81,11 @@ type ServerConfig struct {
 	// Content-Type, the server will automatically transform this to a 406: Not
 	// Acceptable response.
 	StrictClientAcceptance bool
+	// By default, routeit registers TRACE handlers for all routes registered
+	// to the server. If this is not desirable, leave AllowTraceRequests at its
+	// default value of false. If you are happy to support TRACE requests, set
+	// AllowTraceRequests to true.
+	AllowTraceRequests bool
 }
 
 // The internal server config, which only stores the necessary values
@@ -92,6 +97,7 @@ type serverConfig struct {
 	Namespace              string
 	Debug                  bool
 	StrictClientAcceptance bool
+	AllowTraceRequests     bool
 }
 
 type Server struct {
@@ -117,6 +123,7 @@ func NewServer(conf ServerConfig) *Server {
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
 	s.constructAllowedHosts(conf.AllowedHosts)
+	s.RegisterMiddleware(allowTraceValidationMiddleware(conf.AllowTraceRequests))
 	return s
 }
 
@@ -341,6 +348,9 @@ func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) 
 	if !found {
 		return ErrNotFound().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
 	}
+	if req.Method() == TRACE && !s.conf.AllowTraceRequests {
+		return ErrMethodNotAllowed(handler.allowed...)
+	}
 	err := handler.handle(rw, req)
 	if !s.conf.StrictClientAcceptance || err != nil {
 		return err
@@ -431,6 +441,7 @@ func (sc ServerConfig) internalise() serverConfig {
 		Namespace:              sc.Namespace,
 		Debug:                  sc.Debug,
 		StrictClientAcceptance: sc.StrictClientAcceptance,
+		AllowTraceRequests:     sc.AllowTraceRequests,
 	}
 	if sc.RequestSize == 0 {
 		out.RequestSize = KiB

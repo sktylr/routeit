@@ -256,7 +256,7 @@ func TestRoot(t *testing.T) {
 		res := client.Get("/")
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-		res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS, TRACE")
 	})
 }
 
@@ -323,14 +323,14 @@ func TestModify(t *testing.T) {
 		res := client.PostText("/modify", "Hello!")
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS, TRACE")
 	})
 
 	t.Run("OPTIONS", func(t *testing.T) {
 		res := client.Options("/modify")
 
 		res.AssertStatusCode(t, routeit.StatusNoContent)
-		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "PUT, OPTIONS, TRACE")
 		res.AssertBodyEmpty(t)
 	})
 }
@@ -340,7 +340,7 @@ func TestGlobalOptions(t *testing.T) {
 
 	res.AssertStatusCode(t, routeit.StatusNoContent)
 	res.AssertBodyEmpty(t)
-	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS")
+	res.AssertHeaderMatches(t, "Allow", "GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, TRACE")
 }
 
 func TestDelete(t *testing.T) {
@@ -356,14 +356,14 @@ func TestDelete(t *testing.T) {
 
 		res.AssertStatusCode(t, routeit.StatusNoContent)
 		res.AssertBodyEmpty(t)
-		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS, TRACE")
 	})
 
 	t.Run("GET", func(t *testing.T) {
 		res := client.Get("/delete")
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "DELETE, OPTIONS, TRACE")
 	})
 }
 
@@ -404,14 +404,25 @@ func TestUpdate(t *testing.T) {
 
 		res.AssertStatusCode(t, routeit.StatusNoContent)
 		res.AssertBodyEmpty(t)
-		res.AssertHeaderMatches(t, "Allow", "PATCH, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "PATCH, OPTIONS, TRACE")
 	})
 
 	t.Run("GET", func(t *testing.T) {
 		res := client.Get("/update")
 
 		res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-		res.AssertHeaderMatches(t, "Allow", "PATCH, OPTIONS")
+		res.AssertHeaderMatches(t, "Allow", "PATCH, OPTIONS, TRACE")
+	})
+
+	t.Run("TRACE", func(t *testing.T) {
+		res := client.Trace("/update", "X-My-Header", "foo", "X-My-Other-Header", "bar")
+
+		res.AssertStatusCode(t, routeit.StatusOK)
+		res.AssertBodyContainsString(t, "TRACE /update HTTP/1.1\r\n")
+		res.AssertBodyContainsString(t, "X-My-Header: foo\r\n")
+		res.AssertBodyContainsString(t, "X-My-Other-Header: bar\r\n")
+		res.AssertBodyContainsString(t, "Host: localhost:1234\r\n")
+		res.AssertBodyContainsString(t, "User-Agent: test-client\r\n")
 	})
 }
 

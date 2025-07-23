@@ -27,7 +27,12 @@ var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s
 // against. They can optionally include a leading slash and all trailing
 // slashes will be stripped. Static routes can be supplied by providing the
 // exact path the route should match against. Dynamic routes can be provided
-// using a colon-notation.
+// using a colon-notation. Optional prefixes and/or suffixes can be provided
+// for dynamic routes, that will only match against the incoming URI if the
+// corresponding path segments start or end with the given prefix or suffix.
+// The extracted path parameter contains the entire matched path segment -
+// including the prefix and/or suffix. The substring between the prefix and
+// suffix must have non-zero length.
 //
 // Examples:
 //   - "/foo/:bar" -> This will match against "/foo/<anything>" and name the
@@ -35,6 +40,9 @@ var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s
 //   - "/:foo/bar/:baz" -> This will match against "/<anything>/bar/<anything>".
 //     The first matched parameter will be named "foo", while the second will
 //     be named "baz".
+//   - "/:foo|pref" -> This will match against "/pref<anything>".
+//   - "/:foo||suf" -> This will match against "/<anything>suf".
+//   - "/:foo|pref|suf" -> This will match against "/pref<anything>suf".
 //
 // Registering routes with dynamic components with the same name (such as
 // "/:foo/bar/:foo") will cause the application to panic.

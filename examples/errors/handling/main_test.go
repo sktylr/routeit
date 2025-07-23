@@ -8,6 +8,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestInternalServerError(t *testing.T) {
 	tests := []struct {
 		route   string
@@ -29,7 +31,6 @@ func TestInternalServerError(t *testing.T) {
 			route: "/manual-status",
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.route, func(t *testing.T) {
@@ -48,7 +49,6 @@ func TestNotFound(t *testing.T) {
 	routes := []string{
 		"/", "/not-found", "/no-auth-1", "/crash/twice",
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		wantMsg := "No matching route found for " + r
@@ -60,7 +60,6 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestUnauthorised(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
 	tests := []struct {
 		name    string
 		perform func() *routeit.TestResponse
@@ -88,8 +87,6 @@ func TestUnauthorised(t *testing.T) {
 }
 
 func TestBadRequest(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	res := client.Get("/bad-request")
 
 	res.AssertStatusCode(t, routeit.StatusBadRequest)
@@ -97,8 +94,6 @@ func TestBadRequest(t *testing.T) {
 }
 
 func TestSlow(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	res := client.WithTestConfig(routeit.TestConfig{WriteDeadline: 10 * time.Millisecond}).Get("/slow")
 
 	verifyErrorDetailResponse(

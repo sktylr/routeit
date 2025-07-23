@@ -7,6 +7,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestFoundRoute(t *testing.T) {
 	tests := []struct {
 		path    string
@@ -17,7 +19,6 @@ func TestFoundRoute(t *testing.T) {
 		{"/a/heavily/nested", "/a/heavily/nested"},
 		{"/a/heavily/nested/route", "/a/heavily/nested/route"},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {
@@ -40,7 +41,6 @@ func TestNotFoundRoute(t *testing.T) {
 		{"non-leaf", "/a/heavily"},
 		{"generic not found", "/foo"},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

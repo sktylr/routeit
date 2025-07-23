@@ -7,6 +7,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestIndex(t *testing.T) {
 	routes := []string{"/", "/statics/index.html"}
 	verify := func(t *testing.T, res *routeit.TestResponse) {
@@ -16,7 +18,6 @@ func TestIndex(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
 		res.AssertHeaderMatches(t, "Content-Length", "563")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {
@@ -64,7 +65,6 @@ func TestAbout(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
 		res.AssertHeaderMatches(t, "Content-Length", "1650")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {
@@ -112,7 +112,6 @@ func TestTarget(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "image/png")
 		res.AssertHeaderMatches(t, "Content-Length", "14513")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {
@@ -158,7 +157,6 @@ func TestStyles(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "text/css; charset=utf-8")
 		res.AssertHeaderMatches(t, "Content-Length", "1113")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {
@@ -206,7 +204,6 @@ func TestHello(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "application/json")
 		res.AssertHeaderMatches(t, "Content-Length", "180")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {

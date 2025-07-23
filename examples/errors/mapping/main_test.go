@@ -6,6 +6,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestGetEndpoints(t *testing.T) {
 	tests := []struct {
 		route string
@@ -20,7 +22,6 @@ func TestGetEndpoints(t *testing.T) {
 			routeit.StatusForbidden,
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.route, func(t *testing.T) {
@@ -44,8 +45,6 @@ func TestGetEndpoints(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	t.Run("POST", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			in := LoginRequest{

@@ -6,98 +6,102 @@ import (
 	"github.com/sktylr/routeit"
 )
 
-func TestGetHelloUnauthorised(t *testing.T) {
-	tests := []struct {
-		name    string
-		headers []string
-	}{
-		{
-			"no header",
-			[]string{},
-		},
-		{
-			"invalid authorisation header",
-			[]string{"Authorization", "Bearer 123"},
-		},
-	}
-	client := routeit.NewTestClient(GetServer())
+var client = routeit.NewTestClient(GetServer())
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			res := client.Get("/hello", tc.headers...)
-
-			res.AssertStatusCode(t, routeit.StatusUnauthorized)
-		})
-	}
-}
-
-func TestGetHelloAuthorised(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/hello", "Authorization", "LET ME IN")
-
-	res.AssertStatusCode(t, routeit.StatusOK)
-	res.AssertBodyMatchesString(t, "Hello authorised user!")
-}
-
-func TestPostHelloAuthorised(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.PostText("/hello", "hello!", "Authorization", "LET ME IN")
-
-	res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-}
-
-func TestPostHelloUnauthorised(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.PostText("/hello", "hello!", "Authorization", "Bearer 123")
-
-	// The authorisation is the first point of failure (as opposed to the
-	// requested method, which is the second point). For improved security, the
-	// first point of failure is returned to the client, ensuring that as
-	// little as possible is revealed to the client.
-	res.AssertStatusCode(t, routeit.StatusUnauthorized)
-}
-
-func TestGetNotFoundAuthorised(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/goodbye", "Authorization", "LET ME IN")
-
-	res.AssertStatusCode(t, routeit.StatusNotFound)
-}
-
-func TestGetNotFoundUnauthorised(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
-	res := client.Get("/goodbye", "Authorization", "Bearer 123")
-
-	// The authorisation is the first point of failure (as opposed to the
-	// resource not being found, which is the the second failure point). For
-	// improved security, the first point of failure is returned to the
-	// client, ensuring that as little as possible is revealed to the client.
-	res.AssertStatusCode(t, routeit.StatusUnauthorized)
-}
-
-func TestOptions(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
+func TestHello(t *testing.T) {
 	t.Run("unauthorised", func(t *testing.T) {
-		res := client.Options("/hello")
-		res.AssertStatusCode(t, routeit.StatusUnauthorized)
-		res.RefuteHeaderPresent(t, "Allow")
-	})
+		tests := []struct {
+			name string
+			fn   func() *routeit.TestResponse
+		}{
+			{
+				"GET no header",
+				func() *routeit.TestResponse { return client.Get("/hello") },
+			},
+			{
+				"GET invalid auth header",
+				func() *routeit.TestResponse { return client.Get("/hello", "Authorization", "Bearer 123") },
+			},
+			{
+				// The authorisation is the first point of failure (as opposed
+				// to the requested method, which is the second point). For
+				// improved security, the first point of failure is returned to
+				// the client, ensuring that as little as possible is revealed
+				// to the client.
+				"POST no header",
+				func() *routeit.TestResponse { return client.PostText("/hello", "hello!") },
+			},
+			{
+				"POST invalid auth header",
+				func() *routeit.TestResponse {
+					return client.PostText("/hello", "hello!", "Authorization", "Bearer 123")
+				},
+			},
+			{
+				"GET not found",
+				func() *routeit.TestResponse { return client.Get("/goodbye", "Authorization", "Bearer 123") },
+			},
+			{
+				"OPTIONS",
+				func() *routeit.TestResponse { return client.Options("/hello") },
+			},
+		}
 
-	t.Run("authorised not found", func(t *testing.T) {
-		res := client.Options("/goodbye", "Authorization", "LET ME IN")
-		res.AssertStatusCode(t, routeit.StatusNotFound)
-		res.RefuteHeaderPresent(t, "Allow")
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				res := tc.fn()
+				res.AssertStatusCode(t, routeit.StatusUnauthorized)
+				res.RefuteHeaderPresent(t, "Allow")
+			})
+		}
 	})
 
 	t.Run("authorised", func(t *testing.T) {
-		res := client.Options("/hello", "Authorization", "LET ME IN")
-		res.AssertStatusCode(t, routeit.StatusNoContent)
-		res.AssertBodyEmpty(t)
+		tests := []struct {
+			name       string
+			fn         func() *routeit.TestResponse
+			wantStatus routeit.HttpStatus
+			wantAllow  string
+		}{
+			{
+				name:       "GET",
+				fn:         func() *routeit.TestResponse { return client.Get("/hello", "Authorization", "LET ME IN") },
+				wantStatus: routeit.StatusOK,
+			},
+			{
+				name:       "GET not found",
+				fn:         func() *routeit.TestResponse { return client.Get("/goodbye", "Authorization", "LET ME IN") },
+				wantStatus: routeit.StatusNotFound,
+			},
+			{
+				name:       "POST",
+				fn:         func() *routeit.TestResponse { return client.PostText("/hello", "hello!", "Authorization", "LET ME IN") },
+				wantStatus: routeit.StatusMethodNotAllowed,
+				wantAllow:  "GET, HEAD, OPTIONS",
+			},
+			{
+				name:       "OPTIONS",
+				fn:         func() *routeit.TestResponse { return client.Options("/hello", "Authorization", "LET ME IN") },
+				wantStatus: routeit.StatusNoContent,
+				wantAllow:  "GET, HEAD, OPTIONS",
+			},
+			{
+				name:       "OPTIONS not found",
+				fn:         func() *routeit.TestResponse { return client.Options("/goodbye", "Authorization", "LET ME IN") },
+				wantStatus: routeit.StatusNotFound,
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				res := tc.fn()
+				res.AssertStatusCode(t, tc.wantStatus)
+				if tc.wantAllow == "" {
+					res.RefuteHeaderPresent(t, "Allow")
+				} else {
+					res.AssertHeaderMatches(t, "Allow", tc.wantAllow)
+				}
+			})
+		}
 	})
 }

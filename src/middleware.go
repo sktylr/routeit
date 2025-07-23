@@ -87,14 +87,15 @@ func hostValidationMiddleware(re *regexp.Regexp) Middleware {
 	}
 }
 
-// This middleware ensures that no responses contain TRACE in the Allow header
-// if TRACE is not enabled for the server.
-func allowTraceValidationMiddleware(allow bool) Middleware {
+// This middleware adds the TRACE method to the response's Allow header if the
+// header is present and the server supports TRACE. By default (due to TRACE
+// typically being disabled for security reasons), routeit does not serve TRACE
+// requests and does not include it in the Allow header or anywhere else.
+// However, if the user has explicitly enabled it, we want to make sure it
+// appears where it should.
+func allowTraceValidationMiddleware() Middleware {
 	return func(c *Chain, rw *ResponseWriter, req *Request) error {
 		err := c.Proceed(rw, req)
-		if allow {
-			return err
-		}
 
 		var h headers
 		if err != nil {
@@ -107,27 +108,15 @@ func allowTraceValidationMiddleware(allow bool) Middleware {
 			h = rw.hdrs
 		}
 
-		allowRaw, hasAllow := h.Get("Allow")
+		allow, hasAllow := h.Get("Allow")
 		if !hasAllow {
 			return err
 		}
 
-		hasTrace := false
-		var kept []string
-		for p := range strings.SplitSeq(allowRaw, ",") {
-			method := strings.TrimSpace(p)
-			if method != "TRACE" {
-				kept = append(kept, method)
-			} else {
-				hasTrace = true
-			}
+		if !strings.Contains(allow, "TRACE") {
+			h.Set("Allow", allow+", TRACE")
 		}
 
-		if !hasTrace {
-			return err
-		}
-
-		h.Set("Allow", strings.Join(kept, ", "))
 		return err
 	}
 }

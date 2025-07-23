@@ -123,7 +123,9 @@ func NewServer(conf ServerConfig) *Server {
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
 	s.constructAllowedHosts(conf.AllowedHosts)
-	s.RegisterMiddleware(allowTraceValidationMiddleware(conf.AllowTraceRequests))
+	if conf.AllowTraceRequests {
+		s.RegisterMiddleware(allowTraceValidationMiddleware())
+	}
 	return s
 }
 

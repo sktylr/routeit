@@ -107,17 +107,37 @@ func TestLogin(t *testing.T) {
 			})
 
 			t.Run("method not allowed", func(t *testing.T) {
-				t.Run("GET", func(t *testing.T) {
-					res := client.Get("/login")
-					res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-					res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
-				})
+				tests := []struct {
+					name string
+					fn   func() *routeit.TestResponse
+				}{
+					{
+						"GET", func() *routeit.TestResponse { return client.Get("/login") },
+					},
+					{
+						"HEAD", func() *routeit.TestResponse { return client.Head("/login") },
+					},
+					{
+						"PUT", func() *routeit.TestResponse { return client.PutText("/login", "foo") },
+					},
+					{
+						"DELETE", func() *routeit.TestResponse { return client.Delete("/login") },
+					},
+					{
+						"PATCH", func() *routeit.TestResponse { return client.PatchText("/login", "bar") },
+					},
+					{
+						"TRACE", func() *routeit.TestResponse { return client.Trace("/login") },
+					},
+				}
 
-				t.Run("HEAD", func(t *testing.T) {
-					res := client.Head("/login")
-					res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-					res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
-				})
+				for _, tc := range tests {
+					t.Run(tc.name, func(t *testing.T) {
+						res := tc.fn()
+						res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
+						res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
+					})
+				}
 			})
 		})
 	})

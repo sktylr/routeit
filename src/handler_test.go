@@ -8,7 +8,7 @@ func TestHandlerConstructors(t *testing.T) {
 	fn := func(rw *ResponseWriter, req *Request) error { return nil }
 
 	type wantMethods struct {
-		get, head, post, put, delete, patch, options bool
+		get, head, post, put, delete, patch, options, trace bool
 	}
 
 	tests := []struct {
@@ -19,27 +19,37 @@ func TestHandlerConstructors(t *testing.T) {
 		{
 			name:    "GET",
 			handler: Get(fn),
-			want:    wantMethods{get: true, head: true, options: true},
+			want:    wantMethods{get: true, head: true, options: true, trace: true},
 		},
 		{
 			name:    "POST",
 			handler: Post(fn),
-			want:    wantMethods{post: true, options: true},
+			want:    wantMethods{post: true, options: true, trace: true},
 		},
 		{
 			name:    "PUT",
 			handler: Put(fn),
-			want:    wantMethods{put: true, options: true},
+			want:    wantMethods{put: true, options: true, trace: true},
 		},
 		{
 			name:    "DELETE",
 			handler: Delete(fn),
-			want:    wantMethods{delete: true, options: true},
+			want:    wantMethods{delete: true, options: true, trace: true},
 		},
 		{
 			name:    "PATCH",
 			handler: Patch(fn),
-			want:    wantMethods{patch: true, options: true},
+			want:    wantMethods{patch: true, options: true, trace: true},
+		},
+		{
+			name:    "OPTIONS",
+			handler: Post(fn),
+			want:    wantMethods{post: true, options: true, trace: true},
+		},
+		{
+			name:    "TRACE",
+			handler: Put(fn),
+			want:    wantMethods{put: true, options: true, trace: true},
 		},
 		{
 			name: "MultiMethod GET only",
@@ -157,14 +167,20 @@ func TestHandle(t *testing.T) {
 			method:     OPTIONS,
 			h:          Get(fn),
 			wantStatus: StatusNoContent,
-			wantAllow:  "GET, HEAD, OPTIONS",
+			wantAllow:  "GET, HEAD, OPTIONS, TRACE",
+		},
+		{
+			method:     TRACE,
+			h:          Get(fn),
+			wantStatus: StatusOK,
+			wantCType:  "message/http",
 		},
 		{
 			name:       "unsupported method",
 			method:     POST,
 			h:          Get(fn),
 			wantStatus: StatusMethodNotAllowed,
-			wantAllow:  "GET, HEAD, OPTIONS",
+			wantAllow:  "GET, HEAD, OPTIONS, TRACE",
 			wantErr:    true,
 		},
 		{

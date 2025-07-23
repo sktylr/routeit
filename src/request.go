@@ -17,6 +17,7 @@ var (
 	DELETE  = HttpMethod{name: "DELETE"}
 	PATCH   = HttpMethod{name: "PATCH"}
 	OPTIONS = HttpMethod{name: "OPTIONS"}
+	TRACE   = HttpMethod{name: "TRACE"}
 )
 
 var methodLookup = map[string]HttpMethod{
@@ -27,6 +28,7 @@ var methodLookup = map[string]HttpMethod{
 	"DELETE":  DELETE,
 	"PATCH":   PATCH,
 	"OPTIONS": OPTIONS,
+	"TRACE":   TRACE,
 }
 
 type Request struct {
@@ -112,6 +114,15 @@ func requestFromRaw(raw []byte, ctx context.Context) (*Request, *HttpError) {
 		// implementation, and routeit chooses not to. Where we are consuming
 		// the body, we should only look for Content-Length bytes and no more.
 		body = []byte{}
+		if ptcl.mthd == TRACE {
+			// TRACE requests should not have a body. However, they should
+			// return the entire received request in their own response body.
+			// To simplify data storage, we will store the raw request on the
+			// body property. In reality, the integrator cannot design their
+			// own custom handler for TRACE requests, so this difference is not
+			// noticeable and easily managed within the framework.
+			body = raw
+		}
 	} else {
 		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds
 		reader := bytes.NewReader(bdyRaw)
@@ -273,7 +284,7 @@ func (req *Request) mustAllowBodyReading() {
 }
 
 func (m HttpMethod) canHaveBody() bool {
-	return m != GET && m != HEAD && m != OPTIONS
+	return m != GET && m != HEAD && m != OPTIONS && m != TRACE
 }
 
 // Parses the first line of the request. This line should contain the HTTP

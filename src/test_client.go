@@ -144,6 +144,19 @@ func (tc TestClient) Options(path string, h ...string) *TestResponse {
 	return tc.makeRequest(req)
 }
 
+// Makes a TRACE request against the specified endpoint. Can include key,
+// value pairs representing the headers of the request. This will only be
+// accepted by the server if it supports the TRACE method, which is disabled by
+// default.
+func (tc TestClient) Trace(path string, h ...string) *TestResponse {
+	req := testRequest{
+		path:    path,
+		method:  TRACE,
+		headers: tc.constructHeaders(h...),
+	}
+	return tc.makeRequest(req)
+}
+
 // Makes a DELETE request against the resource. Can include an arbitrary number
 // of headers, specific individually by their keys and values
 func (tc TestClient) Delete(path string, h ...string) *TestResponse {
@@ -232,7 +245,7 @@ func (tc TestClient) constructHeaders(h ...string) headers {
 	headers := headers{}
 	for i < total-1 {
 		headers.Set(h[i], h[i+1])
-		i++
+		i += 2
 	}
 	return headers
 }

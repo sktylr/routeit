@@ -229,7 +229,17 @@ func (r *router) trimRouteForInsert(s string) string {
 func globalOptionsHandler() *Handler {
 	return &Handler{options: func(rw *ResponseWriter, req *Request) error {
 		// TODO: for testability, this constructs the list deterministically, since map looping is designed to be non-deterministic in go. This should be made more robust
-		allowed := []string{GET.name, HEAD.name, POST.name, PUT.name, DELETE.name, PATCH.name, OPTIONS.name}
+		// TODO: it is probably more likely that the server does not support TRACE, whereas currently we have middleware that removes it
+		allowed := []string{
+			GET.name,
+			HEAD.name,
+			POST.name,
+			PUT.name,
+			DELETE.name,
+			PATCH.name,
+			OPTIONS.name,
+			TRACE.name,
+		}
 		rw.Header("Allow", strings.Join(allowed, ", "))
 		return nil
 	}}

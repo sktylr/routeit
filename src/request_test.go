@@ -1,7 +1,6 @@
 package routeit
 
 import (
-	"context"
 	"fmt"
 	"testing"
 )
@@ -119,7 +118,7 @@ func TestRequestFromRaw(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				bts := []byte(tc.input)
-				_, err := requestFromRaw(bts, context.Background())
+				_, err := requestFromRaw(bts, t.Context())
 				if err == nil {
 					t.Fatal("expected error to be present")
 				}
@@ -133,23 +132,45 @@ func TestRequestFromRaw(t *testing.T) {
 	t.Run("allows OPTIONS * requests", func(t *testing.T) {
 		bts := []byte("OPTIONS * HTTP/1.1\r\nHost: localhost\r\n\r\n")
 
-		req, err := requestFromRaw(bts, context.Background())
+		req, err := requestFromRaw(bts, t.Context())
 		if err != nil {
 			t.Errorf(`Error() = %v, expected nil`, err)
 		}
-		if req.Path() != "*" {
-			t.Errorf(`Path() = %#q, wanted "*"`, req.Path())
-		}
-		if req.Method() != OPTIONS {
-			t.Errorf(`Method() = %#q, wanted OPTIONS`, req.Method().name)
-		}
+		expectUrl(t, req, "*")
+		expectMethod(t, req.mthd, OPTIONS)
+	})
+
+	t.Run("TRACE", func(t *testing.T) {
+		t.Run("stores entire request on body", func(t *testing.T) {
+			bts := []byte("TRACE /hello HTTP/1.1\r\nHost: localhost:8080\r\n\r\n")
+
+			req, err := requestFromRaw(bts, t.Context())
+			if err != nil {
+				t.Errorf(`Error() = %v, expected nil`, err)
+			}
+			expectUrl(t, req, "/hello")
+			expectMethod(t, req.mthd, TRACE)
+			expectBody(t, req.body, string(bts))
+		})
+
+		t.Run("stores entire request on body even if request has body", func(t *testing.T) {
+			bts := []byte("TRACE /hello HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 4\r\nContent-Type: text/plain\r\nbody")
+
+			req, err := requestFromRaw(bts, t.Context())
+			if err != nil {
+				t.Errorf(`Error() = %v, expected nil`, err)
+			}
+			expectUrl(t, req, "/hello")
+			expectMethod(t, req.mthd, TRACE)
+			expectBody(t, req.body, string(bts))
+		})
 	})
 
 	t.Run("prefixes leading slash", func(t *testing.T) {
 		// TODO: do we need this? is it spec compliant to do this?
 		bts := []byte("GET hello HTTP/1.1\r\nHost: localhost\r\n\r\n")
 
-		req, err := requestFromRaw(bts, context.Background())
+		req, err := requestFromRaw(bts, t.Context())
 		if err != nil {
 			t.Errorf("did not expect error = %#v", err)
 		}
@@ -160,7 +181,7 @@ func TestRequestFromRaw(t *testing.T) {
 		t.Run("one header", func(t *testing.T) {
 			in := []byte("POST / HTTP/1.1\r\nHost: localhost\r\n\r\nthe body")
 
-			req, err := requestFromRaw(in, context.Background())
+			req, err := requestFromRaw(in, t.Context())
 			if err != nil {
 				t.Errorf("requestFromRaw one header unexpected error %s", err)
 			}
@@ -185,7 +206,7 @@ func TestRequestFromRaw(t *testing.T) {
 				"Host":           wantHost,
 			}
 
-			req, err := requestFromRaw(in, context.Background())
+			req, err := requestFromRaw(in, t.Context())
 			if err != nil {
 				t.Errorf("requestFromRaw multiple headers unexpected error %s", err)
 			}
@@ -209,7 +230,7 @@ func TestRequestFromRaw(t *testing.T) {
 			in := []byte("POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\nContent-Type: text/plain\r\n\r\nthis is a long body!")
 			want := "thi"
 
-			req, err := requestFromRaw(in, context.Background())
+			req, err := requestFromRaw(in, t.Context())
 			if err != nil {
 				t.Errorf("requestFromRaw only consumes content length unexpected error %s", err)
 			}
@@ -223,7 +244,7 @@ func TestRequestFromRaw(t *testing.T) {
 				t.Run(m, func(t *testing.T) {
 					in := fmt.Appendf(nil, "%s / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\nContent-Type: text/plain\r\n\r\nbody", m)
 
-					req, err := requestFromRaw(in, context.Background())
+					req, err := requestFromRaw(in, t.Context())
 					if err != nil {
 						t.Errorf(`requestFromRaw does not consume body unexpected error %v`, err)
 					}
@@ -251,7 +272,7 @@ func TestRequestFromRaw(t *testing.T) {
 			bodyBytes := []byte(body)
 			in := fmt.Appendf(nil, "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: %d\r\nContent-Type: application/json\r\n\r\n%s", len(bodyBytes), body)
 
-			req, err := requestFromRaw(in, context.Background())
+			req, err := requestFromRaw(in, t.Context())
 			if err != nil {
 				t.Errorf("requestFromRaw complex bodies unexpected error %s", err)
 			}
@@ -289,7 +310,7 @@ func TestRequestFromRaw(t *testing.T) {
 			t.Run(tc.in, func(t *testing.T) {
 				in := fmt.Appendf(nil, "GET /endpoint%s HTTP/1.1\r\nHost: localhost\r\n\r\n", tc.in)
 
-				req, err := requestFromRaw(in, context.Background())
+				req, err := requestFromRaw(in, t.Context())
 				if err != nil {
 					t.Errorf("requestFromRaw parses query string unexpected error %s", err)
 				}
@@ -339,7 +360,7 @@ func TestRequestFromRaw(t *testing.T) {
 			t.Run(tc.in, func(t *testing.T) {
 				in := fmt.Appendf(nil, "GET %s HTTP/1.1\r\nHost: localhost\r\n\r\n", tc.in)
 
-				req, err := requestFromRaw(in, context.Background())
+				req, err := requestFromRaw(in, t.Context())
 				if err != nil {
 					t.Errorf("unexpected error %v", err)
 				}

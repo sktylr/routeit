@@ -120,26 +120,35 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 }
 
 func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
-	if req.Method() == GET && h.get != nil {
-		return h.get(rw, req)
-	}
-	if req.Method() == HEAD && h.head != nil {
-		return h.head(rw, req)
-	}
-	if req.Method() == POST && h.post != nil {
-		return h.post(rw, req)
-	}
-	if req.Method() == PUT && h.put != nil {
-		return h.put(rw, req)
-	}
-	if req.Method() == DELETE && h.delete != nil {
-		return h.delete(rw, req)
-	}
-	if req.Method() == PATCH && h.patch != nil {
-		return h.patch(rw, req)
-	}
-	if req.Method() == OPTIONS && h.options != nil {
-		return h.options(rw, req)
+	switch req.Method() {
+	case GET:
+		if h.get != nil {
+			return h.get(rw, req)
+		}
+	case HEAD:
+		if h.head != nil {
+			return h.head(rw, req)
+		}
+	case POST:
+		if h.post != nil {
+			return h.post(rw, req)
+		}
+	case PUT:
+		if h.put != nil {
+			return h.put(rw, req)
+		}
+	case DELETE:
+		if h.delete != nil {
+			return h.delete(rw, req)
+		}
+	case PATCH:
+		if h.patch != nil {
+			return h.patch(rw, req)
+		}
+	case OPTIONS:
+		if h.options != nil {
+			return h.options(rw, req)
+		}
 	}
 
 	return ErrMethodNotAllowed(h.allowed...)

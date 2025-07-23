@@ -38,6 +38,8 @@ func (l *logger) LogRequestAndResponse(rw *ResponseWriter, req *Request) {
 		slog.String("edge_path", req.uri.edgePath),
 		slog.String("raw_path", req.RawPath()),
 		slog.Int("status", int(rw.s.code)),
+		slog.String("user_agent", req.userAgent),
+		slog.String("client_ip", req.ip),
 	}
 
 	l.log.LogAttrs(context.Background(), level, "Received request", attrs...)

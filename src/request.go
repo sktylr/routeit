@@ -29,11 +29,13 @@ var methodLookup = map[string]HttpMethod{
 type Request struct {
 	mthd HttpMethod
 	// TODO: need to normalise this properly and have a (private) method for trimming the namespace etc.
-	uri     uri
-	headers headers
-	body    []byte
-	ct      ContentType
-	host    string
+	uri       uri
+	headers   headers
+	body      []byte
+	ct        ContentType
+	host      string
+	userAgent string
+	ip        string
 }
 
 type HttpMethod struct {
@@ -121,7 +123,8 @@ func requestFromRaw(raw []byte) (*Request, *HttpError) {
 		}
 	}
 
-	req := Request{mthd: ptcl.mthd, uri: ptcl.uri, headers: reqHdrs, body: body, ct: ct}
+	userAgent, _ := reqHdrs.Get("User-Agent")
+	req := Request{mthd: ptcl.mthd, uri: ptcl.uri, headers: reqHdrs, body: body, ct: ct, userAgent: userAgent}
 	return &req, nil
 }
 
@@ -165,6 +168,17 @@ func (req *Request) Header(key string) (string, bool) {
 // The Host header of the request. This will always be present and non-empty
 func (req *Request) Host() string {
 	return req.host
+}
+
+// The User-Agent header of the request. May be empty if not included by the
+// client
+func (req *Request) UserAgent() string {
+	return req.userAgent
+}
+
+// The client's IP address that established connection with the server
+func (req *Request) ClientIP() string {
+	return req.ip
 }
 
 // Access a query parameter if present

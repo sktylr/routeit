@@ -12,6 +12,7 @@ type ResponseWriter struct {
 	bdy  []byte
 	s    HttpStatus
 	hdrs headers
+	ct   ContentType
 }
 
 // Sets a sensible default for the status code of the response depending on the
@@ -73,6 +74,7 @@ func (rw *ResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
 	rw.bdy = raw
 	rw.hdrs.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
 	rw.hdrs.Set("Content-Type", ct.string())
+	rw.ct = ct
 }
 
 // Sets the status of the response. The server sets an opinionated default

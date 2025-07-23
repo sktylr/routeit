@@ -308,12 +308,7 @@ func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) 
 	if !s.conf.StrictClientAcceptance || err != nil {
 		return err
 	}
-	// TODO: could store the content type on the ResponseWriter in its parsed form?
-	ct, hasCt := rw.hdrs.Get("Content-Type")
-	if !hasCt {
-		return nil
-	}
-	if !req.AcceptsContentType(parseContentType(ct)) {
+	if !req.AcceptsContentType(rw.ct) {
 		return ErrNotAcceptable()
 	}
 	return nil

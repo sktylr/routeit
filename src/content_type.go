@@ -124,3 +124,22 @@ func (ct ContentType) string() string {
 	}
 	return sb.String()
 }
+
+func parseAcceptHeader(h headers) []ContentType {
+	var accept []ContentType
+	acceptRaw, hasAccept := h.Get("Accept")
+	if !hasAccept {
+		// The Accept header is not required to be sent by the client, so we
+		// take a lenient approach and replace it with acceptance of all
+		// content types.
+		accept = []ContentType{CTAcceptAll}
+	} else {
+		for acc := range strings.SplitSeq(acceptRaw, ",") {
+			ct := parseContentType(strings.TrimSpace(acc))
+			if ct.isValid() {
+				accept = append(accept, ct)
+			}
+		}
+	}
+	return accept
+}

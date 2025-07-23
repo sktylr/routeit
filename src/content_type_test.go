@@ -153,3 +153,70 @@ func TestParseContentType(t *testing.T) {
 		})
 	}
 }
+
+func TestParseAcceptHeader(t *testing.T) {
+	tests := []struct {
+		name string
+		in   map[string]string
+		want []ContentType
+	}{
+		{
+			name: "header not present",
+			in:   map[string]string{},
+			want: []ContentType{CTAcceptAll},
+		},
+		{
+			name: "header present but empty",
+			in:   map[string]string{"accept": ""},
+			want: []ContentType{},
+		},
+		{
+			name: "header present single element",
+			in:   map[string]string{"accept": "application/json"},
+			want: []ContentType{CTApplicationJson},
+		},
+		{
+			name: "header present single element whitespaced",
+			in:   map[string]string{"accept": "  application/json\t"},
+			want: []ContentType{CTApplicationJson},
+		},
+		{
+			name: "header present single element with weight",
+			in:   map[string]string{"accept": "application/json;q=0.9"},
+			want: []ContentType{{part: "application", subtype: "json", q: 0.9}},
+		},
+		{
+			name: "header present multiple elements",
+			in:   map[string]string{"accept": "application/json,text/html"},
+			want: []ContentType{CTApplicationJson, CTTextHtml},
+		},
+		{
+			name: "header present multiple elements with weight",
+			in:   map[string]string{"accept": "application/json;q=0.9,text/html;q=0.8"},
+			want: []ContentType{
+				{part: "application", subtype: "json", q: 0.9},
+				{part: "text", subtype: "html", q: 0.8},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := headers{}
+			for k, v := range tc.in {
+				h.Set(k, v)
+			}
+
+			accept := parseAcceptHeader(h)
+
+			if len(accept) != len(tc.want) {
+				t.Errorf(`length = %d, wanted %d`, len(accept), len(tc.want))
+			}
+			for i, ct := range accept {
+				if ct != tc.want[i] {
+					t.Errorf(`got = %v, wanted %v`, ct, tc.want[i])
+				}
+			}
+		})
+	}
+}

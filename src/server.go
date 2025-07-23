@@ -230,7 +230,7 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 	// TODO: remove
 	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
 
-	res := s.handleNewRequest(buf)
+	res := s.handleNewRequest(buf, conn.RemoteAddr())
 	_, err = conn.Write(res.write())
 
 	if err != nil {
@@ -241,10 +241,16 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 // Parses the raw request received from a connection and transforms it into a
 // response. Handles the bulk of the server logic, such as routing, middleware
 // and error handling.
-func (s *Server) handleNewRequest(raw []byte) (rw *ResponseWriter) {
+func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter) {
 	req, httpErr := requestFromRaw(raw)
 	if httpErr != nil {
 		return httpErr.toResponse()
+	}
+
+	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
+		req.ip = tcpAddr.IP.String()
+	} else {
+		req.ip = addr.String()
 	}
 
 	var err error

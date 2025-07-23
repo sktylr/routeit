@@ -9,38 +9,80 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestHello(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
+	tests := []struct {
+		name   string
+		accept string
+	}{
+		{
+			name:   "multiple values with one valid",
+			accept: "application/xml, application/json",
+		},
+		{
+			name:   "with q parameter favoring unsupported",
+			accept: "application/xml;q=0.9, application/json;q=0.1",
+		},
+		{
+			name:   "with wildcard type and subtype",
+			accept: "*/*",
+		},
+		{
+			name:   "wildcard with quality on supported",
+			accept: "*/*;q=0.1, application/json;q=1.0",
+		},
+		{
+			name:   "valid with extra spaces",
+			accept: " application/json ",
+		},
+		{
+			name:   "duplicate valid entries",
+			accept: "application/json,application/json",
+		},
+		{
+			name:   "valid with charset parameter",
+			accept: "application/json; charset=utf-8",
+		},
+		{
+			name:   "valid followed by malformed",
+			accept: "application/json, ?",
+		},
+	}
 	verify := func(t *testing.T, res *routeit.TestResponse) {
 		res.AssertStatusCode(t, routeit.StatusOK)
 		res.AssertHeaderMatches(t, "Content-Type", "application/json")
 		res.AssertHeaderMatches(t, "Content-Length", "53")
 	}
 
-	t.Run("GET", func(t *testing.T) {
-		res := client.Get("/hello")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("GET", func(t *testing.T) {
+				res := client.Get("/hello", "Accept", tc.accept)
 
-		verify(t, res)
-		var body Example
-		res.BodyToJson(t, &body)
-		want := Example{
-			Name: "John Doe",
-			Nested: Nested{
-				Age:    25,
-				Height: 1.82,
-			},
-		}
-		if !reflect.DeepEqual(body, want) {
-			t.Errorf(`Json response = %#v, wanted %#v`, body, want)
-		}
-	})
+				verify(t, res)
+				var body Example
+				res.BodyToJson(t, &body)
+				want := Example{
+					Name: "John Doe",
+					Nested: Nested{
+						Age:    25,
+						Height: 1.82,
+					},
+				}
+				if !reflect.DeepEqual(body, want) {
+					t.Errorf(`Json response = %#v, wanted %#v`, body, want)
+				}
+			})
 
-	t.Run("HEAD", func(t *testing.T) {
-		res := client.Head("/hello")
+			t.Run("HEAD", func(t *testing.T) {
+				res := client.Head("/hello", "Accept", tc.accept)
 
-		verify(t, res)
-		res.AssertBodyEmpty(t)
-	})
+				verify(t, res)
+				res.AssertBodyEmpty(t)
+			})
+		})
+	}
 }
 
 func TestEcho(t *testing.T) {
@@ -70,7 +112,6 @@ func TestEcho(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", wantLen))
 		res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -105,7 +146,6 @@ func TestInternalServerError(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Length", "26")
 		res.AssertHeaderMatches(t, "Content-Type", "text/plain")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc, func(t *testing.T) {
@@ -136,7 +176,6 @@ func TestHostValidation(t *testing.T) {
 			"example.com.web",
 			"dev.localhost:3000A",
 		}
-		client := routeit.NewTestClient(GetServer())
 
 		for _, host := range hosts {
 			t.Run(host, func(t *testing.T) {
@@ -162,7 +201,6 @@ func TestHostValidation(t *testing.T) {
 			"example.com:443",
 			"api.example.com:8080",
 		}
-		client := routeit.NewTestClient(GetServer())
 
 		for _, host := range hosts {
 			t.Run(host, func(t *testing.T) {
@@ -175,8 +213,6 @@ func TestHostValidation(t *testing.T) {
 }
 
 func TestRoot(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	t.Run("POST", func(t *testing.T) {
 		t.Run("application/json", func(t *testing.T) {
 			inBody := Example{
@@ -224,8 +260,6 @@ func TestRoot(t *testing.T) {
 }
 
 func TestMulti(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	t.Run("GET", func(t *testing.T) {
 		wantBody := Example{
 			Name: "From GET",
@@ -267,8 +301,6 @@ func TestMulti(t *testing.T) {
 }
 
 func TestModify(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	t.Run("accepts PUT with text/plain", func(t *testing.T) {
 		res := client.PutText("/modify", "Hello!")
 
@@ -303,8 +335,6 @@ func TestModify(t *testing.T) {
 }
 
 func TestGlobalOptions(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	res := client.Options("*")
 
 	res.AssertStatusCode(t, routeit.StatusNoContent)
@@ -313,8 +343,6 @@ func TestGlobalOptions(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	t.Run("DELETE", func(t *testing.T) {
 		res := client.Delete("/delete")
 
@@ -339,8 +367,6 @@ func TestDelete(t *testing.T) {
 }
 
 func TestURIValidation(t *testing.T) {
-	client := routeit.NewTestClient(GetServer())
-
 	t.Run("strips single trailing slash", func(t *testing.T) {
 		res := client.Get("/hello/")
 		res.AssertStatusCode(t, routeit.StatusOK)
@@ -358,4 +384,63 @@ func TestURIValidation(t *testing.T) {
 		res := client.Get(uri)
 		res.AssertStatusCode(t, routeit.StatusNotFound)
 	})
+}
+
+func TestClientAcceptHeaderValidation(t *testing.T) {
+	tests := []struct {
+		name   string
+		accept string
+	}{
+		{
+			name:   "explicitly empty",
+			accept: "",
+		},
+		{
+			name:   "valid part but invalid subtype",
+			accept: "application/graphql",
+		},
+		{
+			name:   "valid subtype but invalid part",
+			accept: "foo/json",
+		},
+		{
+			name:   "wildcard subtype but invalid part",
+			accept: "text/*",
+		},
+		{
+			name:   "multiple values with none valid",
+			accept: "application/xml, text/html",
+		},
+		{
+			name:   "with q=0 for supported type",
+			accept: "application/json;q=0, application/xml",
+		},
+		{
+			name:   "wildcard with low quality for all",
+			accept: "*/*;q=0",
+		},
+		{
+			name:   "empty string with spaces",
+			accept: "   ",
+		},
+		{
+			name:   "only commas",
+			accept: ",,,",
+		},
+		{
+			name:   "only * part, no subtype",
+			accept: "*",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := client.Get("/hello", "Accept", tc.accept)
+
+			res.AssertStatusCode(t, routeit.StatusNotAcceptable)
+			res.AssertBodyEmpty(t)
+			res.RefuteHeaderPresent(t, "Content-Type")
+			res.RefuteHeaderPresent(t, "Content-Length")
+		})
+	}
 }

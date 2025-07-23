@@ -24,8 +24,9 @@ type Nested struct {
 
 func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
-		Port:         8080,
-		AllowedHosts: []string{".example.com", ".localhost", "[::1]"},
+		Port:                   8080,
+		AllowedHosts:           []string{".example.com", ".localhost", "[::1]"},
+		StrictClientAcceptance: true,
 	})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {

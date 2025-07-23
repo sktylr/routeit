@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -112,6 +113,7 @@ func NewServer(conf ServerConfig) *Server {
 	log := newLogger(conf.Debug)
 	s := &Server{conf: conf.internalise(), router: router, log: log, errorHandler: errorHandler}
 	s.middleware = newMiddleware(s.handlingMiddleware)
+	s.RegisterMiddleware(s.timeoutMiddleware)
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
 	s.constructAllowedHosts(conf.AllowedHosts)
@@ -208,7 +210,7 @@ func (s *Server) Start() error {
 		if err = conn.SetReadDeadline(now.Add(s.conf.ReadDeadline)); err != nil {
 			s.log.Warn("Failed to set read deadline for incoming connection", "deadline", s.conf.ReadDeadline, "err", err)
 		}
-		if err = conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline)); err != nil {
+		if err = conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline).Add(s.conf.ReadDeadline)); err != nil {
 			s.log.Warn("Failed to set write deadline for incoming connection", "deadline", s.conf.WriteDeadline, "err", err)
 		}
 
@@ -249,7 +251,10 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 // response. Handles the bulk of the server logic, such as routing, middleware
 // and error handling.
 func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter) {
-	req, httpErr := requestFromRaw(raw)
+	ctx, cancel := context.WithTimeout(context.Background(), s.conf.WriteDeadline)
+	defer cancel()
+
+	req, httpErr := requestFromRaw(raw, ctx)
 	if httpErr != nil {
 		return httpErr.toResponse()
 	}
@@ -293,6 +298,38 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 	// multiple streams that the error can come from, since we also want to
 	// avoid letting panics halt the whole server.
 	return rw
+}
+
+// This is the outermost piece of middleware and ensures that the request does
+// not exceed the write timeout described by the server's configuration.
+func (s *Server) timeoutMiddleware(c *Chain, rw *ResponseWriter, req *Request) error {
+	done := make(chan any, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- r
+			}
+		}()
+		done <- c.Proceed(rw, req)
+	}()
+
+	select {
+	case result := <-done:
+		switch x := result.(type) {
+		case error:
+			return x
+		case nil:
+		default:
+			// This will be caught by the server and passed through the error
+			// handling pipeline. We don't know what type of panic this is and
+			// we (likely) did not cause it, so we don't coerce it to any other
+			// type here.
+			panic(x)
+		}
+	case <-req.ctx.Done():
+		return req.ctx.Err()
+	}
+	return nil
 }
 
 // After all middleware is processed, the last piece is for the server to

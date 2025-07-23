@@ -1,9 +1,9 @@
 ### examples/errors/handling
 
 This examples showcases how custom handlers can be used to respond to 4xx and 5xx status codes.
-There are 7 registered routes on the server, and 3 of the 4xx and 5xx status codes have custom error handling.
+There are 8 registered routes on the server, and 4 of the 4xx and 5xx status codes have custom error handling.
 These handlers are all called after the request has completed its full cycle (i.e. passed through middleware, routing, explicit handling).
-They are registered for `401`, `404` and `500` status codes.
+They are registered for `401`, `404`, `500` and `503` status codes.
 
 The example can be run using `go run main.go`.
 
@@ -69,4 +69,12 @@ The server has a handler for `404` status codes, so this will be passed through 
 ```bash
 $ curl http://localhost:8080/not-found
 {"error":{"message":"No matching route found for /not-found","code":"not_found"}}
+```
+
+`/slow`. This endpoint exceeds the server's write deadline, causing it to prematurely return.
+Note that the application code may still _execute_ past the deadline here if it does not observe the request's `Context` object.
+
+```bash
+$ curl http://localhost:8080/slow
+{"error":{"message":"Our service is currently experiencing issues and is unavailable. Please try again in a few minutes.","code":"service_unavailable"}}
 ```

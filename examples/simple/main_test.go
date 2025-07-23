@@ -414,6 +414,12 @@ func TestUpdate(t *testing.T) {
 	})
 }
 
+func TestSlow(t *testing.T) {
+	res := client.Get("/slow")
+	res.AssertStatusCode(t, routeit.StatusServiceUnavailable)
+	res.AssertBodyMatchesString(t, "503: Service Unavailable")
+}
+
 func TestURIValidation(t *testing.T) {
 	t.Run("strips single trailing slash", func(t *testing.T) {
 		res := client.Get("/hello/")

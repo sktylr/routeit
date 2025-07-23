@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"time"
 
 	"github.com/sktylr/routeit"
 )
@@ -156,6 +157,12 @@ func GetServer() *routeit.Server {
 			}
 
 			rw.Text("Resource updated successfully\n")
+			return nil
+		}),
+		"/slow": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			// TODO: these timeouts are slightly unpleasant in tests :(
+			time.Sleep(10*time.Second + 100*time.Millisecond)
+			rw.Text("This should not be seen if timeout is working.")
 			return nil
 		}),
 	})

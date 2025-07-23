@@ -167,7 +167,7 @@ func TestHandle(t *testing.T) {
 			method:     OPTIONS,
 			h:          Get(fn),
 			wantStatus: StatusNoContent,
-			wantAllow:  "GET, HEAD, OPTIONS, TRACE",
+			wantAllow:  "GET, HEAD, OPTIONS",
 		},
 		{
 			method:     TRACE,
@@ -180,7 +180,7 @@ func TestHandle(t *testing.T) {
 			method:     POST,
 			h:          Get(fn),
 			wantStatus: StatusMethodNotAllowed,
-			wantAllow:  "GET, HEAD, OPTIONS, TRACE",
+			wantAllow:  "GET, HEAD, OPTIONS",
 			wantErr:    true,
 		},
 		{

@@ -102,7 +102,7 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 	h.allowed = allow
 
 	if len(allow) != 0 {
-		h.allowed = append(h.allowed, OPTIONS, TRACE)
+		h.allowed = append(h.allowed, OPTIONS)
 		h.options = func(rw *ResponseWriter, req *Request) error {
 			// The OPTIONS request is used to ask the server what configuration
 			// it accepts. A simple implementation tells the client which

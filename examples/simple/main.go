@@ -146,6 +146,18 @@ func GetServer() *routeit.Server {
 			// the default response for a deletion.
 			return nil
 		}),
+		"/update": routeit.Patch(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			conflict, present := req.QueryParam("conflict")
+			if !present {
+				return routeit.ErrUnprocessableContent()
+			}
+			if conflict == "true" {
+				return routeit.ErrConflict()
+			}
+
+			rw.Text("Resource updated successfully\n")
+			return nil
+		}),
 	})
 	return srv
 }

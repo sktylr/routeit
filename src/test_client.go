@@ -67,6 +67,13 @@ func (tc TestClient) PostText(path string, text string, h ...string) *TestRespon
 	return tc.xText(path, text, POST, h...)
 }
 
+// Makes a POST request with the corresponding body and content type. Content
+// length is calculated automatically. Additional headers can also be specified
+// in pairs after the content type.
+func (tc TestClient) PostRaw(path string, body []byte, ct ContentType, h ...string) *TestResponse {
+	return tc.xRaw(path, body, ct, POST, h...)
+}
+
 // Makes a PUT request against the specified path, using a Json request body.
 // Will panic if the Json marshalling fails. Can include an arbitrary number of
 // headers, specified as key, value pairs after the request body.
@@ -81,6 +88,13 @@ func (tc TestClient) PutText(path string, text string, h ...string) *TestRespons
 	return tc.xText(path, text, PUT, h...)
 }
 
+// Makes a PUT request with the corresponding body and content type. Content
+// length is calculated automatically. Additional headers can also be specified
+// in pairs after the content type.
+func (tc TestClient) PutRaw(path string, body []byte, ct ContentType, h ...string) *TestResponse {
+	return tc.xRaw(path, body, ct, PUT, h...)
+}
+
 // Makes a PATCH request against the specified path, using a Json request body.
 // Will panic if the Json marshalling fails. Can include an arbitrary number of
 // headers, specified as key, value pairs after the request body.
@@ -93,6 +107,13 @@ func (tc TestClient) PatchJson(path string, body any, h ...string) *TestResponse
 // value format after the body.
 func (tc TestClient) PatchText(path string, text string, h ...string) *TestResponse {
 	return tc.xText(path, text, PATCH, h...)
+}
+
+// Makes a PATCH request with the corresponding body and content type. Content
+// length is calculated automatically. Additional headers can also be specified
+// in pairs after the content type.
+func (tc TestClient) PatchRaw(path string, body []byte, ct ContentType, h ...string) *TestResponse {
+	return tc.xRaw(path, body, ct, PATCH, h...)
 }
 
 // Makes an OPTIONS request against the specified endpoint. Can include key,
@@ -113,6 +134,19 @@ func (tc TestClient) Delete(path string, h ...string) *TestResponse {
 		path:    path,
 		method:  DELETE,
 		headers: tc.constructHeaders(h...),
+	}
+	return tc.makeRequest(req)
+}
+
+func (tc TestClient) xRaw(path string, body []byte, ct ContentType, method HttpMethod, h ...string) *TestResponse {
+	headers := tc.constructHeaders(h...)
+	headers.Set("Content-Type", ct.string())
+	headers.Set("Content-Length", fmt.Sprintf("%d", len(body)))
+	req := testRequest{
+		path:    path,
+		method:  method,
+		headers: headers,
+		body:    body,
 	}
 	return tc.makeRequest(req)
 }

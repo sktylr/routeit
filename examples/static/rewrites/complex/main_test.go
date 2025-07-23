@@ -7,6 +7,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestStaticHtml(t *testing.T) {
 	routes := []struct {
 		name       string
@@ -58,7 +60,6 @@ func TestStaticHtml(t *testing.T) {
 			wantHeader: "Transform Example",
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range routes {
 		verify := func(t *testing.T, res *routeit.TestResponse) {
@@ -133,7 +134,6 @@ func TestStyles(t *testing.T) {
 			partialBody: []string{"img {\n  max-width: 20em;\n  max-height: 20em;\n}"},
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		routes := []string{fmt.Sprintf("/%s", tc.route), fmt.Sprintf("/static/css/%s", tc.route)}
@@ -216,7 +216,6 @@ func TestImages(t *testing.T) {
 			start:  "\x89PNG",
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		routes := []string{fmt.Sprintf("/%s", tc.route), fmt.Sprintf("/static/images/%s", tc.route)}

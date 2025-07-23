@@ -7,6 +7,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestGetHelloNotFound(t *testing.T) {
 	tests := []struct {
 		name string
@@ -29,7 +31,6 @@ func TestGetHelloNotFound(t *testing.T) {
 			"/api/namespace",
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -58,7 +59,6 @@ func TestGetHelloSuccess(t *testing.T) {
 			"/api/namespace/hello",
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

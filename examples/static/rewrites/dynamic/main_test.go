@@ -7,6 +7,8 @@ import (
 	"github.com/sktylr/routeit"
 )
 
+var client = routeit.NewTestClient(GetServer())
+
 func TestStaticHtml(t *testing.T) {
 	routes := []struct {
 		name       string
@@ -44,7 +46,6 @@ func TestStaticHtml(t *testing.T) {
 			wantHeader: "Need a Laugh?",
 		},
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range routes {
 		verify := func(t *testing.T, res *routeit.TestResponse) {
@@ -102,7 +103,6 @@ func TestFavicon(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "image/png")
 		res.AssertHeaderMatches(t, "Content-Length", "72276")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {
@@ -148,7 +148,6 @@ func TestStyles(t *testing.T) {
 		res.AssertHeaderMatches(t, "Content-Type", "text/css; charset=utf-8")
 		res.AssertHeaderMatches(t, "Content-Length", "503")
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	for _, r := range routes {
 		t.Run(r, func(t *testing.T) {
@@ -192,7 +191,6 @@ func TestContactApi(t *testing.T) {
 		Email:   "test@test.com",
 		Message: "From the test!",
 	}
-	client := routeit.NewTestClient(GetServer())
 
 	t.Run("happy", func(t *testing.T) {
 		res := client.PostJson("/api/contact", in)

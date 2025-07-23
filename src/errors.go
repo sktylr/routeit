@@ -266,9 +266,11 @@ func (erw *ErrorResponseWriter) Error() (error, bool) {
 	return erw.err, erw.err != nil
 }
 
-// TODO: need to rethink this API - should it return an error??
-func (erw *ErrorResponseWriter) Json(v any) error {
-	return erw.rw.Json(v)
+// Write a Json response. If the input cannot be marshalled to Json, the
+// original default routeit response for the corresponding status code will be
+// used.
+func (erw *ErrorResponseWriter) Json(v any) {
+	erw.rw.Json(v)
 }
 
 func (erw *ErrorResponseWriter) Text(text string) {
@@ -297,7 +299,6 @@ func (eh *errorHandler) RegisterHandler(s HttpStatus, h ErrorResponseHandler) {
 func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *ResponseWriter {
 	var err error
 	if r != nil {
-		fmt.Printf("Application code panicked: %s\n", r)
 		switch e := r.(type) {
 		case (*HttpError):
 			rw = e.toResponse()

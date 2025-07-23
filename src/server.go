@@ -82,9 +82,8 @@ type serverConfig struct {
 	RequestSize   RequestSize
 	ReadDeadline  time.Duration
 	WriteDeadline time.Duration
-	// TODO: may not need the namespace here?
-	Namespace string
-	Debug     bool
+	Namespace     string
+	Debug         bool
 }
 
 type Server struct {

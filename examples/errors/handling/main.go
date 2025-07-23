@@ -20,7 +20,7 @@ type ErrorDetail struct {
 }
 
 func GetServer() *routeit.Server {
-	srv := routeit.NewServer(routeit.ServerConfig{Debug: true, WriteDeadline: 2 * time.Second})
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
 	srv.RegisterErrorHandlers(map[routeit.HttpStatus]routeit.ErrorResponseHandler{
 		routeit.StatusUnauthorized: BaseErrorHandler("unauthorised", func(req *routeit.Request) string {
 			return "Provide a valid access token"

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sktylr/routeit"
 )
@@ -415,7 +416,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestSlow(t *testing.T) {
-	res := client.Get("/slow")
+	res := client.WithTestConfig(routeit.TestConfig{WriteDeadline: 10 * time.Millisecond}).Get("/slow")
 	res.AssertStatusCode(t, routeit.StatusServiceUnavailable)
 	res.AssertBodyMatchesString(t, "503: Service Unavailable")
 }

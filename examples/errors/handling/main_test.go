@@ -3,6 +3,7 @@ package main
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/sktylr/routeit"
 )
@@ -98,7 +99,7 @@ func TestBadRequest(t *testing.T) {
 func TestSlow(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 
-	res := client.Get("/slow")
+	res := client.WithTestConfig(routeit.TestConfig{WriteDeadline: 10 * time.Millisecond}).Get("/slow")
 
 	verifyErrorDetailResponse(
 		t,

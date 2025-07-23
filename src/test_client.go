@@ -6,10 +6,15 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 type TestClient struct {
 	s *Server
+}
+
+type TestConfig struct {
+	WriteDeadline time.Duration
 }
 
 type testRequest struct {
@@ -23,6 +28,18 @@ type testRequest struct {
 // the server.
 func NewTestClient(s *Server) TestClient {
 	return TestClient{s}
+}
+
+// Instantiate a new test client with the given overwrite config. These values
+// (so long as they are non-zero) will overwrite the server's configuration
+// used in the test. They are especially useful for time related tests, as they
+// can be used to reduce the write deadline for the server, helping to keep
+// tests running quickly
+func (tc TestClient) WithTestConfig(c TestConfig) TestClient {
+	if c.WriteDeadline > 0 {
+		tc.s.conf.WriteDeadline = c.WriteDeadline
+	}
+	return NewTestClient(tc.s)
 }
 
 // Makes a GET request against the specific path. Should not include a trailing

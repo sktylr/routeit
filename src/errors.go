@@ -302,13 +302,13 @@ func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *R
 	if r != nil {
 		switch e := r.(type) {
 		case (*HttpError):
-			rw = e.toResponse()
+			e.toResponse(rw)
 			err = e.cause
 		case error:
-			rw = eh.toHttpError(e).toResponse()
+			eh.toHttpError(e).toResponse(rw)
 			err = e
 		default:
-			rw = ErrInternalServerError().toResponse()
+			ErrInternalServerError().toResponse(rw)
 		}
 	}
 	if rw.s.isError() {
@@ -323,8 +323,9 @@ func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *R
 	return rw
 }
 
-func (e *HttpError) toResponse() *ResponseWriter {
-	rw := newResponseWithStatus(e.status)
+func (e *HttpError) toResponse(rw *ResponseWriter) {
+	rw.Status(e.status)
+	maps.Copy(rw.hdrs, e.headers)
 	if e.status == StatusNotAcceptable {
 		// We currently do not include a response body nor default headers for
 		// the 406: Not Acceptable response. Per RFC-9112, the server is not
@@ -332,11 +333,10 @@ func (e *HttpError) toResponse() *ResponseWriter {
 		// does accept, though may return a response body indicating which
 		// content types it permits. For simplicity, we currently don't include
 		// the response body.
-		return rw
+		rw.clear()
+		return
 	}
 	rw.Text(e.Error())
-	maps.Copy(rw.hdrs, e.headers)
-	return rw
 }
 
 func (e *HttpError) isValid() bool {

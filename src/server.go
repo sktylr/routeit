@@ -265,7 +265,9 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 
 	req, httpErr := requestFromRaw(raw, ctx)
 	if httpErr != nil {
-		return httpErr.toResponse()
+		rw := newResponse()
+		httpErr.toResponse(rw)
+		return rw
 	}
 
 	if tcpAddr, ok := addr.(*net.TCPAddr); ok {

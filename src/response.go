@@ -31,8 +31,13 @@ func newResponseForMethod(method HttpMethod) *ResponseWriter {
 }
 
 func newResponseWithStatus(status HttpStatus) *ResponseWriter {
-	headers := newResponseHeaders()
-	return &ResponseWriter{s: status, hdrs: headers}
+	rw := newResponse()
+	rw.s = status
+	return rw
+}
+
+func newResponse() *ResponseWriter {
+	return &ResponseWriter{hdrs: newResponseHeaders()}
 }
 
 // Adds a JSON response body to the response and sets the corresponding
@@ -95,6 +100,12 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 func (rw *ResponseWriter) Header(key string, val string) {
 	// TODO: probably want to define some allow list (e.g. to avoid overwriting Content-Length etc.)
 	rw.hdrs.Set(key, val)
+}
+
+func (rw *ResponseWriter) clear() {
+	rw.bdy = []byte{}
+	delete(rw.hdrs, "content-type")
+	delete(rw.hdrs, "content-length")
 }
 
 func (rw *ResponseWriter) write() []byte {

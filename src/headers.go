@@ -17,6 +17,8 @@ type headerVal struct {
 	original string
 }
 
+// TODO: does not handle where a request contains multiple headers of the same key, or a response does
+
 type headers map[string]headerVal
 
 func newResponseHeaders() headers {

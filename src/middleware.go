@@ -12,7 +12,11 @@ import (
 // registered to the server is important, as it defines the order of the chain.
 // If a middleware chooses to block a request (by returning an error), it will
 // not be propagated through to the rest of the chain, nor the handler defined
-// by the application for the route and method of the request.
+// by the application for the route and method of the request. If headers are
+// set on the response, using [ResponseWriter.Header], the headers will be
+// propagated to the response - even if the handler or intermediary middleware
+// returns an error or panics. The error's headers take precedence and will
+// overwrite any headers of the same name that are already set.
 type Middleware func(c *Chain, rw *ResponseWriter, req *Request) error
 
 type middleware struct {
@@ -66,6 +70,7 @@ func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
 // header. We do the same when the Host header does not match any expected
 // values.
 func hostValidationMiddleware(re *regexp.Regexp) Middleware {
+	// TODO: would be interesting to benchmark regex vs string comparison here!
 	if re == nil {
 		return func(c *Chain, rw *ResponseWriter, req *Request) error {
 			return ErrBadRequest()

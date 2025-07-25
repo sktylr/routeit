@@ -63,17 +63,9 @@ type trie[T any, E any] struct {
 }
 
 type node[T any] struct {
-	key      trieKey
+	key      *cmp.ExactOrWildcard
 	value    *trieValue[T]
 	children []*node[T]
-}
-
-// Trie keys can match exactly, or dynamically against the input key. This
-// struct allows the trie to keep track of the kind of key, to ensure that
-// insertion and lookup obeys the concept.
-type trieKey struct {
-	exact    string
-	wildcard *cmp.Wildcard
 }
 
 type trieValue[T any] struct {
@@ -104,13 +96,13 @@ func newTrie[T any, D any](extract dynamicExtractor[T, D]) *trie[T, D] {
 	return &trie[T, D]{root: &node[T]{}, extract: extract}
 }
 
-func newKey(part string) trieKey {
+func newKey(part string) *cmp.ExactOrWildcard {
 	isWildcard, prefix, suffix := splitDynamicPrefixAndSuffix(part)
 	if !isWildcard {
-		return trieKey{exact: part}
+		return cmp.NewExactMatcher(part)
 	}
 
-	return trieKey{wildcard: cmp.NewWildcard(prefix, suffix)}
+	return cmp.NewWildcardMatcher(prefix, suffix)
 }
 
 func (t *trie[T, D]) Find(path string) (*T, *D, bool) {
@@ -190,15 +182,12 @@ func (n *node[T]) GetOrCreateChild(key string) *node[T] {
 	wildcard, prefix, suffix := splitDynamicPrefixAndSuffix(key)
 	var best *node[T]
 	for _, child := range n.children {
-		if child.key.exact == key {
+		if child.key.SameExact(key) {
 			// We don't use the wildcard comparison here, otherwise we would
 			// match all static paths against dynamic paths, causing some nodes
 			// to be overwritten depending on the order of insertions.
 			return child
-		} else if wildcard &&
-			child.key.IsWildcard() &&
-			child.key.wildcard.PrefixMatches(prefix) &&
-			child.key.wildcard.SuffixMatches(suffix) {
+		} else if wildcard && child.key.SameWildcard(prefix, suffix) {
 			// Doing this ensures that we have 1 dynamic mode per (prefix,
 			// suffix) combination per group of children. We don't care about
 			// the name used for the dynamic match here - only the required
@@ -259,17 +248,6 @@ func (dm *dynamicMatcher) HigherPriority(other *dynamicMatcher) bool {
 		return false
 	}
 	return dm.first > other.first
-}
-
-func (k *trieKey) Matches(cmp string) bool {
-	if k.IsWildcard() {
-		return k.wildcard.Matches(cmp)
-	}
-	return k.exact == cmp
-}
-
-func (k *trieKey) IsWildcard() bool {
-	return k.wildcard != nil
 }
 
 // Collects the path parameters of the matched path

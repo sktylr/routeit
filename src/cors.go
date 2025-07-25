@@ -90,11 +90,6 @@ type cors struct {
 	IncludeCredentials bool
 }
 
-type origin struct {
-	exact    string
-	wildcard *cmp.Wildcard
-}
-
 // Default CORS config that will allow all origins and all methods and not
 // include any special headers or authentication details
 func DefaultCors() CorsConfig {
@@ -252,7 +247,7 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 	} else if cc.AllowAllOrigins {
 		return acceptAll
 	} else {
-		origins := make([]origin, 0, len(cc.AllowedOrigins))
+		origins := make([]*cmp.ExactOrWildcard, 0, len(cc.AllowedOrigins))
 		for _, o := range cc.AllowedOrigins {
 			if o == "*" {
 				return acceptAll
@@ -263,12 +258,10 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 			}
 			if stars == 1 {
 				i := strings.IndexRune(o, '*')
-				origin := origin{
-					wildcard: cmp.NewWildcard(o[:i], o[i+1:]),
-				}
+				origin := cmp.NewWildcardMatcher(o[:i], o[i+1:])
 				origins = append(origins, origin)
 			} else {
-				origins = append(origins, origin{exact: o})
+				origins = append(origins, cmp.NewExactMatcher(o))
 			}
 		}
 
@@ -281,13 +274,6 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 			return false, ""
 		}
 	}
-}
-
-func (o origin) Matches(cmp string) bool {
-	if o.exact != "" {
-		return o.exact == cmp
-	}
-	return o.wildcard.Matches(cmp)
 }
 
 func setOrAppend(rw *ResponseWriter, k, v string) {

@@ -74,8 +74,15 @@ func GetServer() *routeit.Server {
 		AllowedMethods: []routeit.HttpMethod{routeit.DELETE, routeit.PUT},
 		AllowedHeaders: []string{"X-Requested-With", "X-Custom-Header"},
 		MaxAge:         15 * time.Second,
-	}))
+		ExposeHeaders:  []string{"X-Response-Header"},
+	}),
+		AddResponseHeader)
 	return be
+}
+
+func AddResponseHeader(c *routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
+	rw.Header("X-Response-Header", fmt.Sprintf("%v: %s", req.Method(), req.Path()))
+	return c.Proceed(rw, req)
 }
 
 func main() {

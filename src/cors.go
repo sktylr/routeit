@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -251,7 +252,8 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 	} else if cc.AllowAllOrigins {
 		return func(s string) (bool, string) { return true, "" }
 	} else {
-		origins := make([]origin, 0, len(cc.AllowedOrigins))
+		var parts []string
+		// origins := make([]origin, 0, len(cc.AllowedOrigins))
 		for _, o := range cc.AllowedOrigins {
 			if o == "*" {
 				return func(s string) (bool, string) { return true, "" }
@@ -261,27 +263,32 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 				panic(fmt.Errorf("cannot specify multiple wildcards in allowed origins: %s", o))
 			}
 			if stars == 1 {
-				i := strings.IndexRune(o, '*')
-				origin := origin{
-					wildcard: &wildcard{
-						prefix: o[:i],
-						suffix: o[i+1:],
-						minLen: len(o) - 1,
-					},
-				}
-				origins = append(origins, origin)
+				// Escape the rest and replace * with appropriate regex
+				i := strings.Index(o, "*")
+				prefix := regexp.QuoteMeta(o[:i])
+				suffix := regexp.QuoteMeta(o[i+1:])
+
+				// Allow any non-empty subdomain segment
+				// e.g. *.example.com => ([^./]+)\.example\.com
+				// This assumes wildcard only represents a subdomain (not / paths)
+				part := fmt.Sprintf("^%s[^./]+%s$", prefix, suffix)
+				parts = append(parts, part)
 			} else {
-				origins = append(origins, origin{exact: o})
+				// Exact match, escape it
+				parts = append(parts, "^"+regexp.QuoteMeta(o)+"$")
 			}
 		}
 
+		re := regexp.MustCompile(strings.Join(parts, "|"))
+
 		return func(s string) (bool, string) {
-			for _, o := range origins {
-				if o.Matches(s) {
-					return true, ""
-				}
-			}
-			return false, ""
+			// for _, o := range origins {
+			// 	if o.Matches(s) {
+			// 		return true, ""
+			// 	}
+			// }
+			// return false, ""
+			return re.MatchString(s), ""
 		}
 	}
 }

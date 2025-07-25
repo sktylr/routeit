@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Test CORS Server Interface</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f9f9f9;
+      padding: 2rem;
+      line-height: 1.5;
+    }
+    .section {
+      margin-bottom: 2rem;
+      background: #fff;
+      padding: 1.5rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    textarea {
+      width: 100%;
+      margin-top: 1rem;
+      height: 100px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      background: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    input[type="text"] {
+      padding: 0.4rem;
+      font-size: 1rem;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test CORS Server Endpoints</h1>
+
+  <div class="section">
+    <h2>GET /simple</h2>
+    <button onclick="getSimple()">Send GET</button>
+	<p>Will not require a pre-flight request due to being a simple method.</p>
+    <textarea id="response-get-simple" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <h2>POST /simple</h2>
+    <input type="text" id="postSimpleMessage" placeholder="Enter message..."/>
+	<p>Will not require a pre-flight request since this is a simple method with a simple content type (<code>text/plain</code>).</p>
+    <button onclick="postSimple()">Send POST</button>
+    <textarea id="response-post-simple" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <h2>PATCH /update</h2>
+    <button onclick="patchUpdate()">Send PATCH</button>
+	<p>Will require a pre-flight request which will be blocked due to the CORS config not accepting <code>PATCH</code> requests.</p>
+    <textarea id="response-patch-update" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <h2>POST /create</h2>
+    <input type="text" id="createName" placeholder="Name"/>
+    <input type="text" id="createAge" placeholder="Age"/>
+    <button onclick="postCreate()">Send POST</button>
+	<p>Will require a pre-flight request due to the request requiring a non-simple content type (<code>application/json</code>).</p>
+    <textarea id="response-post-create" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <h2>DELETE /remove</h2>
+    <button onclick="deleteRemove()">Send DELETE</button>
+	<p>Will require a pre-flight request which will be accepted.</p>
+    <textarea id="response-delete-remove" readonly></textarea>
+  </div>
+
+  <script>
+    const base = "http://localhost:8080";
+
+    async function handleResponse(promise, responseEl) {
+      try {
+        const res = await promise;
+        const text = await res.text();
+        responseEl.value = `Status: ${res.status}\n${text}`;
+      } catch (err) {
+        responseEl.value = `Error: ${err.message}`;
+      }
+    }
+
+    function getSimple() {
+      const responseEl = document.getElementById("response-get-simple");
+      handleResponse(fetch(`${base}/simple`, {
+        method: "GET",
+        mode: "cors"
+      }), responseEl);
+    }
+
+    function postSimple() {
+      const msg = document.getElementById("postSimpleMessage").value;
+      const responseEl = document.getElementById("response-post-simple");
+      handleResponse(fetch(`${base}/simple`, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "text/plain"
+        },
+        body: msg
+      }), responseEl);
+    }
+
+    function patchUpdate() {
+      const responseEl = document.getElementById("response-patch-update");
+      handleResponse(fetch(`${base}/update`, {
+        method: "PATCH",
+        mode: "cors"
+      }), responseEl);
+    }
+
+    function postCreate() {
+      const name = document.getElementById("createName").value;
+      const age = parseInt(document.getElementById("createAge").value, 10);
+      const responseEl = document.getElementById("response-post-create");
+
+      const body = JSON.stringify({ name, age });
+
+      handleResponse(fetch(`${base}/create`, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: body
+      }), responseEl);
+    }
+
+    function deleteRemove() {
+      const responseEl = document.getElementById("response-delete-remove");
+      handleResponse(fetch(`${base}/remove`, {
+        method: "DELETE",
+        mode: "cors"
+      }), responseEl);
+    }
+  </script>
+</body>
+</html>

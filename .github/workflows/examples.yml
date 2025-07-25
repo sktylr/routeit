@@ -12,6 +12,7 @@ jobs:
                 - errors/handling
                 - errors/mapping
                 - middleware/simple
+                - middleware/cors
                 - routing/complex
                 - routing/dynamic
                 - routing/namespaced

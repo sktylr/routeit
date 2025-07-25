@@ -59,6 +59,14 @@ type CorsConfig struct {
 	// to be included. Set to a negative number to explicitly set to 0 - i.e.
 	// the client cannot cache responses.
 	MaxAge time.Duration
+	// The headers that should be exposed to the client JavaScript when
+	// receiving a response to a cross-origin request. By default, browsers
+	// will expose the Cache-Control, Content-Language, Content-Type, Expires,
+	// Last-Modified and Pragma response headers to the client JavaScript. If
+	// additional headers should be included (e.g. X-My-Custom-Header), then
+	// they should be included here. The casing of the header values does not
+	// matter.
+	ExposeHeaders []string
 }
 
 // This function should validate the provided origin, returning true if the
@@ -73,6 +81,7 @@ type cors struct {
 	AllowedMethods []HttpMethod
 	AllowedHeaders func(string) bool
 	MaxAge         string
+	ExposeHeaders  string
 }
 
 type origin struct {
@@ -165,8 +174,11 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 		// Process the actual request. All we need to do is add the required
 		// Access-Control-* headers and the client is expected to take care of
 		// the rest.
-		// TODO: Access-Control-Allow-Credentials, Access-Control-Expose-Headers
+		// TODO: Access-Control-Allow-Credentials
 		rw.Header("Access-Control-Allow-Origin", origin)
+		if cors.ExposeHeaders != "" {
+			rw.Header("Access-Control-Expose-Headers", cors.ExposeHeaders)
+		}
 		return c.Proceed(rw, req)
 	}
 }
@@ -209,6 +221,7 @@ func (cc CorsConfig) toCors() *cors {
 			}
 			return true
 		},
+		ExposeHeaders: strings.Join(cc.ExposeHeaders, ", "),
 	}
 
 	if cc.MaxAge > 0 {

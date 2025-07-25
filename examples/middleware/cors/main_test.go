@@ -265,13 +265,14 @@ func TestPreflight(t *testing.T) {
 func TestActualRequests(t *testing.T) {
 	client := routeit.NewTestClient(GetServer())
 	tests := []struct {
-		name            string
-		doRequest       func() *routeit.TestResponse
-		wantStatus      routeit.HttpStatus
-		wantBody        string
-		wantAllow       string
-		wantAllowOrigin string
-		wantVary        string
+		name              string
+		doRequest         func() *routeit.TestResponse
+		wantStatus        routeit.HttpStatus
+		wantBody          string
+		wantAllow         string
+		wantAllowOrigin   string
+		wantVary          string
+		wantExposeHeaders string
 	}{
 		{
 			name: "GET /simple without Origin",
@@ -280,16 +281,18 @@ func TestActualRequests(t *testing.T) {
 			},
 			wantStatus: routeit.StatusOK,
 			wantBody:   "Hello from GET simple!",
+			wantVary:   "Origin",
 		},
 		{
 			name: "GET /simple with valid Origin",
 			doRequest: func() *routeit.TestResponse {
 				return client.Get("/simple", "Origin", "http://localhost:3000")
 			},
-			wantStatus:      routeit.StatusOK,
-			wantBody:        "Hello from GET simple!",
-			wantAllowOrigin: "http://localhost:3000",
-			wantVary:        "Origin",
+			wantStatus:        routeit.StatusOK,
+			wantBody:          "Hello from GET simple!",
+			wantAllowOrigin:   "http://localhost:3000",
+			wantVary:          "Origin",
+			wantExposeHeaders: "X-Response-Header",
 		},
 		{
 			name: "GET /simple with invalid Origin",
@@ -307,6 +310,7 @@ func TestActualRequests(t *testing.T) {
 			},
 			wantStatus: routeit.StatusMethodNotAllowed,
 			wantAllow:  "POST, OPTIONS",
+			wantVary:   "Origin",
 		},
 		{
 			name: "DELETE /create with valid Origin (method not supported)",
@@ -317,18 +321,20 @@ func TestActualRequests(t *testing.T) {
 			wantAllow:  "POST, OPTIONS",
 			// This tells the client that the requests can be made from their
 			// origin to the server's origin, but not with the requested method
-			wantAllowOrigin: "http://localhost:3000",
-			wantVary:        "Origin",
+			wantAllowOrigin:   "http://localhost:3000",
+			wantVary:          "Origin",
+			wantExposeHeaders: "X-Response-Header",
 		},
 		{
 			name: "DELETE /remove with valid Origin (allowed)",
 			doRequest: func() *routeit.TestResponse {
 				return client.Delete("/remove", "Origin", "http://localhost:3000")
 			},
-			wantStatus:      routeit.StatusNoContent,
-			wantBody:        "Deleted!",
-			wantAllowOrigin: "http://localhost:3000",
-			wantVary:        "Origin",
+			wantStatus:        routeit.StatusNoContent,
+			wantBody:          "Deleted!",
+			wantAllowOrigin:   "http://localhost:3000",
+			wantVary:          "Origin",
+			wantExposeHeaders: "X-Response-Header",
 		},
 		{
 			name: "DELETE /remove with invalid Origin (rejected)",
@@ -353,10 +359,11 @@ func TestActualRequests(t *testing.T) {
 			doRequest: func() *routeit.TestResponse {
 				return client.PatchText("/update", "body", "Origin", "http://localhost:3000")
 			},
-			wantStatus:      routeit.StatusOK,
-			wantAllowOrigin: "http://localhost:3000",
-			wantVary:        "Origin",
-			wantBody:        "Hello from PATCH /update!\n",
+			wantStatus:        routeit.StatusOK,
+			wantAllowOrigin:   "http://localhost:3000",
+			wantVary:          "Origin",
+			wantBody:          "Hello from PATCH /update!\n",
+			wantExposeHeaders: "X-Response-Header",
 		},
 	}
 
@@ -365,7 +372,6 @@ func TestActualRequests(t *testing.T) {
 			res := tc.doRequest()
 
 			res.AssertStatusCode(t, tc.wantStatus)
-
 			if tc.wantBody != "" {
 				res.AssertBodyContainsString(t, tc.wantBody)
 			}
@@ -381,6 +387,13 @@ func TestActualRequests(t *testing.T) {
 			}
 			if tc.wantVary != "" {
 				res.AssertHeaderMatches(t, "Vary", tc.wantVary)
+			} else {
+				res.RefuteHeaderPresent(t, "Vary")
+			}
+			if tc.wantExposeHeaders != "" {
+				res.AssertHeaderMatches(t, "Access-Control-Expose-Headers", tc.wantExposeHeaders)
+			} else {
+				res.RefuteHeaderPresent(t, "Access-Control-Expose-Headers")
 			}
 		})
 	}

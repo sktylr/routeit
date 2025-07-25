@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sktylr/routeit/cmp"
 )
 
 type CorsConfig struct {
@@ -90,7 +92,7 @@ type cors struct {
 
 type origin struct {
 	exact    string
-	wildcard *wildcard
+	wildcard *cmp.Wildcard
 }
 
 // Default CORS config that will allow all origins and all methods and not
@@ -262,11 +264,7 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 			if stars == 1 {
 				i := strings.IndexRune(o, '*')
 				origin := origin{
-					wildcard: &wildcard{
-						prefix: o[:i],
-						suffix: o[i+1:],
-						minLen: len(o) - 1,
-					},
+					wildcard: cmp.NewWildcard(o[:i], o[i+1:]),
 				}
 				origins = append(origins, origin)
 			} else {

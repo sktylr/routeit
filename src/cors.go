@@ -77,7 +77,7 @@ type CorsConfig struct {
 // function can choose to return values for the Vary response header, to ensure
 // that caches are serving responses correctly. This will be appended to the
 // existing Vary response header, which will already contain Origin.
-type AllowOriginFunc func(string) (bool, string)
+type AllowOriginFunc func(*Request, string) (bool, string)
 
 type cors struct {
 	AllowsOrigin       AllowOriginFunc
@@ -121,7 +121,7 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 		if !hasOrigin {
 			return c.Proceed(rw, req)
 		}
-		allowedOrigin, additionalVaryHeaders := cors.AllowsOrigin(origin)
+		allowedOrigin, additionalVaryHeaders := cors.AllowsOrigin(req, origin)
 		setOrAppend(rw, "Vary", additionalVaryHeaders)
 		if !allowedOrigin {
 			return ErrForbidden()
@@ -244,15 +244,16 @@ func (cc CorsConfig) toCors() *cors {
 }
 
 func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
+	acceptAll := func(req *Request, s string) (bool, string) { return true, "" }
 	if cc.AllowOriginFunc != nil {
 		return cc.AllowOriginFunc
 	} else if cc.AllowAllOrigins {
-		return func(s string) (bool, string) { return true, "" }
+		return acceptAll
 	} else {
 		origins := make([]origin, 0, len(cc.AllowedOrigins))
 		for _, o := range cc.AllowedOrigins {
 			if o == "*" {
-				return func(s string) (bool, string) { return true, "" }
+				return acceptAll
 			}
 			stars := strings.Count(o, "*")
 			if stars > 1 {
@@ -273,7 +274,7 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 			}
 		}
 
-		return func(s string) (bool, string) {
+		return func(req *Request, s string) (bool, string) {
 			for _, o := range origins {
 				if o.Matches(s) {
 					return true, ""

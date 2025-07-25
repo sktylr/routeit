@@ -26,7 +26,7 @@ func BenchmarkCorsOriginValidation(b *testing.B) {
 			for label, origin := range positions {
 				b.Run(fmt.Sprintf("%s match", label), func(b *testing.B) {
 					for b.Loop() {
-						ok, _ := c.AllowsOrigin(origin)
+						ok, _ := c.AllowsOrigin(&Request{}, origin)
 						if !ok {
 							b.Fatalf("expected %s origin match to be allowed", label)
 						}
@@ -36,7 +36,7 @@ func BenchmarkCorsOriginValidation(b *testing.B) {
 
 			b.Run("non-match", func(b *testing.B) {
 				for b.Loop() {
-					ok, _ := c.AllowsOrigin(nonMatch)
+					ok, _ := c.AllowsOrigin(&Request{}, nonMatch)
 					if ok {
 						b.Fatalf("expected non-match origin to be disallowed")
 					}
@@ -70,7 +70,7 @@ func BenchmarkCorsOriginValidation(b *testing.B) {
 			for label, origin := range positions {
 				b.Run(fmt.Sprintf("%s match", label), func(b *testing.B) {
 					for b.Loop() {
-						ok, _ := c.AllowsOrigin(origin)
+						ok, _ := c.AllowsOrigin(&Request{}, origin)
 						if !ok {
 							b.Fatalf("expected wildcard %s origin to match", label)
 						}
@@ -80,7 +80,7 @@ func BenchmarkCorsOriginValidation(b *testing.B) {
 
 			b.Run("non-match", func(b *testing.B) {
 				for b.Loop() {
-					ok, _ := c.AllowsOrigin(nonMatch)
+					ok, _ := c.AllowsOrigin(&Request{}, nonMatch)
 					if ok {
 						b.Fatalf("did not expect wildcard to match: %s", nonMatch)
 					}

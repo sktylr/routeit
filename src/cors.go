@@ -67,6 +67,11 @@ type CorsConfig struct {
 	// they should be included here. The casing of the header values does not
 	// matter.
 	ExposeHeaders []string
+	// Determines whether the Access-Control-Allow-Credentials header should be
+	// included in responses and set to "true". This is required if the client
+	// and server want the client to send credentials (cookies, HTTP
+	// authentication, TLS certificates etc.).
+	IncludeCredentials bool
 }
 
 // This function should validate the provided origin, returning true if the
@@ -77,11 +82,12 @@ type CorsConfig struct {
 type AllowOriginFunc func(string) (bool, string)
 
 type cors struct {
-	AllowsOrigin   AllowOriginFunc
-	AllowedMethods []HttpMethod
-	AllowedHeaders func(string) bool
-	MaxAge         string
-	ExposeHeaders  string
+	AllowsOrigin       AllowOriginFunc
+	AllowedMethods     []HttpMethod
+	AllowedHeaders     func(string) bool
+	MaxAge             string
+	ExposeHeaders      string
+	IncludeCredentials bool
 }
 
 type origin struct {
@@ -163,7 +169,10 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 				setOrAppend(rw, "Vary", "Access-Control-Request-Headers")
 				rw.Header("Access-Control-Allow-Headers", headers)
 			}
-			// TODO: Access-Control-Allow-Credentials
+
+			if cors.IncludeCredentials {
+				rw.Header("Access-Control-Allow-Credentials", "true")
+			}
 
 			// If we don't include CORS specific headers, the browser will know
 			// to reject the request and not allow the cross origin request to
@@ -174,10 +183,12 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 		// Process the actual request. All we need to do is add the required
 		// Access-Control-* headers and the client is expected to take care of
 		// the rest.
-		// TODO: Access-Control-Allow-Credentials
 		rw.Header("Access-Control-Allow-Origin", origin)
 		if cors.ExposeHeaders != "" {
 			rw.Header("Access-Control-Expose-Headers", cors.ExposeHeaders)
+		}
+		if cors.IncludeCredentials {
+			rw.Header("Access-Control-Allow-Credentials", "true")
 		}
 		return c.Proceed(rw, req)
 	}
@@ -221,7 +232,8 @@ func (cc CorsConfig) toCors() *cors {
 			}
 			return true
 		},
-		ExposeHeaders: strings.Join(cc.ExposeHeaders, ", "),
+		ExposeHeaders:      strings.Join(cc.ExposeHeaders, ", "),
+		IncludeCredentials: cc.IncludeCredentials,
 	}
 
 	if cc.MaxAge > 0 {

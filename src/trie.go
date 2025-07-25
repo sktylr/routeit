@@ -42,6 +42,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/sktylr/routeit/cmp"
 )
 
 // This regex matches against a string that stats with a :, followed by at
@@ -66,23 +68,12 @@ type node[T any] struct {
 	children []*node[T]
 }
 
-// The [wildcard] struct allows for basic wildcard matching against an incoming
-// key. The wildcard matches any incoming string that has the same prefix and
-// suffix defined in the struct, and strictly more characters than minLen.
-// Where the prefix and suffix are both empty, the wildcard matches against
-// anything.
-type wildcard struct {
-	prefix string
-	suffix string
-	minLen int
-}
-
 // Trie keys can match exactly, or dynamically against the input key. This
 // struct allows the trie to keep track of the kind of key, to ensure that
 // insertion and lookup obeys the concept.
 type trieKey struct {
 	exact    string
-	wildcard *wildcard
+	wildcard *cmp.Wildcard
 }
 
 type trieValue[T any] struct {
@@ -119,8 +110,7 @@ func newKey(part string) trieKey {
 		return trieKey{exact: part}
 	}
 
-	minLen := len(prefix) + len(suffix)
-	return trieKey{wildcard: &wildcard{prefix: prefix, suffix: suffix, minLen: minLen}}
+	return trieKey{wildcard: cmp.NewWildcard(prefix, suffix)}
 }
 
 func (t *trie[T, D]) Find(path string) (*T, *D, bool) {
@@ -207,8 +197,8 @@ func (n *node[T]) GetOrCreateChild(key string) *node[T] {
 			return child
 		} else if wildcard &&
 			child.key.IsWildcard() &&
-			child.key.wildcard.prefix == prefix &&
-			child.key.wildcard.suffix == suffix {
+			child.key.wildcard.PrefixMatches(prefix) &&
+			child.key.wildcard.SuffixMatches(suffix) {
 			// Doing this ensures that we have 1 dynamic mode per (prefix,
 			// suffix) combination per group of children. We don't care about
 			// the name used for the dynamic match here - only the required
@@ -269,20 +259,6 @@ func (dm *dynamicMatcher) HigherPriority(other *dynamicMatcher) bool {
 		return false
 	}
 	return dm.first > other.first
-}
-
-func (wc *wildcard) Matches(cmp string) bool {
-	prefixEmpty, suffixEmpty := wc.prefix == "", wc.suffix == ""
-	if prefixEmpty && suffixEmpty {
-		return cmp != ""
-	}
-	if prefixEmpty {
-		return strings.HasSuffix(cmp, wc.suffix) && len(cmp) > wc.minLen
-	}
-	if suffixEmpty {
-		return strings.HasPrefix(cmp, wc.prefix) && len(cmp) > wc.minLen
-	}
-	return strings.HasPrefix(cmp, wc.prefix) && strings.HasSuffix(cmp, wc.suffix) && len(cmp) > wc.minLen
 }
 
 func (k *trieKey) Matches(cmp string) bool {

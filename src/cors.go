@@ -241,7 +241,7 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 					wildcard: &wildcard{
 						prefix: o[:i],
 						suffix: o[i+1:],
-						minLen: len(o),
+						minLen: len(o) - 1,
 					},
 				}
 				origins = append(origins, origin)

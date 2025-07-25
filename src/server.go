@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -122,7 +121,10 @@ func NewServer(conf ServerConfig) *Server {
 	s.RegisterMiddleware(s.timeoutMiddleware)
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
-	s.constructAllowedHosts(conf.AllowedHosts)
+	if len(conf.AllowedHosts) == 0 && s.conf.Debug {
+		conf.AllowedHosts = []string{".localhost", "127.0.0.1", "[::1]"}
+	}
+	s.RegisterMiddleware(hostValidationMiddleware(conf.AllowedHosts))
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
 	}
@@ -397,43 +399,6 @@ func (s *Server) panicIfStarted(action string) {
 	if s.started.Load() {
 		panic(fmt.Errorf("cannot %s after starting the server", action))
 	}
-}
-
-func (s *Server) constructAllowedHosts(allowed []string) {
-	if len(allowed) == 0 {
-		if s.conf.Debug {
-			allowed = []string{".localhost", "127.0.0.1", "[::1]"}
-		} else {
-			s.RegisterMiddleware(hostValidationMiddleware(nil))
-			return
-		}
-	}
-
-	sbdmns, exact := []string{}, []string{}
-	for _, host := range allowed {
-		if strings.HasPrefix(host, ".") {
-			sbdmns = append(sbdmns, host[1:])
-		} else {
-			exact = append(exact, host)
-		}
-	}
-
-	var groups []string
-
-	if len(sbdmns) > 0 {
-		var parts []string
-		for _, sbdmn := range sbdmns {
-			parts = append(parts, regexp.QuoteMeta(sbdmn))
-		}
-		groups = append(groups, fmt.Sprintf(`([\w-]+\.)?(%s)`, strings.Join(parts, "|")))
-	}
-
-	for _, host := range exact {
-		groups = append(groups, regexp.QuoteMeta(host))
-	}
-
-	re := regexp.MustCompile(fmt.Sprintf(`^(%s)(:\d+)?$`, strings.Join(groups, "|")))
-	s.RegisterMiddleware(hostValidationMiddleware(re))
 }
 
 func (sc ServerConfig) internalise() serverConfig {

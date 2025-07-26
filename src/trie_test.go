@@ -225,7 +225,7 @@ func TestTrieInsertion(t *testing.T) {
 		tests := []struct {
 			name  string
 			in    string
-			start *trie[int, pathParameters]
+			start *slashTrie[int, pathParameters]
 		}{
 			{
 				"duplicate names",
@@ -235,7 +235,7 @@ func TestTrieInsertion(t *testing.T) {
 			{
 				"conflicting dynamic",
 				"/:foo/bar/:bar",
-				func() *trie[int, pathParameters] {
+				func() *slashTrie[int, pathParameters] {
 					trie := newTrie((*trieValue[int]).PathParams)
 					v := 17
 					trie.Insert("/:foo/bar/:baz", &v)

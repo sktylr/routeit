@@ -52,13 +52,13 @@ var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s
 type RouteRegistry map[string]Handler
 
 type router struct {
-	routes *trie[Handler, pathParameters]
+	routes *slashTrie[Handler, pathParameters]
 	// The global namespace that all registered routes are prefixed with.
 	namespace string
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticLoader *Handler
-	rewrites     *trie[string, string]
+	rewrites     *slashTrie[string, string]
 }
 
 func newRouter() *router {

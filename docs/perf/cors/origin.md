@@ -1,4 +1,4 @@
-### CORS Validation
+### CORS Origin Validation
 
 CORS Origin validation requires determining whether the requested Origin is accepted by the server.
 Many simple implementations accept all origins, which greatly speeds up computation.

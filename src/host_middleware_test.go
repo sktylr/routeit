@@ -1,0 +1,72 @@
+package routeit
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
+
+// Remember to use -benchtime=0.01s or similar to avoid the benchmarking
+// hanging indefinitely 😬
+func BenchmarkHostValidationMiddleware(b *testing.B) {
+	for _, size := range []int{1, 10, 100, 1000} {
+		b.Run(fmt.Sprintf("%d allowed hosts", size), func(b *testing.B) {
+			exact := make([]string, size)
+			subdomains := make([]string, size)
+			for i := range size {
+				exact[i] = fmt.Sprintf("host%d.example.com", i)
+				subdomains[i] = fmt.Sprintf(".sub%d.example.com", i)
+			}
+
+			testCases := []struct {
+				label    string
+				allowed  []string
+				testHost string
+				wantErr  bool
+			}{
+				{"exact - first", exact, exact[0], false},
+				{"exact - middle", exact, exact[size/2], false},
+				{"exact - last", exact, exact[size-1], false},
+				{"exact miss", exact, "notallowed.com", true},
+
+				{"subdomain - first", subdomains, "api.sub0.example.com", false},
+				{"subdomain - middle", subdomains, fmt.Sprintf("api.sub%d.example.com", size/2), false},
+				{"subdomain - last", subdomains, fmt.Sprintf("api.sub%d.example.com", size-1), false},
+				{"subdomain - miss", subdomains, "something.unmatched.com", true},
+				{"subdomain - miss, too many subdomain levels", subdomains, fmt.Sprintf("site.web.sub%d.example.com", size-1), true},
+
+				{"duplicate - exact", append([]string{exact[0]}, exact...), exact[0], false},
+				{"duplicate - subdomain", append([]string{subdomains[0]}, subdomains...), fmt.Sprintf("api.%s", strings.TrimPrefix(subdomains[0], ".")), false},
+			}
+
+			for _, tc := range testCases {
+				b.Run(tc.label, func(b *testing.B) {
+					mw := newMiddleware(func(c *Chain, rw *ResponseWriter, req *Request) error {
+						return nil
+					})
+					mw.Register(hostValidationMiddleware(tc.allowed))
+
+					b.ResetTimer()
+					for b.Loop() {
+						b.StopTimer()
+						headers := headers{}
+						headers.Set("Host", tc.testHost)
+						req := &Request{headers: headers}
+						rw := &ResponseWriter{}
+						chain := mw.NewChain()
+						b.StartTimer()
+
+						err := chain.Proceed(rw, req)
+
+						if tc.wantErr && err == nil {
+							b.Fatalf("expected error for host %q", tc.testHost)
+						}
+						if !tc.wantErr && err != nil {
+							b.Fatalf("unexpected error for host %q: %v", tc.testHost, err)
+						}
+					}
+				})
+			}
+		})
+	}
+}

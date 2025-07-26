@@ -57,7 +57,7 @@ import (
 // name "foo" to those that match.
 var dynamicKeyRegex = regexp.MustCompile(`^:([\w-]+)(?:\|([\w.-]*))?(?:\|([\w.-]*))?$`)
 
-type trie[T any, E any] struct {
+type slashTrie[T any, E any] struct {
 	root    *node[T]
 	extract dynamicExtractor[T, E]
 }
@@ -92,8 +92,8 @@ type dynamicMatcher struct {
 // rewrites using regex substitution.
 type dynamicExtractor[T any, O any] func(*trieValue[T], string) O
 
-func newTrie[T any, D any](extract dynamicExtractor[T, D]) *trie[T, D] {
-	return &trie[T, D]{root: &node[T]{}, extract: extract}
+func newTrie[T any, D any](extract dynamicExtractor[T, D]) *slashTrie[T, D] {
+	return &slashTrie[T, D]{root: &node[T]{}, extract: extract}
 }
 
 func newKey(part string) *cmp.ExactOrWildcard {
@@ -105,7 +105,7 @@ func newKey(part string) *cmp.ExactOrWildcard {
 	return cmp.NewWildcardMatcher(prefix, suffix)
 }
 
-func (t *trie[T, D]) Find(path string) (*T, *D, bool) {
+func (t *slashTrie[T, D]) Find(path string) (*T, *D, bool) {
 	if t.root == nil {
 		return nil, nil, false
 	}
@@ -152,7 +152,7 @@ func (t *trie[T, D]) Find(path string) (*T, *D, bool) {
 	return found.value.val, &d, true
 }
 
-func (t *trie[T, D]) Insert(path string, value *T) {
+func (t *slashTrie[T, D]) Insert(path string, value *T) {
 	if t.root == nil {
 		t.root = &node[T]{}
 	}

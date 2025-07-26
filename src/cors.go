@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sktylr/routeit/cmp"
+	"github.com/sktylr/routeit/trie"
 )
 
 type CorsConfig struct {
@@ -205,10 +206,9 @@ func (cc CorsConfig) toCors() *cors {
 	// Content-Type value.
 	allowedHeaders := append(cc.AllowedHeaders, "content-type")
 
-	// TODO: could use an actual trie here???
-	m := make(map[string]struct{}, len(allowedHeaders))
+	trie := trie.NewRuneTrie()
 	for _, h := range allowedHeaders {
-		m[strings.ToLower(strings.TrimSpace(h))] = struct{}{}
+		trie.Insert(h)
 	}
 
 	cors := &cors{
@@ -217,11 +217,7 @@ func (cc CorsConfig) toCors() *cors {
 		AllowedHeaders: func(raw string) bool {
 			split := strings.FieldsFunc(raw, func(r rune) bool { return r == ',' })
 			for _, h := range split {
-				k := strings.ToLower(strings.TrimSpace(h))
-				if k == "" {
-					continue
-				}
-				if _, ok := m[k]; !ok {
+				if !trie.Contains(h) {
 					return false
 				}
 			}

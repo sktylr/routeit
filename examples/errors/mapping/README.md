@@ -3,7 +3,7 @@
 This server exposes three endpoints and demonstrates how custom error mapping can be performed and how application errors can be converted into HTTP responses.
 
 `/invalid`. This endpoint returns a custom application error type, which is also mapped using the custom error mapper for the server.
-However, the mapped value is invalid - it was not constructed using one of routeit's exposes error constructors, so it falls back to a `500: Internal Server Error`.
+However, the mapped value is invalid - it was not constructed using one of `routeit`'s exposes error constructors, so it falls back to a `500: Internal Server Error`.
 
 ```bash
 $ curl http://localhost:8080/invalid
@@ -11,7 +11,7 @@ $ curl http://localhost:8080/invalid
 ```
 
 `/forbidden`. This endpoint returns an `fs.ErrPermission` error (normally used to indicate the application cannot load a file from disk due to permissions errors).
-Since this is a known type, routeit automatically infers that this should map to a `403: Forbidden` error.
+Since this is a known type, `routeit` automatically infers that this should map to a `403: Forbidden` error.
 If the integrator wished to override this behaviour, they could do so by explicitly matching in a custom `ErrorMapper`.
 However, if the default mapping is acceptable, then the integrator does not need to explicitly match against `fs.ErrPermission` at all in their custom error mapper.
 

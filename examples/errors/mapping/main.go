@@ -86,7 +86,7 @@ func ErrorMapper(err error) *routeit.HttpError {
 		return routeit.ErrUnprocessableContent()
 	}
 
-	// Routeit will handle the rest of the error mapping using sensible
+	// routeit will handle the rest of the error mapping using sensible
 	// defaults
 	return nil
 }

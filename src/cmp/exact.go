@@ -24,7 +24,14 @@ func NewExactMatcher(exact string) *ExactOrWildcard {
 // "bar" respectively, this would not match against "foobar" nor "foobbar", but
 // would match against "foobabar".
 func NewWildcardMatcher(pre, suf string) *ExactOrWildcard {
-	return &ExactOrWildcard{wc: newWildcard(pre, suf)}
+	return NewDynamicWildcardMatcher(pre, suf, nil)
+}
+
+// This will match against wildcard expressions, with the matched segment
+// between the (optional) prefix and suffix passed to the provided function for
+// further verification.
+func NewDynamicWildcardMatcher(pre, suf string, fn func(seg string) bool) *ExactOrWildcard {
+	return &ExactOrWildcard{wc: newWildcard(pre, suf, fn)}
 }
 
 // Examines the union and determines whether the input matches

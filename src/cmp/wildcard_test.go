@@ -7,6 +7,7 @@ func TestMatches(t *testing.T) {
 		name string
 		pre  string
 		suf  string
+		fn   func(seg string) bool
 		in   string
 		want bool
 	}{
@@ -94,11 +95,70 @@ func TestMatches(t *testing.T) {
 			in:   "preference",
 			want: false,
 		},
+		{
+			name: "fn called and returns true",
+			pre:  "foo",
+			suf:  "bar",
+			in:   "foobazbar",
+			fn: func(seg string) bool {
+				if seg != "baz" {
+					t.Errorf("unexpected segment: got %q, want %q", seg, "baz")
+				}
+				return true
+			},
+			want: true,
+		},
+		{
+			name: "fn called and returns false",
+			pre:  "foo",
+			suf:  "bar",
+			in:   "foobazbar",
+			fn: func(seg string) bool {
+				if seg != "baz" {
+					t.Errorf("unexpected segment: got %q, want %q", seg, "baz")
+				}
+				return false
+			},
+			want: false,
+		},
+		{
+			name: "fn not called due to short input",
+			pre:  "foo",
+			suf:  "bar",
+			in:   "foobar", // no middle segment
+			fn: func(seg string) bool {
+				t.Errorf("fn should not have been called")
+				return false
+			},
+			want: false,
+		},
+		{
+			name: "fn not called due to prefix mismatch",
+			pre:  "foo",
+			suf:  "bar",
+			in:   "buzzbazbar",
+			fn: func(seg string) bool {
+				t.Errorf("fn should not have been called")
+				return false
+			},
+			want: false,
+		},
+		{
+			name: "fn not called due to suffix mismatch",
+			pre:  "foo",
+			suf:  "bar",
+			in:   "foobazbuzz",
+			fn: func(seg string) bool {
+				t.Errorf("fn should not have been called")
+				return false
+			},
+			want: false,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			wc := newWildcard(tc.pre, tc.suf)
+			wc := newWildcard(tc.pre, tc.suf, tc.fn)
 
 			got := wc.Matches(tc.in)
 

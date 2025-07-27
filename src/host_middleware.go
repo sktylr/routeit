@@ -41,7 +41,7 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		if lastIndex != -1 && lastIndex != len(host)-1 {
 			withoutPort := host[lastIndex+1:]
 			port, err := strconv.Atoi(withoutPort)
-			if err == nil && port < 65535 {
+			if err == nil && port < 65536 {
 				host = host[:lastIndex]
 			}
 		}

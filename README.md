@@ -1,6 +1,6 @@
-### RouteIt
+## routeit
 
-RouteIt is a lightweight web framework built in go.
+`routeit` is a lightweight web framework built in go.
 It is designed as an introduction to Go to help me learn the language.
 The goal of this is to build a framework similar to the already excellent [`net/http`](https://pkg.go.dev/net/http) package myself, and to avoid using any non-standard libraries.
 The only usages of the `net/http` library in my own framework are to establish the socket connection and consume requests and write responses.
@@ -8,10 +8,10 @@ All parsing and routing logic is handled by my framework.
 
 This library is not meant to be production ready :).
 
-The source and test code can be found in `/src`.
+The source and test code can be found in [`/src`](/src).
 Where possible I have written detailed comments explaining usage of framework's API.
 
-"Real-world" examples are also included in the `/examples` directory.
+"Real-world" examples are also included in the [`/examples`](/examples/) directory.
 I add to these as new features are built or improved upon, to showcase how the interfaces are intended to be used.
 This also helps me understand how I should design my interfaces, as I get hands on experience using them.
 

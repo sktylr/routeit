@@ -1,9 +1,9 @@
 package routeit
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
+
+	"github.com/sktylr/routeit/cmp"
 )
 
 // Middleware that is always registered as the second piece of middleware for
@@ -13,37 +13,21 @@ import (
 // header. We do the same when the Host header does not match any expected
 // values.
 func hostValidationMiddleware(allowed []string) Middleware {
-	// TODO: would be interesting to benchmark regex vs string comparison here!
 	if len(allowed) == 0 {
 		return func(c *Chain, rw *ResponseWriter, req *Request) error {
 			return ErrBadRequest()
 		}
 	}
 
-	sbdmns, exact := []string{}, []string{}
-	for _, host := range allowed {
-		if strings.HasPrefix(host, ".") {
-			sbdmns = append(sbdmns, host[1:])
+	hosts := make([]*cmp.ExactOrWildcard, 0, len(allowed))
+	for _, h := range allowed {
+		if strings.HasPrefix(h, ".") {
+			hosts = append(hosts, cmp.NewDynamicWildcardMatcher("", h[1:], validSubdomain))
+			hosts = append(hosts, cmp.NewExactMatcher(h[1:]))
 		} else {
-			exact = append(exact, host)
+			hosts = append(hosts, cmp.NewExactMatcher(h))
 		}
 	}
-
-	var groups []string
-
-	if len(sbdmns) > 0 {
-		var parts []string
-		for _, sbdmn := range sbdmns {
-			parts = append(parts, regexp.QuoteMeta(sbdmn))
-		}
-		groups = append(groups, fmt.Sprintf(`([\w-]+\.)?(%s)`, strings.Join(parts, "|")))
-	}
-
-	for _, host := range exact {
-		groups = append(groups, regexp.QuoteMeta(host))
-	}
-
-	re := regexp.MustCompile(fmt.Sprintf(`^(%s)(:\d+)?$`, strings.Join(groups, "|")))
 
 	return func(c *Chain, rw *ResponseWriter, req *Request) error {
 		host, hasHost := req.Header("Host")
@@ -51,11 +35,23 @@ func hostValidationMiddleware(allowed []string) Middleware {
 			return ErrBadRequest()
 		}
 
-		if !re.MatchString(host) {
+		matches := false
+		for _, h := range hosts {
+			if h.Matches(host) {
+				matches = true
+				break
+			}
+		}
+
+		if !matches {
 			return ErrBadRequest()
 		}
 
 		req.host = host
 		return c.Proceed(rw, req)
 	}
+}
+
+func validSubdomain(seg string) bool {
+	return strings.Count(seg, ".") == 1
 }

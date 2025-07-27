@@ -1,6 +1,7 @@
 package routeit
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/sktylr/routeit/cmp"
@@ -33,6 +34,16 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		host, hasHost := req.Header("Host")
 		if !hasHost {
 			return ErrBadRequest()
+		}
+
+		// Strip out the port as this is not relevant for Host validation.
+		lastIndex := strings.LastIndexByte(host, ':')
+		if lastIndex != -1 && lastIndex != len(host)-1 {
+			withoutPort := host[lastIndex+1:]
+			port, err := strconv.Atoi(withoutPort)
+			if err == nil && port < 65535 {
+				host = host[:lastIndex]
+			}
 		}
 
 		matches := false

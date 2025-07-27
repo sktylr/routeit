@@ -125,7 +125,7 @@ func TestMatches(t *testing.T) {
 			name: "fn not called due to short input",
 			pre:  "foo",
 			suf:  "bar",
-			in:   "foobar", // no middle segment
+			in:   "foobar",
 			fn: func(seg string) bool {
 				t.Errorf("fn should not have been called")
 				return false

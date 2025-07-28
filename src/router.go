@@ -5,6 +5,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/sktylr/routeit/trie"
 )
 
 // Matches against strings of the form "/foo /bar # Comment", where "/foo" can
@@ -51,8 +53,18 @@ var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s
 // case-sensitive name of the parameter as provided in the route registration.
 type RouteRegistry map[string]Handler
 
+// The [matchedRoute] is a route that has been returned from the routing trie
+// that has the relevant handler and the path parameters that have been
+// extracted from the path.
+type matchedRoute struct {
+	handler *Handler
+	params  pathParameters
+}
+
+type matchedRouteExtractor struct{}
+
 type router struct {
-	routes *slashTrie[Handler, pathParameters]
+	routes *trie.StringTrie[Handler, matchedRoute]
 	// The global namespace that all registered routes are prefixed with.
 	namespace string
 	// The static directory for serving responses from disk.
@@ -62,7 +74,7 @@ type router struct {
 }
 
 func newRouter() *router {
-	return &router{routes: newTrie((*trieValue[Handler]).PathParams), rewrites: newTrie(stringSubstitution)}
+	return &router{routes: trie.NewStringTrie('/', &matchedRouteExtractor{}), rewrites: newTrie(stringSubstitution)}
 }
 
 // Registers the routes to the router. Uses the keys of the map as the path,
@@ -188,10 +200,10 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return r.staticLoader, true
 	}
 
-	route, params, found := r.routes.Find(trimmed)
+	route, found := r.routes.Find(trimmed)
 	if route != nil && found {
-		req.uri.pathParams = *params
-		return route, true
+		req.uri.pathParams = route.params
+		return route.handler, true
 	}
 
 	return nil, false
@@ -210,6 +222,30 @@ func (r *router) Rewrite(url string) (string, bool) {
 		return *dynamic, true
 	}
 	return *static, true
+}
+
+func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {
+	return &matchedRoute{handler: val}
+}
+
+func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, path string, re *regexp.Regexp) *matchedRoute {
+	params := pathParameters{}
+	names := re.SubexpNames()
+	matches := re.FindStringSubmatch(path)
+
+	if matches == nil {
+		// Indicates that something has gone wrong with the regex or searching.
+		return mre.NewFromStatic(val)
+	}
+
+	for i, name := range names {
+		if i == 0 || name == "" {
+			continue
+		}
+		params[name] = matches[i]
+	}
+
+	return &matchedRoute{handler: val, params: params}
 }
 
 // Removes a single leading slash and any trailing slashes that a route has.

@@ -185,7 +185,7 @@ func (t *StringTrie[I, O]) Insert(path string, value *I) {
 		panic(fmt.Errorf(`found multiple conflicting dynamic routes for %#q - found "%+v" and "%+v"`, path, current.value.val, value))
 	}
 
-	dynamicMatcher := dynamicPathToMatcher(path)
+	dynamicMatcher := dynamicPathToMatcher(path, t.split)
 	if dynamicMatcher == nil {
 		current.value = &stringTrieValue[I]{val: value}
 		return
@@ -269,7 +269,7 @@ func (dm *dynamicMatcher) HigherPriority(other *dynamicMatcher) bool {
 // Constructs a dynamic matcher for a given path, returning nil if the path has
 // no dynamic components. This includes building a named regex that can be used
 // to extract the path parameters of the request once matched.
-func dynamicPathToMatcher(path string) *dynamicMatcher {
+func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 	if !strings.Contains(path, ":") {
 		return nil
 	}
@@ -280,11 +280,11 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 	first, total, prefixSuffixCount := int(^uint(0)>>1), 0, 0
 	var sb strings.Builder
 	sb.WriteRune('^')
-	for i, seg := range strings.Split(path, "/") {
+	for i, seg := range strings.Split(path, string(sep)) {
 		if i == 0 && seg == "" {
 			continue
 		}
-		sb.WriteRune('/')
+		sb.WriteRune(sep)
 		if i == 0 {
 			sb.WriteRune('?')
 		}
@@ -297,13 +297,13 @@ func dynamicPathToMatcher(path string) *dynamicMatcher {
 			// component, but we should validate that the shape of the entire
 			// string is valid, otherwise we panic. We take the `name` and
 			// convert it into a named character group that allows ASCII
-			// characters, stopping at the first /.
+			// characters, stopping at the first occurrence of the separator.
 			matches := dynamicKeyRegex.FindStringSubmatch(seg)
 			if matches == nil {
 				panic(fmt.Errorf("invalid dynamic matcher sequence: offender=%#q, full sequence=%#q", seg, path))
 			}
 			name, prefix, suffix := matches[1], matches[2], matches[3]
-			sb.WriteString(fmt.Sprintf(`(?P<%s>%s[^/]+%s)`, name, prefix, suffix))
+			sb.WriteString(fmt.Sprintf(`(?P<%s>%s[^%c]+%s)`, name, prefix, sep, suffix))
 			if prefix != "" {
 				prefixSuffixCount++
 			}

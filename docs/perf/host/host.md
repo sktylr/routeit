@@ -174,3 +174,164 @@ geomean                                                                         
 ¹ need >= 6 samples for confidence interval at level 0.95
 ² all samples are equal
 ```
+
+The solution was also compared to a trie-like approach, using a similar solution to that used for URL routing.
+The results are available below.
+In the sample, it was proven to be slower to compare to hosts using the trie when compared to a simple string comparison.
+This is likely partly due to the fact that the trie may do extra work that is not strictly relevant to the searching the host validation middleware is trying to do.
+
+```
+goos: darwin
+goarch: arm64
+pkg: github.com/sktylr/routeit
+cpu: Apple M1 Pro
+                                                                                          │ host-string.txt │              host-trie.txt              │
+                                                                                          │     sec/op      │    sec/op      vs base                  │
+HostValidationMiddleware/1_allowed_hosts/exact_-_first-8                                       220.5n ± ∞ ¹    489.7n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_-_middle-8                                      216.2n ± ∞ ¹    468.8n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_-_last-8                                        206.0n ± ∞ ¹    468.2n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_miss-8                                          362.6n ± ∞ ¹    510.1n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_first-8                                   231.7n ± ∞ ¹    539.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_middle-8                                  231.8n ± ∞ ¹    534.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_last-8                                    227.7n ± ∞ ¹    554.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_miss-8                                    381.8n ± ∞ ¹    541.5n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8         390.0n ± ∞ ¹    655.9n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/duplicate_-_exact-8                                   205.7n ± ∞ ¹    462.6n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/duplicate_-_subdomain-8                               233.5n ± ∞ ¹    541.6n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_first-8                                      207.4n ± ∞ ¹    512.7n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_middle-8                                     221.8n ± ∞ ¹    513.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_last-8                                       237.3n ± ∞ ¹    519.7n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_miss-8                                         396.8n ± ∞ ¹    535.2n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_first-8                                  236.7n ± ∞ ¹    624.6n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_middle-8                                 272.7n ± ∞ ¹    607.4n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_last-8                                   310.5n ± ∞ ¹    594.5n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_miss-8                                   471.9n ± ∞ ¹    583.8n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8        497.5n ± ∞ ¹    695.9n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/duplicate_-_exact-8                                  207.7n ± ∞ ¹    503.3n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/duplicate_-_subdomain-8                              230.2n ± ∞ ¹    608.7n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_first-8                                     207.6n ± ∞ ¹    745.2n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_middle-8                                    374.4n ± ∞ ¹    885.4n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_last-8                                      442.3n ± ∞ ¹    903.8n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_miss-8                                        463.4n ± ∞ ¹    750.3n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_first-8                                 228.9n ± ∞ ¹   1040.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_middle-8                                570.6n ± ∞ ¹   1226.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_last-8                                  880.1n ± ∞ ¹   1235.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_miss-8                                  1.072µ ± ∞ ¹    1.058µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8       1.048µ ± ∞ ¹    1.135µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/duplicate_-_exact-8                                 204.7n ± ∞ ¹    747.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/duplicate_-_subdomain-8                             228.2n ± ∞ ¹   1033.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_first-8                                    219.3n ± ∞ ¹   3180.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_middle-8                                   1.304µ ± ∞ ¹    4.896µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_last-8                                     2.560µ ± ∞ ¹    4.873µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_miss-8                                       1.166µ ± ∞ ¹    3.733µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_first-8                                248.4n ± ∞ ¹   6135.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_middle-8                               3.508µ ± ∞ ¹    8.402µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_last-8                                 6.775µ ± ∞ ¹    8.524µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_miss-8                                 6.968µ ± ∞ ¹    6.144µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8      7.059µ ± ∞ ¹    6.590µ ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/duplicate_-_exact-8                                208.7n ± ∞ ¹   3300.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/duplicate_-_subdomain-8                            239.7n ± ∞ ¹   6223.0n ± ∞ ¹         ~ (p=1.000 n=1) ²
+geomean                                                                                        445.7n          1.112µ        +149.55%
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+
+                                                                                          │ host-string.txt │             host-trie.txt              │
+                                                                                          │      B/op       │     B/op      vs base                  │
+HostValidationMiddleware/1_allowed_hosts/exact_-_first-8                                        16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_-_middle-8                                       16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_-_last-8                                         16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_miss-8                                           128.0 ± ∞ ¹    160.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_first-8                                    16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_middle-8                                   16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_last-8                                     16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_miss-8                                     128.0 ± ∞ ¹    184.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8          128.0 ± ∞ ¹    216.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/duplicate_-_exact-8                                    16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/duplicate_-_subdomain-8                                16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_first-8                                       16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_middle-8                                      16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_last-8                                        16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_miss-8                                          128.0 ± ∞ ¹    160.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_first-8                                   16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_middle-8                                  16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_last-8                                    16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_miss-8                                    128.0 ± ∞ ¹    184.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8         128.0 ± ∞ ¹    216.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/duplicate_-_exact-8                                   16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/duplicate_-_subdomain-8                               16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_first-8                                      16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_middle-8                                     16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_last-8                                       16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_miss-8                                         128.0 ± ∞ ¹    160.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_first-8                                  16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_middle-8                                 16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_last-8                                   16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_miss-8                                   128.0 ± ∞ ¹    184.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8        128.0 ± ∞ ¹    216.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/duplicate_-_exact-8                                  16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/duplicate_-_subdomain-8                              16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_first-8                                     16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_middle-8                                    16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_last-8                                      16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_miss-8                                        128.0 ± ∞ ¹    160.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_first-8                                 16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_middle-8                                16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_last-8                                  16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_miss-8                                  128.0 ± ∞ ¹    184.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8       128.0 ± ∞ ¹    216.0 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/duplicate_-_exact-8                                 16.00 ± ∞ ¹    88.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/duplicate_-_subdomain-8                             16.00 ± ∞ ¹   112.00 ± ∞ ¹         ~ (p=1.000 n=1) ²
+geomean                                                                                         28.21          117.7        +317.18%
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+
+                                                                                          │ host-string.txt │             host-trie.txt             │
+                                                                                          │    allocs/op    │  allocs/op   vs base                  │
+HostValidationMiddleware/1_allowed_hosts/exact_-_first-8                                        1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_-_middle-8                                       1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_-_last-8                                         1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/exact_miss-8                                           3.000 ± ∞ ¹   4.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_first-8                                    1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_middle-8                                   1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_last-8                                     1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_miss-8                                     3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8          3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/duplicate_-_exact-8                                    1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1_allowed_hosts/duplicate_-_subdomain-8                                1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_first-8                                       1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_middle-8                                      1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_-_last-8                                        1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/exact_miss-8                                          3.000 ± ∞ ¹   4.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_first-8                                   1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_middle-8                                  1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_last-8                                    1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_miss-8                                    3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8         3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/duplicate_-_exact-8                                   1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/10_allowed_hosts/duplicate_-_subdomain-8                               1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_first-8                                      1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_middle-8                                     1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_-_last-8                                       1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/exact_miss-8                                         3.000 ± ∞ ¹   4.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_first-8                                  1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_middle-8                                 1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_last-8                                   1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_miss-8                                   3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8        3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/duplicate_-_exact-8                                  1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/100_allowed_hosts/duplicate_-_subdomain-8                              1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_first-8                                     1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_middle-8                                    1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_-_last-8                                      1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/exact_miss-8                                        3.000 ± ∞ ¹   4.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_first-8                                 1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_middle-8                                1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_last-8                                  1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_miss-8                                  3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/subdomain_-_miss,_too_many_subdomain_levels-8       3.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/duplicate_-_exact-8                                 1.000 ± ∞ ¹   5.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+HostValidationMiddleware/1000_allowed_hosts/duplicate_-_subdomain-8                             1.000 ± ∞ ¹   6.000 ± ∞ ¹         ~ (p=1.000 n=1) ²
+geomean                                                                                         1.349         5.235        +288.00%
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+```

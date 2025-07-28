@@ -1,10 +1,11 @@
 package routeit
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/sktylr/routeit/cmp"
+	"github.com/sktylr/routeit/trie"
 )
 
 // Middleware that is always registered as the second piece of middleware for
@@ -20,15 +21,25 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		}
 	}
 
-	hosts := make([]*cmp.ExactOrWildcard, 0, len(allowed))
+	hosts := trie.NewNoopPathExtractorStringTrie[string]('.')
 	for _, h := range allowed {
 		if strings.HasPrefix(h, ".") {
-			hosts = append(hosts, cmp.NewDynamicWildcardMatcher("", h[1:], validSubdomain))
-			hosts = append(hosts, cmp.NewExactMatcher(h[1:]))
+			hosts.Insert(h[1:], &h)
+			hosts.Insert(fmt.Sprintf(":foo%s", h), &h)
 		} else {
-			hosts = append(hosts, cmp.NewExactMatcher(h))
+			hosts.Insert(h, &h)
 		}
 	}
+
+	// hosts := make([]*cmp.ExactOrWildcard, 0, len(allowed))
+	// for _, h := range allowed {
+	// 	if strings.HasPrefix(h, ".") {
+	// 		hosts = append(hosts, cmp.NewDynamicWildcardMatcher("", h[1:], validSubdomain))
+	// 		hosts = append(hosts, cmp.NewExactMatcher(h[1:]))
+	// 	} else {
+	// 		hosts = append(hosts, cmp.NewExactMatcher(h))
+	// 	}
+	// }
 
 	return func(c *Chain, rw *ResponseWriter, req *Request) error {
 		host, hasHost := req.Header("Host")
@@ -46,15 +57,18 @@ func hostValidationMiddleware(allowed []string) Middleware {
 			}
 		}
 
-		matches := false
-		for _, h := range hosts {
-			if h.Matches(host) {
-				matches = true
-				break
-			}
-		}
+		// matches := false
+		// for _, h := range hosts {
+		// 	if h.Matches(host) {
+		// 		matches = true
+		// 		break
+		// 	}
+		// }
 
-		if !matches {
+		// if !matches {
+		// 	return ErrBadRequest()
+		// }
+		if _, found := hosts.Find(host); !found {
 			return ErrBadRequest()
 		}
 

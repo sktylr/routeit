@@ -20,6 +20,7 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		}
 	}
 
+	allowed = stripDuplicates(allowed)
 	hosts := make([]*cmp.ExactOrWildcard, 0, len(allowed))
 	for _, h := range allowed {
 		if strings.HasPrefix(h, ".") {

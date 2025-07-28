@@ -106,14 +106,8 @@ type dynamicMatcher struct {
 	prefixSuffixCount int
 }
 
-type noopPathExtractor[I any] struct{}
-
 func NewStringTrie[I, O any](split rune, extractor PathExtractor[I, O]) *StringTrie[I, O] {
 	return &StringTrie[I, O]{root: &stringNode[I]{}, split: split, extractor: extractor}
-}
-
-func NewNoopPathExtractorStringTrie[I any](split rune) *StringTrie[I, I] {
-	return NewStringTrie(split, &noopPathExtractor[I]{})
 }
 
 func newStringKey(part string) *cmp.ExactOrWildcard {
@@ -270,14 +264,6 @@ func (dm *dynamicMatcher) HigherPriority(other *dynamicMatcher) bool {
 		return false
 	}
 	return dm.first > other.first
-}
-
-func (noop *noopPathExtractor[I]) NewFromStatic(val *I) *I {
-	return val
-}
-
-func (noop *noopPathExtractor[I]) NewFromDynamic(val *I, path string, re *regexp.Regexp) *I {
-	return val
 }
 
 // Constructs a dynamic matcher for a given path, returning nil if the path has

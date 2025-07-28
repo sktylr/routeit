@@ -63,6 +63,8 @@ type matchedRoute struct {
 
 type matchedRouteExtractor struct{}
 
+type urlRewriteExtractor struct{}
+
 type router struct {
 	routes *trie.StringTrie[Handler, matchedRoute]
 	// The global namespace that all registered routes are prefixed with.
@@ -70,11 +72,14 @@ type router struct {
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticLoader *Handler
-	rewrites     *slashTrie[string, string]
+	rewrites     *trie.StringTrie[string, string]
 }
 
 func newRouter() *router {
-	return &router{routes: trie.NewStringTrie('/', &matchedRouteExtractor{}), rewrites: newTrie(stringSubstitution)}
+	return &router{
+		routes:   trie.NewStringTrie('/', &matchedRouteExtractor{}),
+		rewrites: trie.NewStringTrie('/', &urlRewriteExtractor{}),
+	}
 }
 
 // Registers the routes to the router. Uses the keys of the map as the path,
@@ -214,14 +219,11 @@ func (r *router) Rewrite(url string) (string, bool) {
 	// For static rewrites, the `static` variable is the actual rewrite. For
 	// dynamic rewrites, it is the _template_ of the rewrite (i.e. the value
 	// used in the config entry)
-	static, dynamic, found := r.rewrites.Find(url)
+	rewritten, found := r.rewrites.Find(url)
 	if !found {
 		return url, false
 	}
-	if dynamic != nil && *dynamic != "" {
-		return *dynamic, true
-	}
-	return *static, true
+	return *rewritten, true
 }
 
 func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {
@@ -246,6 +248,16 @@ func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, path string, re *
 	}
 
 	return &matchedRoute{handler: val, params: params}
+}
+
+func (ure *urlRewriteExtractor) NewFromStatic(val *string) *string {
+	return val
+}
+
+func (ure *urlRewriteExtractor) NewFromDynamic(val *string, path string, re *regexp.Regexp) *string {
+	match := re.FindStringSubmatchIndex(path)
+	result := string(re.ExpandString(nil, *val, path, match))
+	return &result
 }
 
 // Removes a single leading slash and any trailing slashes that a route has.

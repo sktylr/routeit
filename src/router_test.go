@@ -808,17 +808,12 @@ func TestNewRewrite(t *testing.T) {
 				router.NewRewrite(tc.raw)
 
 				for k, v := range tc.want {
-					static, dynamic, exists := router.rewrites.Find(k)
+					rewritten, exists := router.rewrites.Find(k)
 					if !exists {
 						t.Errorf("rewrites[%#q] not found, expected to find", k)
 					}
-					matchAgainst := static
-					if dynamic != nil && *dynamic != "" {
-						t.Log("using dynamic value for comparison")
-						matchAgainst = dynamic
-					}
-					if *matchAgainst != v {
-						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *matchAgainst, v)
+					if *rewritten != v {
+						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *rewritten, v)
 					}
 				}
 			})

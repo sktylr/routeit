@@ -1,6 +1,8 @@
 package routeit
 
 import (
+	"fmt"
+	"maps"
 	"strings"
 )
 
@@ -9,9 +11,23 @@ import (
 // can be helpful to set certain state on the request, such as a specific
 // header, if the unit under test relies on the state to perform an action.
 type TestRequestOptions struct {
-	Body    []byte
+	// The raw body of the request. This must be marshalled by the user of
+	// [TestRequestOptions] and the corresponding Content-Type header should be
+	// included in [TestRequestOptions.Headers] if the handler or middleware
+	// uses safe body loads. Additionally, the Content-Length header should
+	// also be provided.
+	Body []byte
+	// The headers of the request, if any. These should be specific as key,
+	// value pairs in order. For example:
+	// 	[]string{"Authorization", "Bearer foo", "Content-Type": "text/plain"}
 	Headers []string
-	Ip      string
+	// The Ip address of the client. This may be useful for security middleware
+	Ip string
+	// Specific path parameters that the URI should contain and extract.
+	// Currently this needs to be explicitly defined since unit tests do not go
+	// through the entire handling flow, meaning requests are not routed
+	// properly so path parameters are not extracted.
+	PathParams map[string]string
 }
 
 // The [TestRequest] object can be used when unit testing specific components
@@ -36,11 +52,20 @@ func NewTestRequest(t testable, path string, m HttpMethod, opts TestRequestOptio
 		path = "/" + path
 	}
 
+	uri, err := parseUri(path)
+	if err != nil {
+		panic(fmt.Errorf(`failed to construct uri from path %#q: %+v`, path, err))
+	}
+
+	if opts.PathParams != nil {
+		maps.Copy(uri.pathParams, opts.PathParams)
+	}
+
 	headers := constructTestHeaders(opts.Headers...)
 	req := &Request{
 		ctx:     t.Context(),
 		mthd:    m,
-		uri:     uri{edgePath: path},
+		uri:     *uri,
 		headers: headers,
 		body:    opts.Body,
 		ip:      opts.Ip,

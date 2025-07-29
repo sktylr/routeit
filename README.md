@@ -147,7 +147,7 @@ The order of attachment is important, as that is the order used when processing 
 
 Middleware can also be tested in isolation, using a combination of `routeit.NewTestRequest` and `routeit.TestMiddleware`.
 Under isolated test conditions, the middleware does not actually proceed to the next in the chain, but allows you to assert on the response, chain and error returned.
-See [`examples/middleware/simple/main_test.go`](/examples/middleware/simple/main_test.go) for an example of how to use this interface.
+See [`examples/middleware/simple/main_test.go`](/examples/middleware/simple/main_test.go) and [`examples/middleware/complex/main_test.go`](/examples/middleware/complex/main_test.go) for examples of how to use this interface.
 
 #### Logging
 

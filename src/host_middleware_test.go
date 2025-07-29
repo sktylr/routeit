@@ -70,3 +70,91 @@ func BenchmarkHostValidationMiddleware(b *testing.B) {
 		})
 	}
 }
+
+func TestHostValidationMiddleware(t *testing.T) {
+	tests := []struct {
+		name          string
+		allowedHosts  []string
+		hostHeader    string
+		wantProceeded bool
+		wantErr       bool
+		wantHost      string
+	}{
+		{
+			name:         "rejects when no Host header is present",
+			allowedHosts: []string{"example.com"},
+			wantErr:      true,
+		},
+		{
+			name:         "rejects unmatched Host header",
+			allowedHosts: []string{"example.com"},
+			hostHeader:   "bad.com",
+			wantErr:      true,
+		},
+		{
+			name:          "accepts exact match host",
+			allowedHosts:  []string{"example.com"},
+			hostHeader:    "example.com",
+			wantProceeded: true,
+			wantHost:      "example.com",
+		},
+		{
+			name:          "accepts wildcard subdomain match",
+			allowedHosts:  []string{".example.com"},
+			hostHeader:    "api.example.com",
+			wantProceeded: true,
+			wantHost:      "api.example.com",
+		},
+		{
+			name:         "rejects deep subdomain for wildcard",
+			allowedHosts: []string{".example.com"},
+			hostHeader:   "deep.api.example.com",
+			wantErr:      true,
+		},
+		{
+			name:          "strips port from host before matching",
+			allowedHosts:  []string{"example.com"},
+			hostHeader:    "example.com:8080",
+			wantProceeded: true,
+			wantHost:      "example.com",
+		},
+		{
+			name:          "rejects malformed ports",
+			allowedHosts:  []string{"example.com"},
+			hostHeader:    "example.com:8080A",
+			wantProceeded: false,
+			wantErr:       true,
+		},
+		{
+			name:         "rejects if allowed host list is empty",
+			allowedHosts: []string{},
+			hostHeader:   "example.com",
+			wantErr:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := NewTestRequest(t, "/path", GET, TestRequest{
+				Headers: func() []string {
+					if tc.hostHeader == "" {
+						return nil
+					}
+					return []string{"Host", tc.hostHeader}
+				}(),
+			})
+
+			_, proceeded, err := TestMiddleware(hostValidationMiddleware(tc.allowedHosts), req)
+
+			if proceeded != tc.wantProceeded {
+				t.Errorf("proceeded = %v, want %v", proceeded, tc.wantProceeded)
+			}
+			if (err != nil) != tc.wantErr {
+				t.Errorf("error = %v, want error? %v", err, tc.wantErr)
+			}
+			if tc.wantHost != "" && req.Host() != tc.wantHost {
+				t.Errorf("host = %q, want %q", req.Host(), tc.wantHost)
+			}
+		})
+	}
+}

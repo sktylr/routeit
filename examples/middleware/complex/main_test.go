@@ -201,7 +201,7 @@ func TestAuthMiddleware(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req := routeit.NewTestRequest(t, tc.path, routeit.POST, routeit.TestRequest{Headers: tc.headers})
+			req := routeit.NewTestRequest(t, tc.path, routeit.POST, routeit.TestRequestOptions{Headers: tc.headers})
 
 			_, proceeded, err := routeit.TestMiddleware(AuthMiddleware, req)
 
@@ -306,7 +306,7 @@ func TestScopesMiddleware(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req := routeit.NewTestRequest(t, tc.path, routeit.GET, routeit.TestRequest{})
+			req := routeit.NewTestRequest(t, tc.path, routeit.GET, routeit.TestRequestOptions{})
 
 			if tc.scopes != nil {
 				req.NewContextValue("scopes", tc.scopes)

@@ -135,7 +135,7 @@ func TestHostValidationMiddleware(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req := NewTestRequest(t, "/path", GET, TestRequest{
+			req := NewTestRequest(t, "/path", GET, TestRequestOptions{
 				Headers: func() []string {
 					if tc.hostHeader == "" {
 						return nil
@@ -152,8 +152,8 @@ func TestHostValidationMiddleware(t *testing.T) {
 			if (err != nil) != tc.wantErr {
 				t.Errorf("error = %v, want error? %v", err, tc.wantErr)
 			}
-			if tc.wantHost != "" && req.Host() != tc.wantHost {
-				t.Errorf("host = %q, want %q", req.Host(), tc.wantHost)
+			if tc.wantHost != "" && req.req.Host() != tc.wantHost {
+				t.Errorf("host = %q, want %q", req.req.Host(), tc.wantHost)
 			}
 		})
 	}

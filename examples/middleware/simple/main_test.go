@@ -105,3 +105,53 @@ func TestHello(t *testing.T) {
 		}
 	})
 }
+
+func TestAuthorisationMiddleware(t *testing.T) {
+	tests := []struct {
+		name          string
+		headers       []string
+		wantProceeded bool
+		wantErr       bool
+	}{
+		{
+			name:          "no headers",
+			wantProceeded: false,
+			wantErr:       true,
+		},
+		{
+			name:          "no auth header",
+			headers:       []string{"X-Authorization", "LET ME IN"},
+			wantProceeded: false,
+			wantErr:       true,
+		},
+		{
+			name:          "auth header, not valid",
+			headers:       []string{"Authorization", "help"},
+			wantProceeded: false,
+			wantErr:       true,
+		},
+		{
+			name:          "auth header, valid",
+			headers:       []string{"Authorization", "LET ME IN"},
+			wantProceeded: true,
+			wantErr:       false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := routeit.NewTestRequest("/foo", routeit.GET, routeit.TestRequest{
+				Headers: tc.headers,
+			})
+
+			_, proceeded, err := routeit.TestMiddleware(AuthorisationMiddleware, req)
+
+			if proceeded != tc.wantProceeded {
+				t.Errorf(`proceeded = %t, wanted %t`, proceeded, tc.wantProceeded)
+			}
+			if (err != nil) != tc.wantErr {
+				t.Errorf(`error = %+v, wanted error? %t`, err, tc.wantErr)
+			}
+		})
+	}
+}

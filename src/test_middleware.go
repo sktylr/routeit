@@ -1,10 +1,10 @@
 package routeit
 
-type TestChain struct {
+type testChain struct {
 	proceeded bool
 }
 
-func (c *TestChain) Proceed(rw *ResponseWriter, req *Request) error {
+func (c *testChain) Proceed(rw *ResponseWriter, req *Request) error {
 	c.proceeded = true
 	return nil
 }
@@ -17,7 +17,7 @@ func (c *TestChain) Proceed(rw *ResponseWriter, req *Request) error {
 // not, and the error is the error that the middleware ultimately returned.
 func TestMiddleware(m Middleware, req *Request) (*TestResponse, bool, error) {
 	rw := newResponseForMethod(req.Method())
-	c := &TestChain{proceeded: false}
+	c := &testChain{proceeded: false}
 
 	err := m(c, rw, req)
 	return &TestResponse{rw: rw}, c.proceeded, err

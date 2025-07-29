@@ -41,7 +41,7 @@ func BenchmarkHostValidationMiddleware(b *testing.B) {
 
 			for _, tc := range testCases {
 				b.Run(tc.label, func(b *testing.B) {
-					mw := newMiddleware(func(c *Chain, rw *ResponseWriter, req *Request) error {
+					mw := newMiddleware(func(c Chain, rw *ResponseWriter, req *Request) error {
 						return nil
 					})
 					mw.Register(hostValidationMiddleware(tc.allowed))

@@ -37,7 +37,7 @@ func GetServer() *routeit.Server {
 	return srv
 }
 
-func AuthMiddleware(c *routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
+func AuthMiddleware(c routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
 	if req.Path() == "/no-auth" {
 		return c.Proceed(rw, req)
 	}
@@ -55,7 +55,7 @@ func AuthMiddleware(c *routeit.Chain, rw *routeit.ResponseWriter, req *routeit.R
 	return c.Proceed(rw, req)
 }
 
-func ScopesMiddleware(c *routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
+func ScopesMiddleware(c routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
 	if req.Path() == "/no-auth" {
 		return c.Proceed(rw, req)
 	}

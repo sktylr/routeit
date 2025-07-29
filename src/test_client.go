@@ -17,13 +17,6 @@ type TestConfig struct {
 	WriteDeadline time.Duration
 }
 
-type testRequest struct {
-	path    string
-	headers headers
-	method  HttpMethod
-	body    []byte
-}
-
 // Instantiates a test client that can be used to perform end-to-end tests on
 // the server.
 func NewTestClient(s *Server) TestClient {
@@ -50,7 +43,7 @@ func (tc TestClient) Get(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  GET,
-		headers: tc.constructHeaders(h...),
+		headers: constructTestHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
@@ -63,7 +56,7 @@ func (tc TestClient) Head(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  HEAD,
-		headers: tc.constructHeaders(h...),
+		headers: constructTestHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
@@ -139,7 +132,7 @@ func (tc TestClient) Options(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  OPTIONS,
-		headers: tc.constructHeaders(h...),
+		headers: constructTestHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
@@ -152,7 +145,7 @@ func (tc TestClient) Trace(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  TRACE,
-		headers: tc.constructHeaders(h...),
+		headers: constructTestHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
@@ -163,13 +156,13 @@ func (tc TestClient) Delete(path string, h ...string) *TestResponse {
 	req := testRequest{
 		path:    path,
 		method:  DELETE,
-		headers: tc.constructHeaders(h...),
+		headers: constructTestHeaders(h...),
 	}
 	return tc.makeRequest(req)
 }
 
 func (tc TestClient) xRaw(path string, body []byte, ct ContentType, method HttpMethod, h ...string) *TestResponse {
-	headers := tc.constructHeaders(h...)
+	headers := constructTestHeaders(h...)
 	headers.Set("Content-Type", ct.string())
 	headers.Set("Content-Length", fmt.Sprintf("%d", len(body)))
 	req := testRequest{
@@ -187,7 +180,7 @@ func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string
 		// We panic here since this is inside a test and expected to be correct
 		panic(err)
 	}
-	headers := tc.constructHeaders(h...)
+	headers := constructTestHeaders(h...)
 	headers.Set("Content-Type", CTApplicationJson.string())
 	headers.Set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
 	req := testRequest{
@@ -201,7 +194,7 @@ func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string
 
 func (tc TestClient) xText(path string, text string, method HttpMethod, h ...string) *TestResponse {
 	raw := []byte(text)
-	headers := tc.constructHeaders(h...)
+	headers := constructTestHeaders(h...)
 	headers.Set("Content-Type", CTTextPlain.string())
 	headers.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
 	req := testRequest{
@@ -237,15 +230,4 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 
 	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000})
 	return &TestResponse{rw}
-}
-
-func (tc TestClient) constructHeaders(h ...string) headers {
-	i := 0
-	total := len(h)
-	headers := headers{}
-	for i < total-1 {
-		headers.Set(h[i], h[i+1])
-		i += 2
-	}
-	return headers
 }

@@ -140,7 +140,7 @@ func TestAuthorisationMiddleware(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			req := routeit.NewTestRequest(t, "/foo", routeit.GET, routeit.TestRequest{
+			req := routeit.NewTestRequest(t, "/foo", routeit.GET, routeit.TestRequestOptions{
 				Headers: tc.headers,
 			})
 

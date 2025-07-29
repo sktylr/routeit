@@ -80,7 +80,7 @@ func GetServer() *routeit.Server {
 	return be
 }
 
-func AddResponseHeader(c *routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
+func AddResponseHeader(c routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
 	rw.Header("X-Response-Header", fmt.Sprintf("%v: %s", req.Method(), req.Path()))
 	return c.Proceed(rw, req)
 }

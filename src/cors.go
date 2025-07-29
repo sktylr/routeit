@@ -108,7 +108,7 @@ func DefaultCors() CorsConfig {
 func CorsMiddleware(cc CorsConfig) Middleware {
 	cors := cc.toCors()
 
-	return func(c *Chain, rw *ResponseWriter, req *Request) error {
+	return func(c Chain, rw *ResponseWriter, req *Request) error {
 		// Always set the Vary header to at least Origin. This ensures that
 		// intermediary nodes, such as CDNs or proxies know not to return a
 		// cached response if the Origin header is different as this could
@@ -143,7 +143,9 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 
 			// This is a hack to skip to the last piece of middleware, which
 			// will respond with the methods the route supports
-			c.i = uint(len(c.m.mwares))
+			if rc, ok := c.(*realChain); ok {
+				rc.i = uint(len(rc.m.mwares))
+			}
 			c.Proceed(rw, req)
 
 			allow, _ := rw.hdrs.Get("Allow")

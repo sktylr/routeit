@@ -315,7 +315,7 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 
 // This is the outermost piece of middleware and ensures that the request does
 // not exceed the write timeout described by the server's configuration.
-func (s *Server) timeoutMiddleware(c *Chain, rw *ResponseWriter, req *Request) error {
+func (s *Server) timeoutMiddleware(c Chain, rw *ResponseWriter, req *Request) error {
 	done := make(chan any, 1)
 	go func() {
 		defer func() {
@@ -349,7 +349,7 @@ func (s *Server) timeoutMiddleware(c *Chain, rw *ResponseWriter, req *Request) e
 // handle the request itself, such as routing. To simplify the logic, this is
 // done using middleware. We force the last piece of middleware to always be a
 // handler that routes the request and returns the response.
-func (s *Server) handlingMiddleware(c *Chain, rw *ResponseWriter, req *Request) error {
+func (s *Server) handlingMiddleware(c Chain, rw *ResponseWriter, req *Request) error {
 	handler, found := s.router.Route(req)
 	if !found {
 		return ErrNotFound().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))

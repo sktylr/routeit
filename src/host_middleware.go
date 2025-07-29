@@ -15,7 +15,7 @@ import (
 // values.
 func hostValidationMiddleware(allowed []string) Middleware {
 	if len(allowed) == 0 {
-		return func(c *Chain, rw *ResponseWriter, req *Request) error {
+		return func(c Chain, rw *ResponseWriter, req *Request) error {
 			return ErrBadRequest()
 		}
 	}
@@ -31,7 +31,7 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		}
 	}
 
-	return func(c *Chain, rw *ResponseWriter, req *Request) error {
+	return func(c Chain, rw *ResponseWriter, req *Request) error {
 		host, hasHost := req.Header("Host")
 		if !hasHost {
 			return ErrBadRequest()

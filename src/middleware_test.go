@@ -106,7 +106,7 @@ func TestChainProceed(t *testing.T) {
 }
 
 func middlewareReturning(err error) Middleware {
-	return func(c *Chain, rw *ResponseWriter, req *Request) error {
+	return func(c Chain, rw *ResponseWriter, req *Request) error {
 		return err
 	}
 }

@@ -144,7 +144,7 @@ func TestAtomicity(t *testing.T) {
 
 	t.Run("RegisterMiddleware", func(t *testing.T) {
 		defer expectPanic(t)
-		srv.RegisterMiddleware(func(c *Chain, rw *ResponseWriter, req *Request) error { return nil })
+		srv.RegisterMiddleware(func(c Chain, rw *ResponseWriter, req *Request) error { return nil })
 	})
 
 	t.Run("StartOrPanic", func(t *testing.T) {

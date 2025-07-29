@@ -16,16 +16,22 @@ import (
 // propagated to the response - even if the handler or intermediary middleware
 // returns an error or panics. The error's headers take precedence and will
 // overwrite any headers of the same name that are already set.
-type Middleware func(c *Chain, rw *ResponseWriter, req *Request) error
+type Middleware func(c Chain, rw *ResponseWriter, req *Request) error
+
+// The [Chain] manages the arrangement of middleware and can be used to invoke
+// the next piece of middleware.
+type Chain interface {
+	Proceed(rw *ResponseWriter, req *Request) error
+}
 
 type middleware struct {
 	mwares []Middleware
 	last   Middleware
 }
 
-// The chain manages the arrangement of middleware and can be used to invoke
-// the next piece of middleware.
-type Chain struct {
+// The [realChain] is a real implementation of a middleware chain used in real
+// requests and E2E tests.
+type realChain struct {
 	i uint
 	m *middleware
 }
@@ -34,8 +40,8 @@ func newMiddleware(last Middleware) *middleware {
 	return &middleware{last: last, mwares: []Middleware{}}
 }
 
-func (m *middleware) NewChain() *Chain {
-	return &Chain{i: 0, m: m}
+func (m *middleware) NewChain() *realChain {
+	return &realChain{i: 0, m: m}
 }
 
 // Register new middleware handlers to the middleware. The order of insertion
@@ -47,7 +53,7 @@ func (m *middleware) Register(ms ...Middleware) {
 // Passes the request and response to the next piece of middleware in the
 // chain. Should be called whenever the middleware does not wish to block the
 // incoming request.
-func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
+func (c *realChain) Proceed(rw *ResponseWriter, req *Request) error {
 	length := uint(len(c.m.mwares))
 	if c.i > length {
 		return nil
@@ -69,7 +75,7 @@ func (c *Chain) Proceed(rw *ResponseWriter, req *Request) error {
 // However, if the user has explicitly enabled it, we want to make sure it
 // appears where it should.
 func allowTraceValidationMiddleware() Middleware {
-	return func(c *Chain, rw *ResponseWriter, req *Request) error {
+	return func(c Chain, rw *ResponseWriter, req *Request) error {
 		err := c.Proceed(rw, req)
 
 		var h headers

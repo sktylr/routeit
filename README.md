@@ -145,6 +145,10 @@ Linking is performed through a `Chain` struct which is passed as an argument to 
 Multiple middleware functions can be attached to a single server.
 The order of attachment is important, as that is the order used when processing the middleware for each incoming request.
 
+Middleware can also be tested in isolation, using a combination of `routeit.NewTestRequest` and `routeit.TestMiddleware`.
+Under isolated test conditions, the middleware does not actually proceed to the next in the chain, but allows you to assert on the response, chain and error returned.
+See [`examples/middleware/simple/main_test.go`](/examples/middleware/simple/main_test.go) for an example of how to use this interface.
+
 #### Logging
 
 Each valid incoming request is logged with the corresponding method, path (both edge and rewritten) and response status.

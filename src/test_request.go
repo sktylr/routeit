@@ -2,7 +2,6 @@ package routeit
 
 import (
 	"strings"
-	"testing"
 )
 
 type TestRequest struct {
@@ -21,7 +20,7 @@ type testRequest struct {
 
 // This will create a new request object that can be used in tests, for example
 // when unit testing middleware.
-func NewTestRequest(t *testing.T, path string, m HttpMethod, tr TestRequest) *Request {
+func NewTestRequest(t testable, path string, m HttpMethod, tr TestRequest) *Request {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}

@@ -296,9 +296,7 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 		if req.mthd == HEAD {
 			rw.bdy = []byte{}
 		}
-		// TODO: could look into channels or goroutines here to avoid blocking on
-		// the log call, since the response has been entirely computed here and can be returned to the user.
-		s.log.LogRequestAndResponse(rw, req)
+		go s.log.LogRequestAndResponse(rw, req)
 	}()
 
 	req.uri.RewritePath(s.router)

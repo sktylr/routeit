@@ -182,7 +182,6 @@ func TestRequestFromRaw(t *testing.T) {
 	})
 
 	t.Run("prefixes leading slash", func(t *testing.T) {
-		// TODO: do we need this? is it spec compliant to do this?
 		bts := []byte("GET hello HTTP/1.1\r\nHost: localhost\r\n\r\n")
 
 		req, err := requestFromRaw(bts, defaultRequestSize, t.Context())

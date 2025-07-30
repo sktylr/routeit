@@ -122,6 +122,11 @@ func TestRequestFromRaw(t *testing.T) {
 				maxSize:    99 * Byte,
 				wantStatus: StatusContentTooLarge,
 			},
+			{
+				name:       "no blank line between body",
+				input:      "POST / HTTP/1.1\r\nContent-Length: 6\r\nContent-Type: text/plain\r\nHello!",
+				wantStatus: StatusBadRequest,
+			},
 		}
 
 		for _, tc := range tests {
@@ -169,7 +174,7 @@ func TestRequestFromRaw(t *testing.T) {
 		})
 
 		t.Run("stores entire request on body even if request has body", func(t *testing.T) {
-			bts := []byte("TRACE /hello HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 4\r\nContent-Type: text/plain\r\nbody")
+			bts := []byte("TRACE /hello HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 4\r\nContent-Type: text/plain\r\n\r\nbody")
 
 			req, err := requestFromRaw(bts, defaultRequestSize, t.Context())
 			if err != nil {
@@ -292,6 +297,21 @@ func TestRequestFromRaw(t *testing.T) {
 			}
 			expectBody(t, req.body, body)
 			expectHeader(t, "Host", req.headers, "localhost")
+			expectHeader(t, "Content-Length", req.headers, fmt.Sprintf("%d", len(bodyBytes)))
+			expectMethod(t, req.mthd, POST)
+			expectUrl(t, req, "/")
+		})
+
+		t.Run("body contains CRLF characters", func(t *testing.T) {
+			body := "Hello\r\nThis is\r\nA broken up\r\nbody, which is legal"
+			bodyBytes := []byte(body)
+			in := fmt.Appendf(nil, "POST / HTTP/1.1\r\nContent-Length: %d\r\nContent-Type: text/plain\r\n\r\n%s", len(bodyBytes), body)
+
+			req, err := requestFromRaw(in, defaultRequestSize, t.Context())
+			if err != nil {
+				t.Errorf("unexpected error %s", err)
+			}
+			expectBody(t, req.body, body)
 			expectHeader(t, "Content-Length", req.headers, fmt.Sprintf("%d", len(bodyBytes)))
 			expectMethod(t, req.mthd, POST)
 			expectUrl(t, req, "/")

@@ -29,28 +29,36 @@ func newResponseHeaders() headers {
 
 // Parses a slice of byte slices into the headers type.
 //
-// Expects that the input has already been split on the carriage return symbol \r\n
-func headersFromRaw(raw [][]byte) (headers, *HttpError) {
+// Expects that the input has already been split on the carriage return symbol:
+// \r\n, and will return the position of the last valid header line processed,
+// stopping at the first blank line sequence if present. If a blank line is not
+// present, we will return an error since per the RFC-9112 spec, the headers
+// MUST be separated from the body by a blank CRLF line.
+func headersFromRaw(raw [][]byte) (headers, int, *HttpError) {
 	h := headers{}
-	for _, line := range raw {
+	for i, line := range raw {
 		if len(line) == 0 {
-			// Empty line which should indicate the end of the headers. If it
-			// does not, we exit anyway and ignore the remaining headers, since
-			// it should.
-			// TODO: consider increasing the strictness here by rejecting the request
-			return h, nil
+			// This is an empty line which is interpreted as the signal between
+			// the end of the headers and the body. We return the current index
+			// since this is the last valid "header" line we processed.
+			return h, i, nil
 		}
 
 		kvp := strings.SplitN(string(line), ":", 2)
-		k, v := kvp[0], kvp[1]
-		if strings.TrimSpace(k) != k {
+		if len(kvp) == 1 || (strings.TrimSpace(kvp[0]) != kvp[0]) {
 			// The key cannot contain any leading nor trailing whitespace per
-			// RFC-9112
-			return nil, ErrBadRequest()
+			// RFC-9112. This may also be entered if the request does not
+			// contain a valid empty line between headers and the body, which
+			// we also reject.
+			return nil, i - 1, ErrBadRequest()
 		}
-		h.Set(k, strings.TrimSpace(v))
+		h.Set(kvp[0], strings.TrimSpace(kvp[1]))
 	}
-	return h, nil
+	// If we get here, it means we have reached the end of the headers and
+	// haven't encountered an empty line. This means the headers are malformed,
+	// which we report to the caller by returning an error and reporting the
+	// last valid index as the last element of the input slice.
+	return headers{}, len(raw) - 1, ErrBadRequest()
 }
 
 // Writes the headers to the given string builder. Sanitises the keys and

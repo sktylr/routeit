@@ -80,16 +80,13 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 	}
 
 	prtclRaw := sections[0]
-	hdrsRaw := sections[1 : len(sections)-1]
-	// TODO: make sure that this is correct (i.e. if a body is not included, do the specs state that there must be a carriage return anyway, so we can safely take the body as the last carriage return object?)
-	bdyRaw := sections[len(sections)-1]
-
 	ptcl, err := parseProtocolLine(prtclRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	reqHdrs, err := headersFromRaw(hdrsRaw)
+	hdrsRaw := sections[1:]
+	reqHdrs, lastHeader, err := headersFromRaw(hdrsRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +106,7 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 		return nil, ErrBadRequest().WithMessage("Cannot specify a Content-Length without Content-Type")
 	}
 
+	bdyRaw := bytes.Join(hdrsRaw[lastHeader+1:], []byte("\r\n"))
 	var body []byte
 	if cLen == 0 || !ptcl.mthd.canHaveBody() {
 		// For GET, HEAD or OPTIONS requests, the request body should be

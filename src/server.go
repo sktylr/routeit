@@ -132,10 +132,11 @@ func (s *Server) Start() error {
 		}
 
 		now := time.Now()
-		if err = conn.SetReadDeadline(now.Add(s.conf.ReadDeadline)); err != nil {
+		rddl := now.Add(s.conf.ReadDeadline)
+		if err = conn.SetReadDeadline(rddl); err != nil {
 			s.log.Warn("Failed to set read deadline for incoming connection", "deadline", s.conf.ReadDeadline, "err", err)
 		}
-		if err = conn.SetWriteDeadline(now.Add(s.conf.WriteDeadline).Add(s.conf.ReadDeadline)); err != nil {
+		if err = conn.SetWriteDeadline(rddl.Add(s.conf.ReadDeadline)); err != nil {
 			s.log.Warn("Failed to set write deadline for incoming connection", "deadline", s.conf.WriteDeadline, "err", err)
 		}
 
@@ -147,9 +148,7 @@ func (s *Server) Start() error {
 // raw response back to the client. Read and write deadlines are handled using
 // the server config.
 func (s *Server) handleNewConnection(conn net.Conn) {
-	// TODO: need to choose between strings and bytes here!
 	defer func() {
-		// TODO: should probably look at the headers here to determine whether the conn should actually be closed, or put on a timeout for closure etc.
 		conn.Close()
 	}()
 
@@ -203,10 +202,16 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 			r = err
 		}
 		rw = s.errorHandler.HandleErrors(r, rw, req)
-		// TODO: need improved error handling semantics here!
+
+		// In some cases, the HEAD request will fail - e.g. a panic or error
+		// returned. In those cases, we still return the error response, but
+		// must make sure the body is removed. We keep the headers as they
+		// would be had the GET request succeeded, so Content-Length and
+		// Content-Type are left untouched.
 		if req.mthd == HEAD {
 			rw.bdy = []byte{}
 		}
+
 		go s.log.LogRequestAndResponse(rw, req)
 	}()
 

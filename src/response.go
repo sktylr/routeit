@@ -96,9 +96,12 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 // Sets a header with the corresponding value. This is destructive, meaning
 // repeated calls using the same key will preserve the last key. Header key and
 // values will be sanitised per HTTP spec before being added to the server's
-// response.
+// response. It is the user's responsibility to ensure that the headers are
+// safe and non-conflicting. For example, it is heavily discouraged to modify
+// the Content-Type or Content-Length headers as they are managed implicitly
+// whenever a body is written to a response and can cause issues on the client
+// if they contain incorrect values.
 func (rw *ResponseWriter) Header(key string, val string) {
-	// TODO: probably want to define some allow list (e.g. to avoid overwriting Content-Length etc.)
 	rw.hdrs.Set(key, val)
 }
 

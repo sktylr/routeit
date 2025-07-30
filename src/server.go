@@ -265,7 +265,7 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 	ctx, cancel := context.WithTimeout(context.Background(), s.conf.WriteDeadline)
 	defer cancel()
 
-	req, httpErr := requestFromRaw(raw, ctx)
+	req, httpErr := requestFromRaw(raw, s.conf.RequestSize, ctx)
 	if httpErr != nil {
 		rw := newResponse()
 		httpErr.toResponse(rw)

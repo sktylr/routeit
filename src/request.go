@@ -68,7 +68,7 @@ type protocolLine struct {
 // carriage return) also follows the headers before the optional body.
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
-func requestFromRaw(raw []byte, ctx context.Context) (*Request, *HttpError) {
+func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Request, *HttpError) {
 	// TODO: need to add support for all request-target forms (origin-form, absolute-form, authority-form, asterisk-form) that should be accepted by a HTTP only server.
 	sections := bytes.Split(raw, []byte("\r\n"))
 
@@ -101,12 +101,15 @@ func requestFromRaw(raw []byte, ctx context.Context) (*Request, *HttpError) {
 	}
 	cLen := reqHdrs.ContentLength()
 
+	if cLen > uint(maxSize) {
+		return nil, ErrContentTooLarge()
+	}
+
 	if !ct.isValid() && cLen != 0 && ptcl.mthd.canHaveBody() {
 		return nil, ErrBadRequest().WithMessage("Cannot specify a Content-Length without Content-Type")
 	}
 
 	var body []byte
-	// TODO: make the buffer size also depend on the server max allowed request
 	if cLen == 0 || !ptcl.mthd.canHaveBody() {
 		// For GET, HEAD or OPTIONS requests, the request body should be
 		// ignored even if provided. Servers can technically accept request
@@ -124,7 +127,6 @@ func requestFromRaw(raw []byte, ctx context.Context) (*Request, *HttpError) {
 			body = raw
 		}
 	} else {
-		// TODO: we need to return 413 Payload Too Large if the total payload exceeds defined bounds
 		reader := bytes.NewReader(bdyRaw)
 		body = make([]byte, cLen)
 		_, err := io.ReadFull(reader, body)

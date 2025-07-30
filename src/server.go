@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"path"
@@ -85,6 +86,12 @@ type ServerConfig struct {
 	// default value of false. If you are happy to support TRACE requests, set
 	// AllowTraceRequests to true.
 	AllowTraceRequests bool
+	// The logging handler used for server-specific logging. Logging within the
+	// application code may use its own logging handler that is independent of
+	// the given handler. If not supplied, this will use a [slog.JSONHandler]
+	// that outputs to [os.Stdout]. Level defaults to INFO but will be set to
+	// DEBUG if [ServerConfig.Debug] is true.
+	LoggingHandler slog.Handler
 }
 
 // The internal server config, which only stores the necessary values
@@ -115,7 +122,7 @@ func NewServer(conf ServerConfig) *Server {
 	router.GlobalNamespace(conf.Namespace)
 	router.NewStaticDir(conf.StaticDir)
 	errorHandler := newErrorHandler(conf.ErrorMapper)
-	log := newLogger(conf.Debug)
+	log := newLogger(conf.LoggingHandler, conf.Debug)
 	s := &Server{conf: conf.internalise(), router: router, log: log, errorHandler: errorHandler}
 	s.middleware = newMiddleware(s.handlingMiddleware)
 	s.RegisterMiddleware(s.timeoutMiddleware)

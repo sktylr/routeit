@@ -305,7 +305,7 @@ func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *R
 			e.toResponse(rw)
 			err = e.cause
 		case error:
-			eh.toHttpError(e).toResponse(rw)
+			eh.toHttpError(e, req).toResponse(rw)
 			err = e
 		default:
 			ErrInternalServerError().toResponse(rw)
@@ -345,7 +345,7 @@ func (e *HttpError) isValid() bool {
 
 // Converts from a general error into a HttpError, is possible. Falls back to
 // a 500: Internal Server Error if no match is possible.
-func (eh *errorHandler) toHttpError(err error) *HttpError {
+func (eh *errorHandler) toHttpError(err error, req *Request) *HttpError {
 	mapped := eh.em(err)
 	if mapped != nil && mapped.isValid() {
 		return mapped
@@ -354,7 +354,7 @@ func (eh *errorHandler) toHttpError(err error) *HttpError {
 		return ErrForbidden().WithCause(err)
 	}
 	if errors.Is(err, fs.ErrNotExist) {
-		return ErrNotFound().WithCause(err)
+		return ErrNotFound().WithCause(err).WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrServiceUnavailable().WithCause(err)

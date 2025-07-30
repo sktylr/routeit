@@ -161,9 +161,6 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 		return
 	}
 
-	// TODO: remove
-	fmt.Printf("-------------\nReceived: %s\n----------\n", buf)
-
 	res := s.handleNewRequest(buf, conn.RemoteAddr())
 	_, err = conn.Write(res.write())
 

@@ -46,7 +46,10 @@ func (l *logger) LogRequestAndResponse(rw *ResponseWriter, req *Request) {
 	}
 
 	l.log.LogAttrs(context.Background(), level, "Received request", attrs...)
-	// TODO: could dump the request body here if we want to?
+
+	if rw.s.isError() && len(req.body) != 0 {
+		l.log.Debug("Request failed", slog.String("body", string(req.body)))
+	}
 }
 
 func (l *logger) Debug(msg string, args ...any) {

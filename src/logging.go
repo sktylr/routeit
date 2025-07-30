@@ -10,7 +10,10 @@ type logger struct {
 	log *slog.Logger
 }
 
-func newLogger(debug bool) *logger {
+func newLogger(handler slog.Handler, debug bool) *logger {
+	if handler != nil {
+		return &logger{log: slog.New(handler)}
+	}
 	logOpts := slog.HandlerOptions{}
 	if debug {
 		logOpts.Level = slog.LevelDebug

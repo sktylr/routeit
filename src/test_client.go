@@ -226,6 +226,7 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	if err != nil {
 		panic(fmt.Errorf("encountered error writing header for test %v", err))
 	}
+	rb.WriteString("\r\n")
 	rb.Write(req.body)
 
 	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000})

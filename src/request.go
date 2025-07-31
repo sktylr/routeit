@@ -20,17 +20,6 @@ var (
 	TRACE   = HttpMethod{name: "TRACE"}
 )
 
-var methodLookup = map[string]HttpMethod{
-	"GET":     GET,
-	"HEAD":    HEAD,
-	"POST":    POST,
-	"PUT":     PUT,
-	"DELETE":  DELETE,
-	"PATCH":   PATCH,
-	"OPTIONS": OPTIONS,
-	"TRACE":   TRACE,
-}
-
 type Request struct {
 	ctx  context.Context
 	mthd HttpMethod
@@ -302,6 +291,9 @@ func (req *Request) AcceptsContentType(other ContentType) bool {
 	return false
 }
 
+// Access the request's context. This should be used for context aware
+// calculations within handlers or middleware, for example to load an object
+// from a database.
 func (req *Request) Context() context.Context {
 	return req.ctx
 }
@@ -329,6 +321,15 @@ func (m HttpMethod) canHaveBody() bool {
 	return m != GET && m != HEAD && m != OPTIONS && m != TRACE
 }
 
+func (m HttpMethod) isValid() bool {
+	switch m {
+	case GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS, TRACE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Parses the first line of the request. This line should contain the HTTP
 // method, requested URI and the protocol. parseProtocolLine will parse all
 // components and group them into a [protocolLine] struct, returning an error
@@ -340,8 +341,8 @@ func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	}
 
 	mthdRaw, uriRaw, prtcl := startLineSplit[0], string(startLineSplit[1]), string(startLineSplit[2])
-	mthd, found := methodLookup[string(mthdRaw)]
-	if !found {
+	mthd := HttpMethod{name: string(mthdRaw)}
+	if !mthd.isValid() {
 		return protocolLine{}, ErrNotImplemented()
 	}
 	if prtcl != "HTTP/1.1" {

@@ -193,8 +193,8 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 }
 
 func (c *cors) IsAllowedMethod(raw string) bool {
-	method, isValidMethod := methodLookup[raw]
-	return isValidMethod && slices.Contains(c.AllowedMethods, method)
+	method := HttpMethod{name: raw}
+	return method.isValid() && slices.Contains(c.AllowedMethods, method)
 }
 
 func (cc CorsConfig) toCors() *cors {

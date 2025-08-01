@@ -168,6 +168,57 @@ func (t *StringTrie[I, O]) Find(path string) (*O, bool) {
 	return t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.re), true
 }
 
+func (t *StringTrie[I, O]) FindList(path []string) (*O, bool) {
+	if t.root == nil {
+		return nil, false
+	}
+
+	eligible := []*stringNode[I]{t.root}
+	for i, seg := range path {
+		if i == 0 && seg == "" {
+			continue
+		}
+		eligibleChildren := []*stringNode[I]{}
+		found := false
+		for _, current := range eligible {
+			for _, child := range current.children {
+				if child.key.Matches(seg) {
+					eligibleChildren = append(eligibleChildren, child)
+					found = true
+				}
+			}
+		}
+		if !found {
+			return nil, false
+		}
+		eligible = eligibleChildren
+	}
+
+	var found *stringNode[I]
+	for _, e := range eligible {
+		if e.value == nil {
+			// The eligible candidate is not a value node (i.e. it has children)
+			continue
+		}
+		if e.HigherPriority(found) {
+			found = e
+		}
+	}
+
+	if found == nil || found.value == nil {
+		return nil, false
+	}
+
+	// We omit the nil check on the inner value since by construction it should
+	// always be populated.
+	if found.value.dm == nil {
+		return t.extractor.NewFromStatic(found.value.val), true
+	}
+	// TODO: this will need to work without joining - i.e. through returning a URI or similar for rewrites
+	val := t.extractor.NewFromDynamic(found.value.val, strings.Join(path, string(t.split)), found.value.dm.re)
+	return val, true
+}
+
 func (t *StringTrie[I, O]) Insert(path string, value *I) {
 	if t.root == nil {
 		t.root = &stringNode[I]{}

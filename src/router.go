@@ -21,7 +21,7 @@ import (
 // dynamic, the component must entirely be encapsulated by ${ }. This regex
 // does not prohibit this behaviour, but the key will be incorrectly
 // interpreted within the parser if this is the case.
-var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s+(/(?:[\w.${}-]+(?:/[\w.${}-]+)*)?)(?:\s*#.*)?$`)
+var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s+(/(?:[?=&\w.${}-]+(?:/[?=&\w.${}-]+)*)?)(?:\s*#.*)?$`)
 
 // The [RouteRegistry] is used to associate routes with their corresponding
 // handlers. Routing supports both static and dynamic routes. The keys of the
@@ -217,15 +217,17 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 }
 
 // Passes the incoming URL through the router's rewrites.
-func (r *router) Rewrite(url string) (string, bool) {
-	// For static rewrites, the `static` variable is the actual rewrite. For
-	// dynamic rewrites, it is the _template_ of the rewrite (i.e. the value
-	// used in the config entry)
-	rewritten, found := r.rewrites.Find(url)
+func (r *router) RewriteUri(uri *uri) *HttpError {
+	rewritten, found := r.rewrites.Find(uri.edgePath)
 	if !found {
-		return url, false
+		return nil
 	}
-	return *rewritten, true
+	rewrittenPath, rewrittenQuery, hasQuery := strings.Cut(*rewritten, "?")
+	uri.rewrittenPath = rewrittenPath
+	if !hasQuery {
+		return nil
+	}
+	return parseQueryParams(rewrittenQuery, &uri.queryParams)
 }
 
 func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {

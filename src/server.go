@@ -215,7 +215,7 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 		go s.log.LogRequestAndResponse(rw, req)
 	}()
 
-	req.uri.RewritePath(s.router)
+	s.router.RewriteUri(&req.uri)
 	rw = newResponseForMethod(req.mthd)
 	chain := s.middleware.NewChain()
 	err = chain.Proceed(rw, req)

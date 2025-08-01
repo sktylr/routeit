@@ -3,6 +3,7 @@ package routeit
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -434,76 +435,84 @@ func TestNewStaticDir(t *testing.T) {
 	}
 }
 
-func TestRewrite(t *testing.T) {
+func TestRewritePath(t *testing.T) {
 	tests := []struct {
-		name    string
-		base    map[string]string
-		in      string
-		want    string
-		rewrite bool
+		name            string
+		base            map[string]string
+		in              string
+		wantRewritten   string
+		wantQueryParams queryParameters
+		rewrite         bool
 	}{
 		{
-			"empty",
-			map[string]string{},
-			"/foo/bar",
-			"/foo/bar",
-			false,
+			name:          "empty",
+			in:            "/foo/bar",
+			wantRewritten: "/foo/bar",
+			rewrite:       false,
 		},
 		{
-			"1 element no match",
-			map[string]string{"/foo": "/bar"},
-			"/foo/bar",
-			"/foo/bar",
-			false,
+			name:          "1 element no match",
+			base:          map[string]string{"/foo": "/bar"},
+			in:            "/foo/bar",
+			wantRewritten: "/foo/bar",
+			rewrite:       false,
 		},
 		{
-			"1 element match",
-			map[string]string{"/foo/bar": "/baz"},
-			"/foo/bar",
-			"/baz",
-			true,
+			name:          "1 element match",
+			base:          map[string]string{"/foo/bar": "/baz"},
+			in:            "/foo/bar",
+			wantRewritten: "/baz",
+			rewrite:       true,
 		},
 		{
-			"1 dynamic",
-			map[string]string{"/foo/${bar}": "/baz/${bar}"},
-			"/foo/qux",
-			"/baz/qux",
-			true,
+			name:          "1 dynamic",
+			base:          map[string]string{"/foo/${bar}": "/baz/${bar}"},
+			in:            "/foo/qux",
+			wantRewritten: "/baz/qux",
+			rewrite:       true,
 		},
 		{
-			"2 dynamics (same count), prioritises later dynamics",
-			map[string]string{"/foo/${bar}": "/baz/${bar}", "/${foo}/bar": "/${foo}/qux"},
-			"/foo/bar",
-			"/baz/bar",
-			true,
+			name:          "2 dynamics (same count), prioritises later dynamics",
+			base:          map[string]string{"/foo/${bar}": "/baz/${bar}", "/${foo}/bar": "/${foo}/qux"},
+			in:            "/foo/bar",
+			wantRewritten: "/baz/bar",
+			rewrite:       true,
 		},
 		{
-			"2 dynamics, different count, prioritises shorter count",
-			map[string]string{"/foo/${bar}/baz": "/pick/me", "/${foo}/bar/${baz}": "/not/me"},
-			"/foo/bar/baz",
-			"/pick/me",
-			true,
+			name:          "2 dynamics, different count, prioritises shorter count",
+			base:          map[string]string{"/foo/${bar}/baz": "/pick/me", "/${foo}/bar/${baz}": "/not/me"},
+			in:            "/foo/bar/baz",
+			wantRewritten: "/pick/me",
+			rewrite:       true,
 		},
 		{
-			"prioritises static rewrites",
-			map[string]string{"/foo/bar": "/baz", "/foo/${bar}": "/${bar}"},
-			"/foo/bar",
-			"/baz",
-			true,
+			name:          "prioritises static rewrites",
+			base:          map[string]string{"/foo/bar": "/baz", "/foo/${bar}": "/${bar}"},
+			in:            "/foo/bar",
+			wantRewritten: "/baz",
+			rewrite:       true,
 		},
 		{
-			"dynamic does not match (too short)",
-			map[string]string{"/foo/${bar}": "/baz/${bar}"},
-			"/foo",
-			"/foo",
-			false,
+			name:          "dynamic does not match (too short)",
+			base:          map[string]string{"/foo/${bar}": "/baz/${bar}"},
+			in:            "/foo",
+			wantRewritten: "/foo",
+			rewrite:       false,
 		},
 		{
-			"dynamic does not match (too long)",
-			map[string]string{"/foo/${bar}": "/baz/${bar}"},
-			"/foo/bar/baz",
-			"/foo/bar/baz",
-			false,
+			name:          "dynamic does not match (too long)",
+			base:          map[string]string{"/foo/${bar}": "/baz/${bar}"},
+			in:            "/foo/bar/baz",
+			wantRewritten: "/foo/bar/baz",
+			rewrite:       false,
+		},
+		{
+			name:            "dynamic path to query param",
+			base:            map[string]string{"/foo/${bar}": "/baz?id=${bar}"},
+			in:              "/foo/123",
+			wantRewritten:   "/baz",
+			wantQueryParams: queryParameters{"id": "123"},
+			rewrite:         true,
 		},
 	}
 
@@ -514,12 +523,28 @@ func TestRewrite(t *testing.T) {
 				router.NewRewrite(fmt.Sprintf("%s %s", k, v))
 			}
 
-			actual, rewrite := router.Rewrite(tc.in)
-			if rewrite != tc.rewrite {
-				t.Errorf(`Rewrite(%#q) didRewrite? = %t, wanted %t`, tc.in, rewrite, tc.rewrite)
+			uri := &uri{
+				edgePath:    tc.in,
+				queryParams: queryParameters{},
 			}
-			if actual != tc.want {
-				t.Errorf(`Rewrite(%#q) rewritten = %s, wanted %s`, tc.in, actual, tc.want)
+
+			err := router.RewriteUri(uri)
+			if err != nil {
+				t.Fatalf("unexpected error during rewrite: %v", err)
+			}
+			actual := uri.rewrittenPath
+			if actual == "" {
+				actual = uri.edgePath
+			}
+			didRewrite := actual != tc.in
+			if didRewrite != tc.rewrite {
+				t.Errorf("RewritePath(%q) didRewrite? = %t, wanted %t", tc.in, didRewrite, tc.rewrite)
+			}
+			if actual != tc.wantRewritten {
+				t.Errorf("RewritePath(%q) rewritten = %q, wanted %q", tc.in, actual, tc.wantRewritten)
+			}
+			if tc.wantQueryParams != nil && !reflect.DeepEqual(uri.queryParams, tc.wantQueryParams) {
+				t.Errorf("RewritePath(%q) query params = %#v, wanted %#v", tc.in, uri.queryParams, tc.wantQueryParams)
 			}
 		})
 	}

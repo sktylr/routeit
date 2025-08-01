@@ -68,7 +68,8 @@ type urlRewriteExtractor struct{}
 type router struct {
 	routes *trie.StringTrie[Handler, matchedRoute]
 	// The global namespace that all registered routes are prefixed with.
-	namespace string
+	namespace  string
+	namespaceL []string
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticLoader *Handler
@@ -111,6 +112,7 @@ func (r *router) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegist
 // Registers a global namespace to all routes
 func (r *router) GlobalNamespace(namespace string) {
 	r.namespace = r.trimRouteForInsert(namespace)
+	r.namespaceL = strings.Split(r.namespace, "/")
 }
 
 // Sets the static directory that files are loaded from. Panics whenever the

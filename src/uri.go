@@ -17,11 +17,13 @@ type uri struct {
 	// The edge path is the path that the request reaches the edge of the
 	// server with. This may be different to the rewritten path, if URL
 	// rewrites are configured for the server.
-	edgePath      string
-	rewrittenPath string
-	rawPath       string
-	pathParams    pathParameters
-	queryParams   queryParameters
+	edgePath       string
+	edgePathL      []string
+	rewrittenPath  string
+	rewrittenPathL []string
+	rawPath        string
+	pathParams     pathParameters
+	queryParams    queryParameters
 }
 
 // TODO: this doesn't enforce that all characters are legal
@@ -49,6 +51,15 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 
 	rawPath, rawQuery, hasQuery := strings.Cut(uriRaw, "?")
 
+	var edgePathL []string
+	for rawPart := range strings.SplitSeq(rawPath, "/") {
+		part, err := url.PathUnescape(rawPart)
+		if err != nil {
+			return nil, ErrBadRequest().WithCause(err)
+		}
+		edgePathL = append(edgePathL, part)
+	}
+
 	path, err := url.PathUnescape(rawPath)
 	if err != nil {
 		return nil, ErrBadRequest()
@@ -61,13 +72,14 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 		// will be found later by the router.
 		path = "/" + path
 		rawPath = "/" + rawPath
+		// TODO: need to determine what to do here??
 	}
 
 	if path != "/" {
 		path = strings.TrimSuffix(path, "/")
 	}
 
-	uri := &uri{edgePath: path, rawPath: rawPath, queryParams: queryParameters{}}
+	uri := &uri{edgePath: path, edgePathL: edgePathL, rawPath: rawPath, queryParams: queryParameters{}}
 
 	if hasQuery {
 		if err := parseQueryParams(rawQuery, &uri.queryParams); err != nil {

@@ -98,19 +98,6 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 	return uri, nil
 }
 
-func (u *uri) RewritePath(r *router) error {
-	rewrite, didRewrite := r.Rewrite(u.edgePath)
-	if !didRewrite {
-		return nil
-	}
-	rewrittenPath, rewrittenQuery, hasQuery := strings.Cut(rewrite, "?")
-	u.rewrittenPath = rewrittenPath
-	if !hasQuery {
-		return nil
-	}
-	return parseQueryParams(rewrittenQuery, &u.queryParams)
-}
-
 func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError {
 	if strings.Contains(rawQuery, "?") {
 		// There should only be 1 `?`, which we have stripped off. Any `?` that

@@ -522,13 +522,13 @@ func TestRewritePath(t *testing.T) {
 			for k, v := range tc.base {
 				router.NewRewrite(fmt.Sprintf("%s %s", k, v))
 			}
-
-			uri := &uri{
-				edgePath:    tc.in,
-				queryParams: queryParameters{},
+			uri, err := parseUri(tc.in)
+			if err != nil {
+				t.Fatalf("error while parsing input uri: %v", err)
 			}
 
-			err := router.RewriteUri(uri)
+			err = router.RewriteUri(uri)
+
 			if err != nil {
 				t.Fatalf("unexpected error during rewrite: %v", err)
 			}

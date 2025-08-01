@@ -174,10 +174,7 @@ func (t *StringTrie[I, O]) FindList(path []string) (*O, bool) {
 	}
 
 	eligible := []*stringNode[I]{t.root}
-	for i, seg := range path {
-		if i == 0 && seg == "" {
-			continue
-		}
+	for _, seg := range path {
 		eligibleChildren := []*stringNode[I]{}
 		found := false
 		for _, current := range eligible {
@@ -214,8 +211,13 @@ func (t *StringTrie[I, O]) FindList(path []string) (*O, bool) {
 	if found.value.dm == nil {
 		return t.extractor.NewFromStatic(found.value.val), true
 	}
+	// TODO: this will have to be adapted for routing versus rewrites
+	joinedPath := strings.Join(path, string(t.split))
+	if !strings.HasPrefix(joinedPath, string(t.split)) {
+		joinedPath = string(t.split) + joinedPath
+	}
 	// TODO: this will need to work without joining - i.e. through returning a URI or similar for rewrites
-	val := t.extractor.NewFromDynamic(found.value.val, strings.Join(path, string(t.split)), found.value.dm.re)
+	val := t.extractor.NewFromDynamic(found.value.val, joinedPath, found.value.dm.re)
 	return val, true
 }
 

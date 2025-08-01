@@ -52,12 +52,20 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 	rawPath, rawQuery, hasQuery := strings.Cut(uriRaw, "?")
 
 	var edgePathL []string
-	for rawPart := range strings.SplitSeq(rawPath, "/") {
+	last := -1
+	for i, rawPart := range strings.Split(rawPath, "/") {
+		if i == 0 && rawPart == "" {
+			continue
+		}
 		part, err := url.PathUnescape(rawPart)
 		if err != nil {
 			return nil, ErrBadRequest().WithCause(err)
 		}
 		edgePathL = append(edgePathL, part)
+		last++
+	}
+	if edgePathL[last] == "" {
+		edgePathL = edgePathL[:last]
 	}
 
 	path, err := url.PathUnescape(rawPath)

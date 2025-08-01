@@ -64,7 +64,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 		edgePathL = append(edgePathL, part)
 		last++
 	}
-	if edgePathL[last] == "" {
+	if last > 0 && edgePathL[last] == "" {
 		edgePathL = edgePathL[:last]
 	}
 

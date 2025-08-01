@@ -112,7 +112,9 @@ func (r *router) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegist
 // Registers a global namespace to all routes
 func (r *router) GlobalNamespace(namespace string) {
 	r.namespace = r.trimRouteForInsert(namespace)
-	r.namespaceL = strings.Split(r.namespace, "/")
+	if r.namespace != "" {
+		r.namespaceL = strings.Split(r.namespace, "/")
+	}
 }
 
 // Sets the static directory that files are loaded from. Panics whenever the

@@ -246,7 +246,7 @@ func TestRoute(t *testing.T) {
 
 				got, found := router.Route(req)
 				if !found {
-					t.Error("expected route to be found")
+					t.Fatal("expected route to be found")
 				}
 				err := got.handle(&ResponseWriter{}, req)
 				if err != nil {
@@ -833,5 +833,9 @@ func doNotWantHandler(rw *ResponseWriter, req *Request) error {
 }
 
 func requestWithUrlAndMethod(url string, method HttpMethod) *Request {
-	return &Request{uri: uri{edgePath: url}, mthd: method}
+	uri, err := parseUri(url)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse uri [%s] for test: %v", url, err))
+	}
+	return &Request{uri: *uri, mthd: method}
 }

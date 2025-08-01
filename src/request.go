@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -152,8 +153,11 @@ func (req *Request) Method() HttpMethod {
 // Where the server has URL rewrites configured, this will be the rewritten URL.
 func (req *Request) Path() string {
 	uri := req.uri
+	if uri.rawPath == "*" {
+		return "*"
+	}
 	if uri.rewrittenPath == "" {
-		return uri.edgePath
+		return "/" + strings.Join(uri.edgePathL, "/")
 	}
 	return uri.rewrittenPath
 }

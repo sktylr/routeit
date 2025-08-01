@@ -218,7 +218,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 
 // Passes the incoming URL through the router's rewrites.
 func (r *router) RewriteUri(uri *uri) *HttpError {
-	rewritten, found := r.rewrites.Find(uri.edgePath)
+	rewritten, found := r.rewrites.FindList(uri.edgePathL)
 	if !found {
 		return nil
 	}

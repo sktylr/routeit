@@ -227,10 +227,7 @@ func (t *StringTrie[I, O]) Insert(path string, value *I) {
 	}
 
 	current := t.root
-	for i, seg := range strings.Split(path, string(t.split)) {
-		if i == 0 && seg == "" {
-			continue
-		}
+	for seg := range strings.SplitSeq(strings.TrimPrefix(path, string(t.split)), string(t.split)) {
 		current = current.GetOrCreateChild(seg)
 	}
 

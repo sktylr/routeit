@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/sktylr/routeit/trie"
@@ -72,6 +73,7 @@ type router struct {
 	namespaceL []string
 	// The static directory for serving responses from disk.
 	staticDir    string
+	staticDirL   []string
 	staticLoader *Handler
 	rewrites     *trie.StringTrie[string, string]
 }
@@ -134,6 +136,7 @@ func (r *router) NewStaticDir(s string) {
 	cleaned = strings.TrimPrefix(cleaned, "/")
 	r.staticDir = cleaned
 	r.staticLoader = staticLoader(r.namespace)
+	r.staticDirL = strings.Split(r.staticDir, "/")
 }
 
 // Adds a new URL rewrite rule to the router. Ignores comments and empty lines
@@ -189,27 +192,46 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return globalOptionsHandler(), true
 	}
 
-	// TODO: need to improve the string manipulation here - it looks expensive!
-	sanitised := strings.TrimPrefix(req.Path(), "/")
-	if !strings.HasPrefix(sanitised, r.namespace) {
-		// The route is not under the global namespace so we know it isn't valid
+	toUse := req.uri.edgePathL
+	if len(req.uri.rewrittenPathL) != 0 {
+		// TODO: need improved semantics here to know when rewritten or not
+		toUse = req.uri.rewrittenPathL
+	}
+
+	if len(toUse) < len(r.namespaceL) {
 		return nil, false
 	}
 
-	trimmed := strings.TrimPrefix(sanitised, r.namespace+"/")
-
-	if r.staticDir != "" && strings.HasPrefix(trimmed, r.staticDir) {
-		if strings.Contains(trimmed, "..") {
-			// We want to prohibit back-tracking, even if it is technically safe
-			// (e.g. /foo/bar/../bar/image.png is safe since it can be simplified
-			// to /foo/bar/image.png but we don't want to allow back-tracking of
-			// any sort)
+	nonNamespace := 0
+	for i, seg := range r.namespaceL {
+		if seg != toUse[i] {
 			return nil, false
 		}
-		return r.staticLoader, true
+		nonNamespace++
+	}
+	trimmed := toUse[nonNamespace:]
+
+	if r.staticDir != "" {
+		isStaticRoute := true
+		for i, seg := range r.staticDirL {
+			if seg != trimmed[i] {
+				isStaticRoute = false
+				break
+			}
+		}
+		if isStaticRoute {
+			if slices.Contains(trimmed, "..") {
+				// We want to prohibit back-tracking, even if it is technically
+				// safe (e.g. /foo/bar/../bar/image.png is safe since it can be
+				// simplified to /foo/bar/image.png but we don't want to allow
+				// back-tracking of any sort)
+				return nil, false
+			}
+			return r.staticLoader, true
+		}
 	}
 
-	route, found := r.routes.Find(trimmed)
+	route, found := r.routes.FindList(trimmed)
 	if route != nil && found {
 		req.uri.pathParams = route.params
 		return route.handler, true
@@ -226,6 +248,13 @@ func (r *router) RewriteUri(uri *uri) *HttpError {
 	}
 	rewrittenPath, rewrittenQuery, hasQuery := strings.Cut(*rewritten, "?")
 	uri.rewrittenPath = rewrittenPath
+	// TODO: this needs to come from the trie
+	if rewrittenPath == "/" {
+		uri.rewrittenPathL = []string{}
+	} else {
+		// TODO: need to remove this hack, this is because of the leading slash nonsense
+		uri.rewrittenPathL = strings.Split(rewrittenPath, "/")[1:]
+	}
 	if !hasQuery {
 		return nil
 	}

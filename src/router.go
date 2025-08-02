@@ -231,7 +231,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		}
 	}
 
-	route, found := r.routes.FindList(trimmed)
+	route, found := r.routes.Find(trimmed)
 	if route != nil && found {
 		req.uri.pathParams = route.params
 		return route.handler, true
@@ -242,7 +242,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 
 // Passes the incoming URL through the router's rewrites.
 func (r *router) RewriteUri(uri *uri) *HttpError {
-	rewritten, found := r.rewrites.FindList(uri.edgePathL)
+	rewritten, found := r.rewrites.Find(uri.edgePathL)
 	if !found {
 		return nil
 	}

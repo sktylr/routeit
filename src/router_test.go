@@ -835,7 +835,7 @@ func TestNewRewrite(t *testing.T) {
 
 				for k, v := range tc.want {
 					key := strings.Split(k, "/")[1:]
-					rewritten, exists := router.rewrites.FindList(key)
+					rewritten, exists := router.rewrites.Find(key)
 					if !exists {
 						t.Fatalf("rewrites[%#q] not found, expected to find", k)
 					}

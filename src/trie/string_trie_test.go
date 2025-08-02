@@ -26,47 +26,47 @@ func TestTrieLookup(t *testing.T) {
 		tests := []struct {
 			name   string
 			in     map[string]int
-			search string
+			search []string
 		}{
 			{
 				"empty",
 				map[string]int{},
-				"/foo",
+				[]string{"foo"},
 			},
 			{
 				"multiple populated",
 				map[string]int{"/foo": 13, "/foo/bar": 0, "/foo/baz": 9, "/foo/bar/qux": 17},
-				"/foo/bar/baz",
+				[]string{"foo", "bar", "baz"},
 			},
 			{
 				"present but non value",
 				map[string]int{"/foo/bar/baz": 42, "/foo/baz": 19, "/foo/bar/qux": 13},
-				"/foo/bar",
+				[]string{"foo", "bar"},
 			},
 			{
 				"dynamic present but non value",
 				map[string]int{"/foo/:bar/baz": 42},
-				"/foo/bar",
+				[]string{"foo", "bar"},
 			},
 			{
 				"dynamic with prefix, search without prefix",
 				map[string]int{"/foo/:bar|baz": 42},
-				"/foo/bar",
+				[]string{"foo", "bar"},
 			},
 			{
 				"dynamic with suffix, search without suffix",
 				map[string]int{"/foo/:bar||baz": 42},
-				"/foo/bar",
+				[]string{"foo", "bar"},
 			},
 			{
 				"dynamic with prefix and suffix, search with prefix, without suffix",
 				map[string]int{"/foo/:bar|baz|qux": 42},
-				"/foo/baza",
+				[]string{"foo", "baza"},
 			},
 			{
 				"dynamic with prefix and suffix, search without prefix, with suffix",
 				map[string]int{"/foo/:bar|baz|qux": 42},
-				"/foo/aqux",
+				[]string{"foo", "aqux"},
 			},
 			{
 				// The reason we don't want this to match is because the name
@@ -74,7 +74,7 @@ func TestTrieLookup(t *testing.T) {
 				// not be empty.
 				"dynamic with prefix and suffix, search is exactly prefix + suffix",
 				map[string]int{"/foo/:bar|baz|qux": 42},
-				"/foo/bazqux",
+				[]string{"foo", "bazqux"},
 			},
 		}
 
@@ -85,9 +85,9 @@ func TestTrieLookup(t *testing.T) {
 					trie.Insert(k, &v)
 				}
 
-				val, found := trie.Find(tc.search)
+				val, found := trie.FindList(tc.search)
 				if found {
-					t.Fatalf(`Trie.Find(%#q), did not expect to find element`, tc.search)
+					t.Fatalf(`Trie.Find(%+v), did not expect to find element`, tc.search)
 				}
 				if val != nil {
 					t.Errorf(`Trie.Find(%#q) = %+v, expected value to be nil`, tc.search, *val)
@@ -100,111 +100,111 @@ func TestTrieLookup(t *testing.T) {
 		tests := []struct {
 			name        string
 			in          map[string]int
-			search      string
+			search      []string
 			wantDynamic bool
 		}{
 			{
 				name:   "one element",
 				in:     map[string]int{"/foo": 42},
-				search: "/foo",
+				search: []string{"foo"},
 			},
 			{
 				name:   "multiple elements leaf",
 				in:     map[string]int{"/foo": 13, "/foo/bar": 15, "/foo/bar/baz": 42},
-				search: "/foo/bar/baz",
+				search: []string{"foo", "bar", "baz"},
 			},
 			{
 				name:   "multiple elements non-leaf",
 				in:     map[string]int{"/foo": 13, "/foo/bar": 42, "/foo/bar/baz": 15},
-				search: "/foo/bar",
+				search: []string{"foo", "bar"},
 			},
 			{
 				name:        "dynamic leaf",
 				in:          map[string]int{"/foo/:bar": 42},
-				search:      "/foo/some-variable",
+				search:      []string{"foo", "some-variable"},
 				wantDynamic: true,
 			},
 			{
 				name:        "dynamic valid non-leaf",
 				in:          map[string]int{"/foo/:bar": 42, "/foo/:bar/:baz": 13},
-				search:      "/foo/some-variable",
+				search:      []string{"foo", "some-variable"},
 				wantDynamic: true,
 			},
 			{
 				name:   "prioritises exact match",
 				in:     map[string]int{"/foo/bar": 13, "/foo/:var": 100, "/foo/baz": 42},
-				search: "/foo/baz",
+				search: []string{"foo", "baz"},
 			},
 			{
 				name:        "handles complex dynamic matches",
 				in:          map[string]int{"/foo/:bar": 42},
-				search:      "/foo/this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8",
+				search:      []string{"foo", "this-is-a-really!long-matcher-05A6C58E-0FE4-4108-93E7-8DEAD94282F8"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises more specific dynamic matches",
 				in:          map[string]int{"/foo/:bar": 42, "/:foo/bar": 13},
-				search:      "/foo/bar",
+				search:      []string{"foo", "bar"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises dynamic nodes with more static components",
 				in:          map[string]int{"/foo/:bar/:baz": 13, "/foo/:bar/baz": 42},
-				search:      "/foo/bar/baz",
+				search:      []string{"foo", "bar", "baz"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises same dynamic matches, more prefixes",
 				in:          map[string]int{"/foo/:bar|baz": 42, "/foo/:bar": 13},
-				search:      "/foo/baza",
+				search:      []string{"foo", "baza"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises same dynamic matches, more suffixes",
 				in:          map[string]int{"/foo/:bar||baz": 42, "/foo/:bar": 13},
-				search:      "/foo/abaz",
+				search:      []string{"foo", "abaz"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises same dynamic matches, 1 suffix + prefix over 1 prefix",
 				in:          map[string]int{"/foo/:bar|baz|bar": 42, "/foo/:bar|baz": 13},
-				search:      "/foo/bazabar",
+				search:      []string{"foo", "bazabar"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises same dynamic matches, 1 suffix + prefix over 1 suffix",
 				in:          map[string]int{"/foo/:bar|baz|bar": 42, "/foo/:bar||bar": 13},
-				search:      "/foo/bazabar",
+				search:      []string{"foo", "bazabar"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises less dynamic matches over more dynamic matches with 1 suffix + prefix",
 				in:          map[string]int{"/foo/:bar/qux": 42, "/foo/:bar|baz|bar/:qux": 13},
-				search:      "/foo/bazabar/qux",
+				search:      []string{"foo", "bazabar", "qux"},
 				wantDynamic: true,
 			},
 			{
 				name:        "prioritises more specific dynamic matches (1 prefix) for same count, different position",
 				in:          map[string]int{"/foo/:bar|baz/qux": 42, "/foo/baza/:bar": 13},
-				search:      "/foo/baza/qux",
+				search:      []string{"foo", "baza", "qux"},
 				wantDynamic: true,
 			},
 			{
 				name:        "dynamic match with prefix",
 				in:          map[string]int{"/foo/:bar|baz": 42},
-				search:      "/foo/baz_search",
+				search:      []string{"foo", "baz_search"},
 				wantDynamic: true,
 			},
 			{
 				name:        "dynamic match with suffix",
 				in:          map[string]int{"/foo/:bar||baz": 42},
-				search:      "/foo/search_baz",
+				search:      []string{"foo", "search_baz"},
 				wantDynamic: true,
 			},
 			{
 				name:        "dynamic match with prefix and suffix",
 				in:          map[string]int{"/foo/:bar|baz|qux": 42},
-				search:      "/foo/bazaqux",
+				search:      []string{"foo", "bazaqux"},
 				wantDynamic: true,
 			},
 		}
@@ -216,9 +216,9 @@ func TestTrieLookup(t *testing.T) {
 					trie.Insert(k, &v)
 				}
 
-				actual, found := trie.Find(tc.search)
+				actual, found := trie.FindList(tc.search)
 				if !found {
-					t.Errorf("Trie.Find(%#q) expected to find element", tc.search)
+					t.Errorf("Trie.Find(%+v) expected to find element", tc.search)
 				}
 				if *actual.val != 42 {
 					t.Errorf(`trie["%s"] = %+v, wanted 42`, tc.search, *actual)

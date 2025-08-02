@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -833,9 +834,10 @@ func TestNewRewrite(t *testing.T) {
 				router.NewRewrite(tc.raw)
 
 				for k, v := range tc.want {
-					rewritten, exists := router.rewrites.Find(k)
+					key := strings.Split(k, "/")[1:]
+					rewritten, exists := router.rewrites.FindList(key)
 					if !exists {
-						t.Errorf("rewrites[%#q] not found, expected to find", k)
+						t.Fatalf("rewrites[%#q] not found, expected to find", k)
 					}
 					if *rewritten != v {
 						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *rewritten, v)

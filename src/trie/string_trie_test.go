@@ -85,7 +85,7 @@ func TestTrieLookup(t *testing.T) {
 					trie.Insert(k, &v)
 				}
 
-				val, found := trie.FindList(tc.search)
+				val, found := trie.Find(tc.search)
 				if found {
 					t.Fatalf(`Trie.Find(%+v), did not expect to find element`, tc.search)
 				}
@@ -216,7 +216,7 @@ func TestTrieLookup(t *testing.T) {
 					trie.Insert(k, &v)
 				}
 
-				actual, found := trie.FindList(tc.search)
+				actual, found := trie.Find(tc.search)
 				if !found {
 					t.Errorf("Trie.Find(%+v) expected to find element", tc.search)
 				}

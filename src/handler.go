@@ -168,17 +168,11 @@ func (h *Handler) handle(rw *ResponseWriter, req *Request) error {
 }
 
 // Dynamically loads static assets from disk.
-func staticLoader(namespace string) *Handler {
+func staticLoader(namespace []string) *Handler {
 	h := Get(func(rw *ResponseWriter, req *Request) error {
-		// TODO: need more generic handling of this "with namespace", "without namespace" stuff
-		// TODO: probably best to actually store that on the router.
-		url := req.Path()
-		if namespace != "" {
-			url = strings.TrimPrefix(url, namespace+"/")
-		}
-		path := "." + path.Clean(url)
+		url, _ := req.uri.RemoveNamespace(namespace)
+		path := path.Join(url...)
 
-		// TODO: currently we have no understanding of the general namespace
 		// TODO: need to have better general handling here! Make sure the path is valid etc.
 
 		// First determine the file's presence. This allows us to return more

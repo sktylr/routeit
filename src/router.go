@@ -71,8 +71,8 @@ type router struct {
 	// The global namespace that all registered routes are prefixed with.
 	namespace []string
 	// The static directory for serving responses from disk.
-	staticDir    string
-	staticDirL   []string
+	staticDir    []string
+	servesStatic bool
 	staticLoader *Handler
 	rewrites     *trie.StringTrie[[]string, []string]
 }
@@ -133,9 +133,9 @@ func (r *router) NewStaticDir(s string) {
 		panic(fmt.Sprintf("invalid static assets directory [%s] - must not be outside project root", s))
 	}
 	cleaned = strings.TrimPrefix(cleaned, "/")
-	r.staticDir = cleaned
 	r.staticLoader = staticLoader(r.namespace)
-	r.staticDirL = strings.Split(r.staticDir, "/")
+	r.staticDir = strings.Split(cleaned, "/")
+	r.servesStatic = true
 }
 
 // Adds a new URL rewrite rule to the router. Ignores comments and empty lines
@@ -198,9 +198,9 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return nil, false
 	}
 
-	if r.staticDir != "" {
+	if r.servesStatic {
 		isStaticRoute := true
-		for i, seg := range r.staticDirL {
+		for i, seg := range r.staticDir {
 			if seg != trimmed[i] {
 				isStaticRoute = false
 				break

@@ -669,6 +669,14 @@ func TestNewRewrite(t *testing.T) {
 				raw:    "/${foo|pref|suf} /bar/${foo}.png",
 				before: map[string]string{"/${bar|pref|suf}": "/baz/${bar}"},
 			},
+			{
+				name: "query parameter not on last path component",
+				raw:  "/${foo} /bar?foo=${foo}/baz",
+			},
+			{
+				name: "query parameter in key",
+				raw:  "/${foo}?bar=${baz} /bar/${foo}/${baz}",
+			},
 		}
 
 		for _, tc := range tests {
@@ -817,6 +825,26 @@ func TestNewRewrite(t *testing.T) {
 				existing: []string{"/${foo||suf} /bar"},
 				raw:      "/${foo|pref|suf} /bar/baz",
 				want:     map[string][]string{"pref-suf": {"bar", "baz"}, "pre-suf": {"bar"}},
+			},
+			{
+				name: "query parameter on single path component value",
+				raw:  "/foo/${bar} /baz?foo=${bar}",
+				want: map[string][]string{"foo/baz": {"baz?foo=baz"}},
+			},
+			{
+				name: "multiple query parameters on single path component value",
+				raw:  "/foo/${bar} /baz?foo=${bar}&qux=foo-${bar}",
+				want: map[string][]string{"foo/baz": {"baz?foo=baz&qux=foo-baz"}},
+			},
+			{
+				name: "query parameter on multi path component value",
+				raw:  "/foo/${bar} /bar/baz?foo=${bar}",
+				want: map[string][]string{"foo/baz": {"bar", "baz?foo=baz"}},
+			},
+			{
+				name: "multiple query parameters on multi path component value",
+				raw:  "/foo/${bar} /bar/baz?foo=${bar}&qux=foo-${bar}",
+				want: map[string][]string{"foo/baz": {"bar", "baz?foo=baz&qux=foo-baz"}},
 			},
 		}
 

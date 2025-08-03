@@ -194,24 +194,20 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return globalOptionsHandler(), true
 	}
 
-	toUse := req.uri.edgePathL
-	if len(req.uri.rewrittenPathL) != 0 {
-		// TODO: need improved semantics here to know when rewritten or not
-		toUse = req.uri.rewrittenPathL
-	}
+	path := req.uri.Path()
 
-	if len(toUse) < len(r.namespaceL) {
+	if len(path) < len(r.namespaceL) {
 		return nil, false
 	}
 
 	nonNamespace := 0
 	for i, seg := range r.namespaceL {
-		if seg != toUse[i] {
+		if seg != path[i] {
 			return nil, false
 		}
 		nonNamespace++
 	}
-	trimmed := toUse[nonNamespace:]
+	trimmed := path[nonNamespace:]
 
 	if r.staticDir != "" {
 		isStaticRoute := true
@@ -244,7 +240,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 
 // Passes the incoming URL through the router's rewrites.
 func (r *router) RewriteUri(uri *uri) *HttpError {
-	rewritten, found := r.rewrites.Find(uri.edgePathL)
+	rewritten, found := r.rewrites.Find(uri.edgePath)
 	if !found {
 		return nil
 	}
@@ -265,8 +261,8 @@ func (r *router) RewriteUri(uri *uri) *HttpError {
 			rewrittenPath = append(rewrittenPath, seg)
 		}
 	}
-	uri.rewrittenPathL = rewrittenPath
-	uri.rewrittenPath = strings.Join(rewrittenPath, "/")
+	uri.rewritten = true
+	uri.rewrittenPath = rewrittenPath
 	if !hasQuery {
 		return nil
 	}

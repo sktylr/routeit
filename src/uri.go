@@ -17,13 +17,13 @@ type uri struct {
 	// The edge path is the path that the request reaches the edge of the
 	// server with. This may be different to the rewritten path, if URL
 	// rewrites are configured for the server.
-	edgePath       string
-	edgePathL      []string
-	rewrittenPath  string
-	rewrittenPathL []string
-	rawPath        string
-	pathParams     pathParameters
-	queryParams    queryParameters
+	edgePath      []string
+	rewrittenPath []string
+	rawPath       string
+	rewritten     bool
+	globalOptions bool
+	pathParams    pathParameters
+	queryParams   queryParameters
 }
 
 // TODO: this doesn't enforce that all characters are legal
@@ -32,7 +32,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 	// request for the whole server. At this point we know that if the URI is
 	// "*", then it is a valid request. We can skip the rest of the parsing.
 	if uriRaw == "*" {
-		return &uri{edgePath: uriRaw, rawPath: uriRaw}, nil
+		return &uri{edgePath: []string{"*"}, rawPath: uriRaw, globalOptions: true}, nil
 	}
 
 	// The client (e.g. browsers) typically strips the fragment from the
@@ -51,7 +51,7 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 
 	rawPath, rawQuery, hasQuery := strings.Cut(uriRaw, "?")
 
-	var edgePathL []string
+	var edgePath []string
 	last := -1
 	for i, rawPart := range strings.Split(rawPath, "/") {
 		if i == 0 && rawPart == "" {
@@ -61,33 +61,22 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 		if err != nil {
 			return nil, ErrBadRequest().WithCause(err)
 		}
-		edgePathL = append(edgePathL, part)
+		edgePath = append(edgePath, part)
 		last++
 	}
-	if last > 0 && edgePathL[last] == "" {
-		edgePathL = edgePathL[:last]
+	if last > 0 && edgePath[last] == "" {
+		edgePath = edgePath[:last]
 	}
 
-	path, err := url.PathUnescape(rawPath)
-	if err != nil {
-		return nil, ErrBadRequest()
-	}
-
-	if !strings.HasPrefix(path, "/") {
+	if !strings.HasPrefix(rawPath, "/") {
 		// Per FRC-9112 Section 3.2.1 guidance, origin-form request targets
 		// must include a leading slash. This server adopts a lenient approach
 		// that will prefix this slash if not present. If the URI is invalid it
 		// will be found later by the router.
-		path = "/" + path
 		rawPath = "/" + rawPath
-		// TODO: need to determine what to do here??
 	}
 
-	if path != "/" {
-		path = strings.TrimSuffix(path, "/")
-	}
-
-	uri := &uri{edgePath: path, edgePathL: edgePathL, rawPath: rawPath, queryParams: queryParameters{}}
+	uri := &uri{edgePath: edgePath, rawPath: rawPath, queryParams: queryParameters{}}
 
 	if hasQuery {
 		if err := parseQueryParams(rawQuery, &uri.queryParams); err != nil {
@@ -96,6 +85,13 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 	}
 
 	return uri, nil
+}
+
+func (u uri) Path() []string {
+	if u.rewritten {
+		return u.rewrittenPath
+	}
+	return u.edgePath
 }
 
 func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError {

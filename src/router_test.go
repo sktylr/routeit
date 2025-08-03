@@ -533,14 +533,12 @@ func TestRewritePath(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error during rewrite: %v", err)
 			}
-			actual := uri.rewrittenPathL
-			if uri.rewrittenPath == "" {
-				// TODO: need improved semantics here!
-				actual = uri.edgePathL
+			actual := uri.rewrittenPath
+			if !uri.rewritten {
+				actual = uri.edgePath
 			}
-			didRewrite := uri.rewrittenPath != ""
-			if didRewrite != tc.rewrite {
-				t.Errorf("RewritePath(%q) didRewrite? = %t, wanted %t", tc.in, didRewrite, tc.rewrite)
+			if uri.rewritten != tc.rewrite {
+				t.Errorf("RewritePath(%q) didRewrite? = %t, wanted %t", tc.in, uri.rewritten, tc.rewrite)
 			}
 			if !reflect.DeepEqual(actual, tc.wantRewritten) {
 				t.Errorf("RewritePath(%q) rewritten = %+v, wanted %+v", tc.in, actual, tc.wantRewritten)

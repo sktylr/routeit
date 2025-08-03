@@ -158,13 +158,10 @@ func (req *Request) Method() HttpMethod {
 // [Request.RawPath].
 func (req *Request) Path() string {
 	uri := req.uri
-	if uri.rawPath == "*" {
+	if uri.globalOptions {
 		return "*"
 	}
-	if uri.rewrittenPath == "" {
-		return "/" + strings.Join(uri.edgePathL, "/")
-	}
-	return "/" + strings.Join(uri.rewrittenPathL, "/")
+	return "/" + strings.Join(req.uri.Path(), "/")
 }
 
 // The raw path received at the edge of the server. This is not url-decoded and

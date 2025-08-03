@@ -159,7 +159,7 @@ func (req *Request) Path() string {
 	if uri.rewrittenPath == "" {
 		return "/" + strings.Join(uri.edgePathL, "/")
 	}
-	return uri.rewrittenPath
+	return "/" + strings.Join(uri.rewrittenPathL, "/")
 }
 
 // The raw path received at the edge of the server. This is not url-decoded and

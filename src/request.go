@@ -151,6 +151,11 @@ func (req *Request) Method() HttpMethod {
 
 // The request's URL excluding the host. Does not include query parameters.
 // Where the server has URL rewrites configured, this will be the rewritten URL.
+// This URL has been escaped correctly, so cannot be used for additional
+// routing where dynamic path segment routing is used in the server, as decoded
+// "/"s could inadvertently be treated as control characters. If additional
+// routing needs to be performed based on the path delimiter, use
+// [Request.RawPath].
 func (req *Request) Path() string {
 	uri := req.uri
 	if uri.rawPath == "*" {

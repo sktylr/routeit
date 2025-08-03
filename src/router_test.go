@@ -441,77 +441,77 @@ func TestRewritePath(t *testing.T) {
 		name            string
 		base            map[string]string
 		in              string
-		wantRewritten   string
+		wantRewritten   []string
 		wantQueryParams queryParameters
 		rewrite         bool
 	}{
 		{
 			name:          "empty",
 			in:            "/foo/bar",
-			wantRewritten: "/foo/bar",
+			wantRewritten: []string{"foo", "bar"},
 			rewrite:       false,
 		},
 		{
 			name:          "1 element no match",
 			base:          map[string]string{"/foo": "/bar"},
 			in:            "/foo/bar",
-			wantRewritten: "/foo/bar",
+			wantRewritten: []string{"foo", "bar"},
 			rewrite:       false,
 		},
 		{
 			name:          "1 element match",
 			base:          map[string]string{"/foo/bar": "/baz"},
 			in:            "/foo/bar",
-			wantRewritten: "/baz",
+			wantRewritten: []string{"baz"},
 			rewrite:       true,
 		},
 		{
 			name:          "1 dynamic",
 			base:          map[string]string{"/foo/${bar}": "/baz/${bar}"},
 			in:            "/foo/qux",
-			wantRewritten: "/baz/qux",
+			wantRewritten: []string{"baz", "qux"},
 			rewrite:       true,
 		},
 		{
 			name:          "2 dynamics (same count), prioritises later dynamics",
 			base:          map[string]string{"/foo/${bar}": "/baz/${bar}", "/${foo}/bar": "/${foo}/qux"},
 			in:            "/foo/bar",
-			wantRewritten: "/baz/bar",
+			wantRewritten: []string{"baz", "bar"},
 			rewrite:       true,
 		},
 		{
 			name:          "2 dynamics, different count, prioritises shorter count",
 			base:          map[string]string{"/foo/${bar}/baz": "/pick/me", "/${foo}/bar/${baz}": "/not/me"},
 			in:            "/foo/bar/baz",
-			wantRewritten: "/pick/me",
+			wantRewritten: []string{"pick", "me"},
 			rewrite:       true,
 		},
 		{
 			name:          "prioritises static rewrites",
 			base:          map[string]string{"/foo/bar": "/baz", "/foo/${bar}": "/${bar}"},
 			in:            "/foo/bar",
-			wantRewritten: "/baz",
+			wantRewritten: []string{"baz"},
 			rewrite:       true,
 		},
 		{
 			name:          "dynamic does not match (too short)",
 			base:          map[string]string{"/foo/${bar}": "/baz/${bar}"},
 			in:            "/foo",
-			wantRewritten: "/foo",
+			wantRewritten: []string{"foo"},
 			rewrite:       false,
 		},
 		{
 			name:          "dynamic does not match (too long)",
 			base:          map[string]string{"/foo/${bar}": "/baz/${bar}"},
 			in:            "/foo/bar/baz",
-			wantRewritten: "/foo/bar/baz",
+			wantRewritten: []string{"foo", "bar", "baz"},
 			rewrite:       false,
 		},
 		{
 			name:            "dynamic path to query param",
 			base:            map[string]string{"/foo/${bar}": "/baz?id=${bar}"},
 			in:              "/foo/123",
-			wantRewritten:   "/baz",
+			wantRewritten:   []string{"baz"},
 			wantQueryParams: queryParameters{"id": "123"},
 			rewrite:         true,
 		},
@@ -533,16 +533,17 @@ func TestRewritePath(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error during rewrite: %v", err)
 			}
-			actual := uri.rewrittenPath
-			if actual == "" {
-				actual = uri.edgePath
+			actual := uri.rewrittenPathL
+			if uri.rewrittenPath == "" {
+				// TODO: need improved semantics here!
+				actual = uri.edgePathL
 			}
-			didRewrite := actual != tc.in
+			didRewrite := uri.rewrittenPath != ""
 			if didRewrite != tc.rewrite {
 				t.Errorf("RewritePath(%q) didRewrite? = %t, wanted %t", tc.in, didRewrite, tc.rewrite)
 			}
-			if actual != tc.wantRewritten {
-				t.Errorf("RewritePath(%q) rewritten = %q, wanted %q", tc.in, actual, tc.wantRewritten)
+			if !reflect.DeepEqual(actual, tc.wantRewritten) {
+				t.Errorf("RewritePath(%q) rewritten = %+v, wanted %+v", tc.in, actual, tc.wantRewritten)
 			}
 			if tc.wantQueryParams != nil && !reflect.DeepEqual(uri.queryParams, tc.wantQueryParams) {
 				t.Errorf("RewritePath(%q) query params = %#v, wanted %#v", tc.in, uri.queryParams, tc.wantQueryParams)
@@ -694,77 +695,73 @@ func TestNewRewrite(t *testing.T) {
 			name     string
 			existing []string
 			raw      string
-			want     map[string]string
+			want     map[string][]string
 		}{
 			{
 				name: "empty line",
 				raw:  "",
-				want: map[string]string{},
 			},
 			{
 				name: "comment line",
 				raw:  "# This is a comment",
-				want: map[string]string{},
 			},
 			{
 				name: "comment with leading whitespace",
 				raw:  "      # Comment",
-				want: map[string]string{},
 			},
 			{
 				name: "simple rewrite",
 				raw:  "/foo /bar",
-				want: map[string]string{"/foo": "/bar"},
+				want: map[string][]string{"foo": {"bar"}},
 			},
 			{
 				name: "skips equivalences",
 				raw:  "/foo /foo",
-				want: map[string]string{},
 			},
 			{
 				name: "comment after value",
 				raw:  "/foo/bar /baz # The comment",
-				want: map[string]string{"/foo/bar": "/baz"},
+				want: map[string][]string{"foo/bar": {"baz"}},
 			},
 			{
 				name: "comment immediately after value (no whitespace)",
 				raw:  "/foo/bar /baz# The comment",
-				want: map[string]string{"/foo/bar": "/baz"},
+				want: map[string][]string{"foo/bar": {"baz"}},
 			},
 			{
 				name: "root in key",
 				raw:  "/ /bar",
-				want: map[string]string{"/": "/bar"},
+				want: map[string][]string{"": {"bar"}},
 			},
 			{
 				name: "root in value",
 				raw:  "/foo /",
-				want: map[string]string{"/foo": "/"},
+				want: map[string][]string{"foo": {""}},
 			},
 			{
 				name: "dynamic rewrite (key and value)",
 				raw:  "/foo/${bar} /baz/${bar}",
-				want: map[string]string{"/foo/bar": "/baz/bar", "/foo/foo": "/baz/foo", "/foo/123": "/baz/123"},
+				want: map[string][]string{"foo/bar": {"baz", "bar"}, "foo/foo": {"baz", "foo"}, "foo/123": {"baz", "123"}},
 			},
 			{
 				name: "dynamic rewrites (key only)",
 				raw:  "/foo/${bar} /baz/bar",
-				want: map[string]string{"/foo/bar": "/baz/bar", "/foo/qux": "/baz/bar", "/foo/ABCD": "/baz/bar"},
+				want: map[string][]string{"foo/bar": {"baz", "bar"}, "foo/qux": {"baz", "bar"}, "foo/ABCD": {"baz", "bar"}},
 			},
 			{
 				name: "dynamic rewrites (value only)",
 				raw:  "/foo/bar /baz/${bar}",
-				want: map[string]string{"/foo/bar": "/baz/${bar}"},
+				want: map[string][]string{"foo/bar": {"baz", "${bar}"}},
 			},
 			{
 				name: "dynamic rewrites (value only) with repeated variable in value",
 				raw:  "/foo/bar /baz/${bar}/${bar}",
-				want: map[string]string{"/foo/bar": "/baz/${bar}/${bar}"},
+				want: map[string][]string{"foo/bar": {"baz", "${bar}", "${bar}"}},
 			},
 			{
 				name: "poorly formed dynamic key acts as static",
 				raw:  "/foo/${bar /baz/${bar}",
-				want: map[string]string{"/foo/${bar": "/baz/${bar}"},
+				want: map[string][]string{"foo/${bar": {"baz", "${bar}"}},
 			},
 			{
 				name:     "non conflicting duplicates allowed",
@@ -774,53 +771,53 @@ func TestNewRewrite(t *testing.T) {
 				// this entry will be prioritised if the input is exactly
 				// /favicon.ico
 				raw:  "/favicon.ico /assets/images/foo.png",
-				want: map[string]string{"/favicon.ico": "/assets/images/foo.png", "/contact": "/assets/contact.html"},
+				want: map[string][]string{"favicon.ico": {"assets", "images", "foo.png"}, "contact": {"assets", "contact.html"}},
 			},
 			{
 				name: "dynamic path with prefix",
 				raw:  "/foo/${bar|prefix} /baz/${bar}",
-				want: map[string]string{"/foo/prefixed": "/baz/prefixed"},
+				want: map[string][]string{"foo/prefixed": {"baz", "prefixed"}},
 			},
 			{
 				name: "dynamic path with suffix",
 				raw:  "/foo/${bar||suffix} /baz/${bar}",
-				want: map[string]string{"/foo/my-suffix": "/baz/my-suffix"},
+				want: map[string][]string{"foo/my-suffix": {"baz", "my-suffix"}},
 			},
 			{
 				name: "dynamic path with prefix and suffix",
 				raw:  "/foo/${bar|prefix|suffix} /baz/${bar}",
-				want: map[string]string{"/foo/prefix-suffix": "/baz/prefix-suffix"},
+				want: map[string][]string{"foo/prefix-suffix": {"baz", "prefix-suffix"}},
 			},
 			{
 				name:     "colliding but 1 with prefix",
 				existing: []string{"/${foo} /bar"},
 				raw:      "/${foo|pref} /bar/baz",
-				want:     map[string]string{"/pref-foo": "/bar/baz", "/pre": "/bar"},
+				want:     map[string][]string{"pref-foo": {"bar", "baz"}, "pre": {"bar"}},
 			},
 			{
 				name:     "colliding but 1 with suffix",
 				existing: []string{"/${foo} /bar"},
 				raw:      "/${foo||suf} /bar/baz",
-				want:     map[string]string{"/foo-suf": "/bar/baz", "/suf": "/bar"},
+				want:     map[string][]string{"foo-suf": {"bar", "baz"}, "suf": {"bar"}},
 			},
 			{
 				// TODO: need to confirm if this is okay??
 				name:     "colliding but 1 with prefix, other with suffix",
 				existing: []string{"/${foo|pref} /bar"},
 				raw:      "/${foo||suf} /bar/baz",
-				want:     map[string]string{"/foo-suf": "/bar/baz", "/pref-foo": "/bar"},
+				want:     map[string][]string{"foo-suf": {"bar", "baz"}, "pref-foo": {"bar"}},
 			},
 			{
 				name:     "colliding but 1 with prefix, other with both",
 				existing: []string{"/${foo|pref} /bar"},
 				raw:      "/${foo|pref|suf} /bar/baz",
-				want:     map[string]string{"/pref-suf": "/bar/baz", "/pref-foo": "/bar"},
+				want:     map[string][]string{"pref-suf": {"bar", "baz"}, "pref-foo": {"bar"}},
 			},
 			{
 				name:     "colliding but 1 with suffix, other with both",
 				existing: []string{"/${foo||suf} /bar"},
 				raw:      "/${foo|pref|suf} /bar/baz",
-				want:     map[string]string{"/pref-suf": "/bar/baz", "/pre-suf": "/bar"},
+				want:     map[string][]string{"pref-suf": {"bar", "baz"}, "pre-suf": {"bar"}},
 			},
 		}
 
@@ -834,13 +831,13 @@ func TestNewRewrite(t *testing.T) {
 				router.NewRewrite(tc.raw)
 
 				for k, v := range tc.want {
-					key := strings.Split(k, "/")[1:]
+					key := strings.Split(k, "/")
 					rewritten, exists := router.rewrites.Find(key)
 					if !exists {
 						t.Fatalf("rewrites[%#q] not found, expected to find", k)
 					}
-					if *rewritten != v {
-						t.Errorf("rewrites[%#q] = %#q, wanted %#q", k, *rewritten, v)
+					if !reflect.DeepEqual(*rewritten, v) {
+						t.Errorf("rewrites[%#q] = %+v, wanted %+v", k, *rewritten, v)
 					}
 				}
 			})

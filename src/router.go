@@ -75,7 +75,7 @@ type router struct {
 	staticDir    string
 	staticDirL   []string
 	staticLoader *Handler
-	rewrites     *trie.StringTrie[string, string]
+	rewrites     *trie.StringTrie[[]string, []string]
 }
 
 func newRouter() *router {
@@ -177,7 +177,9 @@ func (r *router) NewRewrite(raw string) {
 	}
 	key := kb.String()
 
-	r.rewrites.Insert(key, &value)
+	// TODO: double check logic here - is this panic safe?
+	split := strings.Split(value, "/")[1:]
+	r.rewrites.Insert(key, &split)
 }
 
 // Routes a request to the corresponding handler. A handler may support multiple
@@ -246,19 +248,29 @@ func (r *router) RewriteUri(uri *uri) *HttpError {
 	if !found {
 		return nil
 	}
-	rewrittenPath, rewrittenQuery, hasQuery := strings.Cut(*rewritten, "?")
-	uri.rewrittenPath = rewrittenPath
-	// TODO: this needs to come from the trie
-	if rewrittenPath == "/" {
-		uri.rewrittenPathL = []string{}
-	} else {
-		// TODO: need to remove this hack, this is because of the leading slash nonsense
-		uri.rewrittenPathL = strings.Split(rewrittenPath, "/")[1:]
+	// TODO: need stricter validation - the ? should only appear in the LAST segment
+	var rewrittenPath []string
+	var rewrittenQuery strings.Builder
+	hasQuery := false
+	for _, seg := range *rewritten {
+		if strings.ContainsRune(seg, '?') {
+			hasQuery = true
+			path, query, _ := strings.Cut(seg, "?")
+			rewrittenPath = append(rewrittenPath, path)
+			rewrittenQuery.WriteString(query)
+		} else if hasQuery {
+			// TODO: should not occur
+			rewrittenQuery.WriteString(seg)
+		} else {
+			rewrittenPath = append(rewrittenPath, seg)
+		}
 	}
+	uri.rewrittenPathL = rewrittenPath
+	uri.rewrittenPath = strings.Join(rewrittenPath, "/")
 	if !hasQuery {
 		return nil
 	}
-	return parseQueryParams(rewrittenQuery, &uri.queryParams)
+	return parseQueryParams(rewrittenQuery.String(), &uri.queryParams)
 }
 
 func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {
@@ -286,14 +298,15 @@ func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, r
 	return &matchedRoute{handler: val, params: params}
 }
 
-func (ure *urlRewriteExtractor) NewFromStatic(val *string) *string {
+func (ure *urlRewriteExtractor) NewFromStatic(val *[]string) *[]string {
 	return val
 }
 
-func (ure *urlRewriteExtractor) NewFromDynamic(val *string, parts []string, re *regexp.Regexp) *string {
+func (ure *urlRewriteExtractor) NewFromDynamic(val *[]string, parts []string, re *regexp.Regexp) *[]string {
 	path := "/" + strings.Join(parts, "/")
 	match := re.FindStringSubmatchIndex(path)
-	result := string(re.ExpandString(nil, *val, path, match))
+	joined := strings.Join(*val, "/")
+	result := strings.Split(string(re.ExpandString(nil, joined, path, match)), "/")
 	return &result
 }
 

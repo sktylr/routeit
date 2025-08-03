@@ -70,7 +70,7 @@ type PathExtractor[I, O any] interface {
 	// dynamic component. The regex passes will match against the path and use
 	// the same names, prefixes and suffixes used when inserting the node into
 	// the trie.
-	NewFromDynamic(val *I, parts []string, re *regexp.Regexp) *O
+	NewFromDynamic(val *I, parts []string, re *regexp.Regexp, indices map[string]int) *O
 }
 
 // A [StringTrie] is similar to a regular trie, except the split happens on the
@@ -101,6 +101,7 @@ type stringTrieValue[T any] struct {
 // dynamic component in the path, which are both used for prioritisation.
 type dynamicMatcher struct {
 	re                *regexp.Regexp
+	indices           map[string]int
 	total             int
 	first             int
 	prefixSuffixCount int
@@ -164,7 +165,7 @@ func (t *StringTrie[I, O]) Find(path []string) (*O, bool) {
 	}
 	// TODO: this will have to be adapted for routing versus rewrites
 	// TODO: this will need to work without joining - i.e. through returning a URI or similar for rewrites
-	val := t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.re)
+	val := t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.re, found.value.dm.indices)
 	return val, true
 }
 
@@ -273,14 +274,12 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 
 	// TODO: some of the leading slash stuff makes this more confusing than it should be
 
-	frequencies := map[string]int{}
+	frequencies, indices := map[string]int{}, map[string]int{}
 	first, total, prefixSuffixCount := int(^uint(0)>>1), 0, 0
 	var sb strings.Builder
 	sb.WriteRune('^')
-	for i, seg := range strings.Split(path, string(sep)) {
-		if i == 0 && seg == "" {
-			continue
-		}
+	trimmed := strings.TrimPrefix(path, string(sep))
+	for i, seg := range strings.Split(trimmed, string(sep)) {
 		sb.WriteRune(sep)
 		if i == 0 {
 			sb.WriteRune('?')
@@ -317,6 +316,7 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 			} else {
 				frequencies[name] = count + 1
 			}
+			indices[name] = i
 		}
 	}
 	sb.WriteRune('$')
@@ -334,7 +334,7 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 	}
 
 	re := regexp.MustCompile(sb.String())
-	return &dynamicMatcher{re: re, total: total, first: first, prefixSuffixCount: prefixSuffixCount}
+	return &dynamicMatcher{re: re, total: total, first: first, prefixSuffixCount: prefixSuffixCount, indices: indices}
 }
 
 func splitDynamicPrefixAndSuffix(in string) (bool, string, string) {

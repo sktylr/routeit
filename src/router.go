@@ -277,7 +277,7 @@ func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {
 	return &matchedRoute{handler: val}
 }
 
-func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, re *regexp.Regexp) *matchedRoute {
+func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, re *regexp.Regexp, indices map[string]int) *matchedRoute {
 	path := strings.Join(parts, "/")
 	params := pathParameters{}
 	names := re.SubexpNames()
@@ -302,7 +302,7 @@ func (ure *urlRewriteExtractor) NewFromStatic(val *[]string) *[]string {
 	return val
 }
 
-func (ure *urlRewriteExtractor) NewFromDynamic(val *[]string, parts []string, re *regexp.Regexp) *[]string {
+func (ure *urlRewriteExtractor) NewFromDynamic(val *[]string, parts []string, re *regexp.Regexp, indices map[string]int) *[]string {
 	path := "/" + strings.Join(parts, "/")
 	match := re.FindStringSubmatchIndex(path)
 	joined := strings.Join(*val, "/")

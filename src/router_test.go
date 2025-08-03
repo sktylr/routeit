@@ -423,14 +423,15 @@ func TestNewStaticDir(t *testing.T) {
 
 			defer func() {
 				if r := recover(); r == nil && wantPanic {
-					t.Errorf("router invalid static dir, expected panic but got none - static = %#q", router.staticDir)
+					t.Errorf("router invalid static dir, expected panic but got none - static = %+v", router.staticDir)
 				}
 			}()
 
 			router.NewStaticDir(tc.in)
 
-			if !wantPanic && router.staticDir != tc.want {
-				t.Errorf(`router.static = %q, wanted %#q`, router.staticDir, tc.want)
+			want := strings.Split(tc.want, "/")
+			if !wantPanic && !reflect.DeepEqual(router.staticDir, want) {
+				t.Errorf(`router.static = %+v, wanted %#q`, router.staticDir, tc.want)
 			}
 		})
 	}

@@ -69,8 +69,7 @@ type urlRewriteExtractor struct{}
 type router struct {
 	routes *trie.StringTrie[Handler, matchedRoute]
 	// The global namespace that all registered routes are prefixed with.
-	namespace  string
-	namespaceL []string
+	namespace []string
 	// The static directory for serving responses from disk.
 	staticDir    string
 	staticDirL   []string
@@ -112,10 +111,10 @@ func (r *router) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegist
 }
 
 // Registers a global namespace to all routes
-func (r *router) GlobalNamespace(namespace string) {
-	r.namespace = r.trimRouteForInsert(namespace)
-	if r.namespace != "" {
-		r.namespaceL = strings.Split(r.namespace, "/")
+func (r *router) GlobalNamespace(ns string) {
+	cleaned := r.trimRouteForInsert(ns)
+	if cleaned != "" {
+		r.namespace = strings.Split(cleaned, "/")
 	}
 }
 
@@ -135,7 +134,7 @@ func (r *router) NewStaticDir(s string) {
 	}
 	cleaned = strings.TrimPrefix(cleaned, "/")
 	r.staticDir = cleaned
-	r.staticLoader = staticLoader(r.namespaceL)
+	r.staticLoader = staticLoader(r.namespace)
 	r.staticDirL = strings.Split(r.staticDir, "/")
 }
 
@@ -194,7 +193,7 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return globalOptionsHandler(), true
 	}
 
-	trimmed, hasNamespace := req.uri.RemoveNamespace(r.namespaceL)
+	trimmed, hasNamespace := req.uri.RemoveNamespace(r.namespace)
 	if !hasNamespace {
 		return nil, false
 	}

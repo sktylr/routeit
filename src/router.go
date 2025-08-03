@@ -22,7 +22,7 @@ import (
 // dynamic, the component must entirely be encapsulated by ${ }. This regex
 // does not prohibit this behaviour, but the key will be incorrectly
 // interpreted within the parser if this is the case.
-var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s+(/(?:[?=&\w.${}-]+(?:/[?=&\w.${}-]+)*)?)(?:\s*#.*)?$`)
+var rewriteParseRe = regexp.MustCompile(`^(/(?:[\w.${}|-]+(?:/[\w.${}|-]+)*)?)\s+(/(?:[\w.${}-]+(?:/[\w.${}-]+)*)?(\?[=&\w.${}-]*)?)(?:\s*#.*)?$`)
 
 // The [RouteRegistry] is used to associate routes with their corresponding
 // handlers. Routing supports both static and dynamic routes. The keys of the
@@ -274,8 +274,7 @@ func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, i
 
 	for key, val := range indices {
 		if val >= length {
-			// This should never ever happen, but doing this ensures we don't
-			// panic
+			// This should never happen, but doing this ensures we don't panic
 			continue
 		}
 		params[key] = parts[val]

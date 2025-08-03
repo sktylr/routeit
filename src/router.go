@@ -135,7 +135,7 @@ func (r *router) NewStaticDir(s string) {
 	}
 	cleaned = strings.TrimPrefix(cleaned, "/")
 	r.staticDir = cleaned
-	r.staticLoader = staticLoader(r.namespace)
+	r.staticLoader = staticLoader(r.namespaceL)
 	r.staticDirL = strings.Split(r.staticDir, "/")
 }
 
@@ -194,20 +194,10 @@ func (r *router) Route(req *Request) (*Handler, bool) {
 		return globalOptionsHandler(), true
 	}
 
-	path := req.uri.Path()
-
-	if len(path) < len(r.namespaceL) {
+	trimmed, hasNamespace := req.uri.RemoveNamespace(r.namespaceL)
+	if !hasNamespace {
 		return nil, false
 	}
-
-	nonNamespace := 0
-	for i, seg := range r.namespaceL {
-		if seg != path[i] {
-			return nil, false
-		}
-		nonNamespace++
-	}
-	trimmed := path[nonNamespace:]
 
 	if r.staticDir != "" {
 		isStaticRoute := true

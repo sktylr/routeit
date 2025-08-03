@@ -11,8 +11,9 @@ import (
 
 func TestServer(t *testing.T) {
 	tests := []struct {
-		path        string
-		wantHandler string
+		path          string
+		wantPathParam string
+		wantHandler   string
 	}{
 		{
 			path:        "/path",
@@ -44,17 +45,34 @@ func TestServer(t *testing.T) {
 			path:        "/suffix",
 			wantHandler: "/:path",
 		},
+		{
+			// This path component matches against the /:path endpoint. It
+			// contains the %2F sequence, which is the url encoding for "/".
+			// routeit will decode the path **after** splitting it up into path
+			// segments, so this request will still reach the correct /:path
+			// endpoint. However, when the server extracts the path parameter,
+			// it will be safely decoded, meaning the slash will be present
+			// instead of %2F. This slash is **not** a control character used
+			// in routing due to it being escaped in the request.
+			path:          `/hello%2Fthere`,
+			wantPathParam: "hello/there",
+			wantHandler:   "/:path",
+		},
 	}
 	client := routeit.NewTestClient(GetServer())
 
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {
+			wantPathParam := tc.wantPathParam
+			if wantPathParam == "" {
+				wantPathParam = tc.path[1:]
+			}
 			wantBody := HelloResponse{
-				IncomingUrl:  tc.path,
+				IncomingUrl:  "/" + wantPathParam,
 				HandlerRoute: tc.wantHandler,
 				// This demonstrates that the whole path component is extracted,
 				// regardless of any prefixes or suffixes present.
-				PathParam: tc.path[1:],
+				PathParam: wantPathParam,
 			}
 			verify := func(t *testing.T, res *routeit.TestResponse) {
 				res.AssertStatusCode(t, routeit.StatusOK)

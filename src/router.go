@@ -278,21 +278,22 @@ func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {
 }
 
 func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, re *regexp.Regexp, indices map[string]int) *matchedRoute {
-	path := strings.Join(parts, "/")
 	params := pathParameters{}
-	names := re.SubexpNames()
-	matches := re.FindStringSubmatch(path)
+	length := len(parts)
 
-	if matches == nil {
-		// Indicates that something has gone wrong with the regex or searching.
+	if len(indices) == 0 {
+		// Indicates that something has gone wrong with dynamic extraction or
+		// searching
 		return mre.NewFromStatic(val)
 	}
 
-	for i, name := range names {
-		if i == 0 || name == "" {
+	for key, val := range indices {
+		if val >= length {
+			// This should never ever happen, but doing this ensures we don't
+			// panic
 			continue
 		}
-		params[name] = matches[i]
+		params[key] = parts[val]
 	}
 
 	return &matchedRoute{handler: val, params: params}

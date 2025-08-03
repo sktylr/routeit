@@ -1,14 +1,12 @@
 package trie
 
 import (
-	"regexp"
 	"testing"
 )
 
 type extracted struct {
 	val     *int
 	parts   []string
-	re      *regexp.Regexp
 	indices map[string]int
 }
 
@@ -18,8 +16,8 @@ func (e *extractor) NewFromStatic(val *int) *extracted {
 	return &extracted{val: val}
 }
 
-func (e *extractor) NewFromDynamic(val *int, parts []string, re *regexp.Regexp, indices map[string]int) *extracted {
-	return &extracted{val: val, parts: parts, re: re, indices: indices}
+func (e *extractor) NewFromDynamic(val *int, parts []string, indices map[string]int) *extracted {
+	return &extracted{val: val, parts: parts, indices: indices}
 }
 
 func TestTrieLookup(t *testing.T) {
@@ -239,7 +237,7 @@ func TestTrieLookup(t *testing.T) {
 				if *actual.val != 42 {
 					t.Errorf(`trie["%s"] = %+v, wanted 42`, tc.search, *actual)
 				}
-				if tc.wantDynamic != (actual.re != nil && len(actual.parts) > 0) {
+				if tc.wantDynamic != (actual.indices != nil && len(actual.parts) > 0) {
 					t.Errorf("wanted dynamic, got static %+v", actual)
 				}
 				if len(actual.indices) != len(tc.wantIndices) {

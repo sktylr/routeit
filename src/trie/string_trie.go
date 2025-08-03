@@ -67,10 +67,9 @@ type PathExtractor[I, O any] interface {
 	NewFromStatic(val *I) *O
 
 	// This is invoked whenever the matches path contains at the very least 1
-	// dynamic component. The regex passes will match against the path and use
-	// the same names, prefixes and suffixes used when inserting the node into
-	// the trie.
-	NewFromDynamic(val *I, parts []string, re *regexp.Regexp, indices map[string]int) *O
+	// dynamic component. The map of indices will identify where the named
+	// capture groups from the insertion key appear in the lookup key.
+	NewFromDynamic(val *I, parts []string, indices map[string]int) *O
 }
 
 // A [StringTrie] is similar to a regular trie, except the split happens on the
@@ -96,11 +95,11 @@ type stringTrieValue[T any] struct {
 
 // A dynamic matcher is used in value nodes to signify that there is at least
 // one component of that node's path that is dynamic in nature. This stores the
-// regex for the path, which is a named character matcher, and also the total
-// number of dynamic components and the position of the first occurrence of a
-// dynamic component in the path, which are both used for prioritisation.
+// map of names to indices, which can be used for extraction on dynamic matches
+// and also the total number of dynamic components and the position of the
+// first occurrence of a dynamic component in the path, which are both used for
+// prioritisation.
 type dynamicMatcher struct {
-	re                *regexp.Regexp
 	indices           map[string]int
 	total             int
 	first             int
@@ -165,7 +164,7 @@ func (t *StringTrie[I, O]) Find(path []string) (*O, bool) {
 	}
 	// TODO: this will have to be adapted for routing versus rewrites
 	// TODO: this will need to work without joining - i.e. through returning a URI or similar for rewrites
-	val := t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.re, found.value.dm.indices)
+	val := t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.indices)
 	return val, true
 }
 
@@ -265,8 +264,8 @@ func (dm *dynamicMatcher) HigherPriority(other *dynamicMatcher) bool {
 }
 
 // Constructs a dynamic matcher for a given path, returning nil if the path has
-// no dynamic components. This includes building a named regex that can be used
-// to extract the path parameters of the request once matched.
+// no dynamic components. This includes building a map of named indices that
+// can be used to extract name subsequences of the parts slice once matched.
 func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 	if !strings.Contains(path, ":") {
 		return nil
@@ -276,50 +275,40 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 
 	frequencies, indices := map[string]int{}, map[string]int{}
 	first, total, prefixSuffixCount := int(^uint(0)>>1), 0, 0
-	var sb strings.Builder
-	sb.WriteRune('^')
 	trimmed := strings.TrimPrefix(path, string(sep))
 	for i, seg := range strings.Split(trimmed, string(sep)) {
-		sb.WriteRune(sep)
-		if i == 0 {
-			sb.WriteRune('?')
-		}
 		if !strings.HasPrefix(seg, ":") {
-			sb.WriteString(seg)
-		} else {
-			// We have a segment that is ":name", optionally followed by 0, 1
-			// or 2 pipes (|). Each pipe is succeeded by an alphanumeric string
-			// of length 0+. In this context, we only care about the `name`
-			// component, but we should validate that the shape of the entire
-			// string is valid, otherwise we panic. We take the `name` and
-			// convert it into a named character group that allows ASCII
-			// characters, stopping at the first occurrence of the separator.
-			matches := dynamicKeyRegex.FindStringSubmatch(seg)
-			if matches == nil {
-				panic(fmt.Errorf("invalid dynamic matcher sequence: offender=%#q, full sequence=%#q", seg, path))
-			}
-			name, prefix, suffix := matches[1], matches[2], matches[3]
-			sb.WriteString(fmt.Sprintf(`(?P<%s>%s[^%c]+%s)`, name, prefix, sep, suffix))
-			if prefix != "" {
-				prefixSuffixCount++
-			}
-			if suffix != "" {
-				prefixSuffixCount++
-			}
-			total++
-			if i < first {
-				first = i
-			}
-			count, exists := frequencies[name]
-			if !exists {
-				frequencies[name] = 1
-			} else {
-				frequencies[name] = count + 1
-			}
-			indices[name] = i
+			continue
 		}
+		// We have a segment that is ":name", optionally followed by 0, 1 or 2
+		// pipes (|). Each pipe is succeeded by an alphanumeric string of
+		// length 0+. In this context, we only care about the `name` component,
+		// but we should validate that the shape of the entire string is valid,
+		// otherwise we panic. We record the name in a map of indices so it can
+		// be used for extraction when the client receives a dynamic match.
+		matches := dynamicKeyRegex.FindStringSubmatch(seg)
+		if matches == nil {
+			panic(fmt.Errorf("invalid dynamic matcher sequence: offender=%#q, full sequence=%#q", seg, path))
+		}
+		name, prefix, suffix := matches[1], matches[2], matches[3]
+		if prefix != "" {
+			prefixSuffixCount++
+		}
+		if suffix != "" {
+			prefixSuffixCount++
+		}
+		total++
+		if i < first {
+			first = i
+		}
+		count, exists := frequencies[name]
+		if !exists {
+			frequencies[name] = 1
+		} else {
+			frequencies[name] = count + 1
+		}
+		indices[name] = i
 	}
-	sb.WriteRune('$')
 
 	for k, v := range frequencies {
 		if v != 1 {
@@ -333,8 +322,7 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 		return nil
 	}
 
-	re := regexp.MustCompile(sb.String())
-	return &dynamicMatcher{re: re, total: total, first: first, prefixSuffixCount: prefixSuffixCount, indices: indices}
+	return &dynamicMatcher{total: total, first: first, prefixSuffixCount: prefixSuffixCount, indices: indices}
 }
 
 func splitDynamicPrefixAndSuffix(in string) (bool, string, string) {

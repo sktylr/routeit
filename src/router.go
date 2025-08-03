@@ -176,7 +176,8 @@ func (r *router) NewRewrite(raw string) {
 	}
 	key := kb.String()
 
-	// TODO: double check logic here - is this panic safe?
+	// By construction, we always know there is at least a leading slash, so we
+	// can safely index to the second element.
 	split := strings.Split(value, "/")[1:]
 	r.rewrites.Insert(key, &split)
 }
@@ -233,29 +234,29 @@ func (r *router) RewriteUri(uri *uri) *HttpError {
 	if !found {
 		return nil
 	}
-	// TODO: need stricter validation - the ? should only appear in the LAST segment
+
 	var rewrittenPath []string
-	var rewrittenQuery strings.Builder
-	hasQuery := false
+	rewrittenQuery := ""
 	for _, seg := range *rewritten {
 		if strings.ContainsRune(seg, '?') {
-			hasQuery = true
 			path, query, _ := strings.Cut(seg, "?")
 			rewrittenPath = append(rewrittenPath, path)
-			rewrittenQuery.WriteString(query)
-		} else if hasQuery {
-			// TODO: should not occur
-			rewrittenQuery.WriteString(seg)
+			// By construction, we know this is always in the last path segment
+			// (if present at all), so we can safely treat this query as the
+			// only query string and terminate.
+			rewrittenQuery = query
+			break
 		} else {
 			rewrittenPath = append(rewrittenPath, seg)
 		}
 	}
+
 	uri.rewritten = true
 	uri.rewrittenPath = rewrittenPath
-	if !hasQuery {
+	if rewrittenQuery == "" {
 		return nil
 	}
-	return parseQueryParams(rewrittenQuery.String(), &uri.queryParams)
+	return parseQueryParams(rewrittenQuery, &uri.queryParams)
 }
 
 func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {

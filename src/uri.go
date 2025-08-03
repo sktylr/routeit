@@ -94,6 +94,25 @@ func (u uri) Path() []string {
 	return u.edgePath
 }
 
+// Strips the namespace from the uri's path, returning false if that is not
+// possible for some reason (e.g. the path does not start with the namespace).
+func (u uri) RemoveNamespace(ns []string) ([]string, bool) {
+	path := u.Path()
+
+	if len(path) < len(ns) {
+		return nil, false
+	}
+
+	nonNamespace := 0
+	for i, seg := range ns {
+		if seg != path[i] {
+			return nil, false
+		}
+		nonNamespace++
+	}
+	return path[nonNamespace:], true
+}
+
 func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError {
 	if strings.Contains(rawQuery, "?") {
 		// There should only be 1 `?`, which we have stripped off. Any `?` that

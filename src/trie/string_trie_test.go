@@ -6,9 +6,9 @@ import (
 )
 
 type extracted struct {
-	val  *int
-	path string
-	re   *regexp.Regexp
+	val   *int
+	parts []string
+	re    *regexp.Regexp
 }
 
 type extractor struct{}
@@ -17,8 +17,8 @@ func (e *extractor) NewFromStatic(val *int) *extracted {
 	return &extracted{val: val}
 }
 
-func (e *extractor) NewFromDynamic(val *int, path string, re *regexp.Regexp) *extracted {
-	return &extracted{val: val, path: path, re: re}
+func (e *extractor) NewFromDynamic(val *int, parts []string, re *regexp.Regexp) *extracted {
+	return &extracted{val: val, parts: parts, re: re}
 }
 
 func TestTrieLookup(t *testing.T) {
@@ -223,7 +223,7 @@ func TestTrieLookup(t *testing.T) {
 				if *actual.val != 42 {
 					t.Errorf(`trie["%s"] = %+v, wanted 42`, tc.search, *actual)
 				}
-				if tc.wantDynamic != (actual.re != nil && actual.path != "") {
+				if tc.wantDynamic != (actual.re != nil && len(actual.parts) > 0) {
 					t.Errorf("wanted dynamic, got static %+v", actual)
 				}
 			})

@@ -70,7 +70,7 @@ type PathExtractor[I, O any] interface {
 	// dynamic component. The regex passes will match against the path and use
 	// the same names, prefixes and suffixes used when inserting the node into
 	// the trie.
-	NewFromDynamic(val *I, path string, re *regexp.Regexp) *O
+	NewFromDynamic(val *I, parts []string, re *regexp.Regexp) *O
 }
 
 // A [StringTrie] is similar to a regular trie, except the split happens on the
@@ -163,12 +163,8 @@ func (t *StringTrie[I, O]) Find(path []string) (*O, bool) {
 		return t.extractor.NewFromStatic(found.value.val), true
 	}
 	// TODO: this will have to be adapted for routing versus rewrites
-	joinedPath := strings.Join(path, string(t.split))
-	if !strings.HasPrefix(joinedPath, string(t.split)) {
-		joinedPath = string(t.split) + joinedPath
-	}
 	// TODO: this will need to work without joining - i.e. through returning a URI or similar for rewrites
-	val := t.extractor.NewFromDynamic(found.value.val, joinedPath, found.value.dm.re)
+	val := t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.re)
 	return val, true
 }
 

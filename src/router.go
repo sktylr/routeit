@@ -304,10 +304,15 @@ func (ure *urlRewriteExtractor) NewFromStatic(val *[]string) *[]string {
 }
 
 func (ure *urlRewriteExtractor) NewFromDynamic(val *[]string, parts []string, re *regexp.Regexp, indices map[string]int) *[]string {
-	path := "/" + strings.Join(parts, "/")
-	match := re.FindStringSubmatchIndex(path)
-	joined := strings.Join(*val, "/")
-	result := strings.Split(string(re.ExpandString(nil, joined, path, match)), "/")
+	result := make([]string, len(*val))
+	copy(result, *val)
+	// TODO: could do with patching this up, seems a bit expensive!
+	for i, seg := range result {
+		for k, v := range indices {
+			seg = strings.ReplaceAll(seg, "${"+k+"}", parts[v])
+		}
+		result[i] = seg
+	}
 	return &result
 }
 

@@ -277,7 +277,7 @@ func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {
 	return &matchedRoute{handler: val}
 }
 
-func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, re *regexp.Regexp, indices map[string]int) *matchedRoute {
+func (mre *matchedRouteExtractor) NewFromDynamic(val *Handler, parts []string, indices map[string]int) *matchedRoute {
 	params := pathParameters{}
 	length := len(parts)
 
@@ -303,7 +303,7 @@ func (ure *urlRewriteExtractor) NewFromStatic(val *[]string) *[]string {
 	return val
 }
 
-func (ure *urlRewriteExtractor) NewFromDynamic(val *[]string, parts []string, re *regexp.Regexp, indices map[string]int) *[]string {
+func (ure *urlRewriteExtractor) NewFromDynamic(val *[]string, parts []string, indices map[string]int) *[]string {
 	result := make([]string, len(*val))
 	copy(result, *val)
 	// TODO: could do with patching this up, seems a bit expensive!

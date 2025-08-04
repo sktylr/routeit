@@ -233,12 +233,16 @@ func TestHandle(t *testing.T) {
 			if rw.s != tc.wantStatus {
 				t.Errorf(`status = [%d, %s], wanted [%d, %s]`, rw.s.code, rw.s.msg, tc.wantStatus.code, tc.wantStatus.msg)
 			}
-			cType, found := rw.headers.headers.Get("Content-Type")
-			if found != (tc.wantCType != "") {
+			wantCType := tc.wantCType != ""
+			cType, found := rw.headers.headers.All("Content-Type")
+			if found != wantCType {
 				t.Errorf("Content-Type present = %t, wanted %t", found, tc.wantCType != "")
 			}
-			if cType != tc.wantCType {
-				t.Errorf(`Content-Type = %#q, wanted %#q`, cType, tc.wantCType)
+			if wantCType && len(cType) != 1 {
+				t.Errorf(`Content-Type = %+v, wanted only 1 element`, cType)
+			}
+			if wantCType && cType[0] != tc.wantCType {
+				t.Errorf(`Content-Type = %#q, wanted %#q`, cType[0], tc.wantCType)
 			}
 			if cLen := rw.headers.headers.ContentLength(); cLen != tc.wantCLen {
 				t.Errorf("content length = %d, wanted %d", cLen, tc.wantCLen)

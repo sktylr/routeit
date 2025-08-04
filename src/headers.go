@@ -26,11 +26,10 @@ type ResponseHeaders struct {
 	headers headers
 }
 
-// TODO: may need to migrate this!
-func newResponseHeaders() headers {
+func newResponseHeaders() *ResponseHeaders {
 	h := headers{}
 	h.Set("Server", "routeit")
-	return h
+	return &ResponseHeaders{headers: h}
 }
 
 // Parses a slice of byte slices into the headers type.

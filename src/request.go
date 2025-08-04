@@ -179,7 +179,7 @@ func (req *Request) PathParam(param string) (string, bool) {
 	return val, found
 }
 
-// TODO:
+// Access the headers of the request.
 func (req *Request) Headers() *RequestHeaders {
 	return req.headers
 }

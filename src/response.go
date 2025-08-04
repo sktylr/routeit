@@ -37,7 +37,6 @@ func newResponseWithStatus(status HttpStatus) *ResponseWriter {
 }
 
 func newResponse() *ResponseWriter {
-	// TODO: should use constructor here!
 	return &ResponseWriter{headers: newResponseHeaders()}
 }
 
@@ -94,20 +93,12 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 	rw.s = s
 }
 
-// TODO:
-// Sets a header with the corresponding value. This is destructive, meaning
-// repeated calls using the same key will preserve the last key. Header key and
-// values will be sanitised per HTTP spec before being added to the server's
-// response. It is the user's responsibility to ensure that the headers are
-// safe and non-conflicting. For example, it is heavily discouraged to modify
-// the Content-Type or Content-Length headers as they are managed implicitly
-// whenever a body is written to a response and can cause issues on the client
-// if they contain incorrect values.
-// func (rw *ResponseWriter) Header(key string, val string) {
-// 	rw.hdrs.Set(key, val)
-// }
-
-// TODO:
+// Access the headers for the response so they can be mutated. It is the user's
+// responsibility to ensure that the headers are safe and non-conflicting. For
+// example, it is heavily discouraged to modify the Content-Type or
+// Content-Length headers as they are managed implicitly whenever a body is
+// written to a response and can cause issues on the client if they contain
+// incorrect values.
 func (rw *ResponseWriter) Headers() *ResponseHeaders {
 	return rw.headers
 }

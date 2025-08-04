@@ -10,10 +10,10 @@ import (
 func TestNewResponseHeaders(t *testing.T) {
 	h := newResponseHeaders()
 
-	if len(h) != 1 {
-		t.Errorf(`len(h) = %q, want match for %#q`, len(h), 1)
+	if len(h.headers) != 1 {
+		t.Errorf(`len(h) = %q, want match for %#q`, len(h.headers), 1)
 	}
-	verifyPresentAndMatches(t, h, "Server", []string{"routeit"})
+	verifyPresentAndMatches(t, h.headers, "Server", []string{"routeit"})
 }
 
 func TestHeadersFromRaw(t *testing.T) {
@@ -258,7 +258,7 @@ func TestHeadersGet(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc, func(t *testing.T) {
-				verifyPresentAndMatches(t, base, tc, []string{"val"})
+				verifyPresentAndMatches(t, base.headers, tc, []string{"val"})
 			})
 		}
 	})

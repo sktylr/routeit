@@ -38,7 +38,7 @@ func newResponseWithStatus(status HttpStatus) *ResponseWriter {
 
 func newResponse() *ResponseWriter {
 	// TODO: should use constructor here!
-	return &ResponseWriter{headers: &ResponseHeaders{headers: newResponseHeaders()}}
+	return &ResponseWriter{headers: newResponseHeaders()}
 }
 
 // Adds a JSON response body to the response and sets the corresponding

@@ -674,6 +674,10 @@ func TestNewRewrite(t *testing.T) {
 				raw:  "/${foo} /bar?foo=${foo}/baz",
 			},
 			{
+				name: "multiple query strings on last path component",
+				raw:  "/${foo}/${bar} /baz?foo=${foo}?bar=${bar}",
+			},
+			{
 				name: "query parameter in key",
 				raw:  "/${foo}?bar=${baz} /bar/${foo}/${baz}",
 			},

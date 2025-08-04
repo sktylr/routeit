@@ -86,7 +86,7 @@ func allowTraceValidationMiddleware() Middleware {
 				h = headers{}
 			}
 		} else {
-			h = rw.hdrs
+			h = rw.headers.headers
 		}
 
 		allow, hasAllow := h.Get("Allow")

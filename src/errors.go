@@ -331,7 +331,7 @@ func (eh *errorHandler) HandleErrors(r any, rw *ResponseWriter, req *Request) *R
 
 func (e *HttpError) toResponse(rw *ResponseWriter) {
 	rw.Status(e.status)
-	maps.Copy(rw.hdrs, e.headers)
+	maps.Copy(rw.headers.headers, e.headers)
 	if e.status == StatusNotAcceptable {
 		// We currently do not include a response body nor default headers for
 		// the 406: Not Acceptable response. Per RFC-9112, the server is not

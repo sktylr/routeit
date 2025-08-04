@@ -256,7 +256,7 @@ func (r *router) RewriteUri(uri *uri) *HttpError {
 	if rewrittenQuery == "" {
 		return nil
 	}
-	return parseQueryParams(rewrittenQuery, &uri.queryParams)
+	return parseQueryParams(rewrittenQuery, uri.queryParams)
 }
 
 func (mre *matchedRouteExtractor) NewFromStatic(val *Handler) *matchedRoute {

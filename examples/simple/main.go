@@ -43,7 +43,7 @@ func GetServer() *routeit.Server {
 			return rw.Json(ex)
 		}),
 		"/echo": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			msg, found, err := req.QueryParamOnly("message")
+			msg, found, err := req.Queries().Only("message")
 			if !found {
 				rw.Text("Looks like you didn't want me to echo anything!\n")
 				return nil
@@ -153,7 +153,7 @@ func GetServer() *routeit.Server {
 			return nil
 		}),
 		"/update": routeit.Patch(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			conflicts, present := req.QueryParam("conflict")
+			conflicts, present := req.Queries().All("conflict")
 			if !present {
 				return routeit.ErrUnprocessableContent()
 			}

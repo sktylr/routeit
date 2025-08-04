@@ -544,8 +544,8 @@ func TestRewritePath(t *testing.T) {
 			if !reflect.DeepEqual(actual, tc.wantRewritten) {
 				t.Errorf("RewritePath(%q) rewritten = %+v, wanted %+v", tc.in, actual, tc.wantRewritten)
 			}
-			if tc.wantQueryParams != nil && !reflect.DeepEqual(uri.queryParams, tc.wantQueryParams) {
-				t.Errorf("RewritePath(%q) query params = %#v, wanted %#v", tc.in, uri.queryParams, tc.wantQueryParams)
+			if tc.wantQueryParams != nil && !reflect.DeepEqual(uri.queryParams.q, tc.wantQueryParams) {
+				t.Errorf("RewritePath(%q) query params = %#v, wanted %#v", tc.in, uri.queryParams.q, tc.wantQueryParams)
 			}
 		})
 	}

@@ -3,6 +3,7 @@ package routeit
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -23,12 +24,12 @@ func TestRequestFromRaw(t *testing.T) {
 	}
 	expectHeader := func(t *testing.T, key string, hdrs *RequestHeaders, want string) {
 		t.Helper()
-		got, exists := hdrs.headers.Get(key)
+		got, exists := hdrs.All(key)
 		if !exists {
 			t.Errorf(`expected header %#q to exist`, key)
 		}
-		if got != want {
-			t.Errorf(`headers[%q] = %q, wanted %#q`, key, got, want)
+		if !slices.Contains(got, want) {
+			t.Errorf(`headers[%q] = %+v, wanted %#q`, key, got, want)
 		}
 	}
 	expectMethod := func(t *testing.T, got, want HttpMethod) {

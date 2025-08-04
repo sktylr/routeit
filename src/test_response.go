@@ -117,9 +117,9 @@ func (tr *TestResponse) AssertHeaderContains(t testable, header, want string) {
 // Asserts that a header key is not present in the response
 func (tr *TestResponse) RefuteHeaderPresent(t testable, header string) {
 	t.Helper()
-	val, found := tr.rw.headers.headers.Get(header)
+	val, found := tr.rw.headers.headers.All(header)
 	if found {
-		t.Errorf(`Headers[%#q] = %#q, did not expect to be present`, header, val)
+		t.Errorf(`Headers[%#q] = %+v, did not expect to be present`, header, val)
 	}
 }
 

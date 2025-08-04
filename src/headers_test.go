@@ -1,6 +1,7 @@
 package routeit
 
 import (
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ func TestNewResponseHeaders(t *testing.T) {
 	if len(h) != 1 {
 		t.Errorf(`len(h) = %q, want match for %#q`, len(h), 1)
 	}
-	verifyPresentAndMatches(t, h, "Server", "routeit")
+	verifyPresentAndMatches(t, h, "Server", []string{"routeit"})
 }
 
 func TestHeadersFromRaw(t *testing.T) {
@@ -20,35 +21,43 @@ func TestHeadersFromRaw(t *testing.T) {
 		tests := []struct {
 			name      string
 			raw       [][]byte
-			want      map[string]string
+			want      map[string][]string
 			wantIndex int
 		}{
 			{
 				name: "multi header",
 				raw:  [][]byte{[]byte("Host: localhost"), []byte("Content-Type: application/json"), {}},
-				want: map[string]string{
-					"Host":         "localhost",
-					"Content-Type": "application/json",
+				want: map[string][]string{
+					"Host":         {"localhost"},
+					"Content-Type": {"application/json"},
 				},
 				wantIndex: 2,
 			},
 			{
 				name:      "excessive leading and trailing whitespace",
 				raw:       [][]byte{[]byte("X-My-Header:    value    "), {}},
-				want:      map[string]string{"X-My-Header": "value"},
+				want:      map[string][]string{"X-My-Header": {"value"}},
 				wantIndex: 1,
 			},
 			{
 				name:      "exits after empty lines",
 				raw:       [][]byte{[]byte(""), []byte("Host: localhost")},
-				want:      map[string]string{},
 				wantIndex: 0,
 			},
 			{
-				name:      `allows multi ":" characters`,
+				name:      `allows multiple ":" characters`,
 				raw:       [][]byte{[]byte("Host: localhost:433"), {}},
-				want:      map[string]string{"Host": "localhost:433"},
+				want:      map[string][]string{"Host": {"localhost:433"}},
 				wantIndex: 1,
+			},
+			{
+				name: "stores multiple header entries with the same key",
+				raw:  [][]byte{[]byte("Accept: application/json"), []byte("Accept: application/javascript"), []byte("Host: localhost"), []byte("Accept: text/html"), {}},
+				want: map[string][]string{
+					"Accept": {"application/json", "application/javascript", "text/html"},
+					"Host":   {"localhost"},
+				},
+				wantIndex: 4,
 			},
 		}
 
@@ -62,8 +71,8 @@ func TestHeadersFromRaw(t *testing.T) {
 				if len(h) != len(tc.want) {
 					t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
 				}
-				for k, v := range tc.want {
-					verifyPresentAndMatches(t, h, k, v)
+				for k, vals := range tc.want {
+					verifyPresentAndMatches(t, h, k, vals)
 				}
 				if i != tc.wantIndex {
 					t.Errorf(`last valid header index = %d, wanted %d`, i, tc.wantIndex)
@@ -214,7 +223,7 @@ func TestHeadersSet(t *testing.T) {
 
 				h.Set(k, "16")
 
-				verifyPresentAndMatches(t, h, "Content-Length", "16")
+				verifyPresentAndMatches(t, h, "Content-Length", []string{"16"})
 				if len(h) != 1 {
 					t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
 				}
@@ -226,7 +235,7 @@ func TestHeadersSet(t *testing.T) {
 		h := headers{}
 
 		h.Set("Content\r\n-Length", "16\n\n\t")
-		want := "16\t"
+		want := []string{"16\t"}
 
 		verifyPresentAndMatches(t, h, "Content-Length", want)
 	})
@@ -249,7 +258,7 @@ func TestHeadersGet(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc, func(t *testing.T) {
-				verifyPresentAndMatches(t, base, tc, "val")
+				verifyPresentAndMatches(t, base, tc, []string{"val"})
 			})
 		}
 	})
@@ -288,13 +297,13 @@ func TestContentLength(t *testing.T) {
 	}
 }
 
-func verifyPresentAndMatches(t *testing.T, h headers, key string, want string) {
+func verifyPresentAndMatches(t *testing.T, h headers, key string, want []string) {
 	t.Helper()
-	got, exists := h.Get(key)
+	got, exists := h.All(key)
 	if !exists {
 		t.Errorf("wanted %q to be present", key)
 	}
-	if got != want {
-		t.Errorf(`h[%q] = %q, want %#q`, key, got, want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf(`h[%q] = %v, want %v`, key, got, want)
 	}
 }

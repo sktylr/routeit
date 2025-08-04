@@ -52,7 +52,7 @@ func headersFromRaw(raw [][]byte) (headers, int, *HttpError) {
 			// we also reject.
 			return nil, i - 1, ErrBadRequest()
 		}
-		h.Set(kvp[0], strings.TrimSpace(kvp[1]))
+		h.Append(kvp[0], strings.TrimSpace(kvp[1]))
 	}
 	// If we get here, it means we have reached the end of the headers and
 	// haven't encountered an empty line. This means the headers are malformed,
@@ -96,6 +96,24 @@ func (h headers) Set(key string, val string) {
 		actual.vals = []string{sVal}
 		h[sKeyLower] = actual
 	}
+}
+
+// TODO:
+func (h headers) Append(key string, val string) {
+	sKey := strings.Map(sanitiseHeader, key)
+	sVal := strings.Map(sanitiseHeader, val)
+	sKeyLower := strings.ToLower(sKey)
+	actual, exists := h[sKeyLower]
+	if !exists {
+		h[sKeyLower] = headerVal{
+			vals:     []string{sVal},
+			original: sKey,
+		}
+	} else {
+		actual.vals = append(actual.vals, sVal)
+		h[sKeyLower] = actual
+	}
+
 }
 
 // Performs a case insensitive retrieval of the value associated with the given

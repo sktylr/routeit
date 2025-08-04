@@ -22,9 +22,8 @@ var (
 )
 
 type Request struct {
-	ctx  context.Context
-	mthd HttpMethod
-	// TODO: need to normalise this properly and have a (private) method for trimming the namespace etc.
+	ctx       context.Context
+	mthd      HttpMethod
 	uri       uri
 	headers   headers
 	body      []byte

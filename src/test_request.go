@@ -40,7 +40,7 @@ type TestRequest struct {
 
 type testRequest struct {
 	path    string
-	headers *RequestHeaders
+	headers headers
 	method  HttpMethod
 	body    []byte
 }
@@ -61,7 +61,7 @@ func NewTestRequest(t testable, path string, m HttpMethod, opts TestRequestOptio
 		maps.Copy(uri.pathParams, opts.PathParams)
 	}
 
-	headers := constructTestHeaders(opts.Headers...)
+	headers := &RequestHeaders{constructTestHeaders(opts.Headers...)}
 	req := &Request{
 		ctx:     t.Context(),
 		mthd:    m,
@@ -101,7 +101,7 @@ func (tr *TestRequest) ContextValue(key string) (any, bool) {
 	return tr.req.ContextValue(key)
 }
 
-func constructTestHeaders(h ...string) *RequestHeaders {
+func constructTestHeaders(h ...string) headers {
 	i := 0
 	total := len(h)
 	headers := headers{}
@@ -109,5 +109,5 @@ func constructTestHeaders(h ...string) *RequestHeaders {
 		headers.Set(h[i], h[i+1])
 		i += 2
 	}
-	return &RequestHeaders{headers: headers}
+	return headers
 }

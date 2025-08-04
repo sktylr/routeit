@@ -162,8 +162,7 @@ func (t *StringTrie[I, O]) Find(path []string) (*O, bool) {
 	if found.value.dm == nil {
 		return t.extractor.NewFromStatic(found.value.val), true
 	}
-	// TODO: this will have to be adapted for routing versus rewrites
-	// TODO: this will need to work without joining - i.e. through returning a URI or similar for rewrites
+
 	val := t.extractor.NewFromDynamic(found.value.val, path, found.value.dm.indices)
 	return val, true
 }
@@ -270,8 +269,6 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 	if !strings.Contains(path, ":") {
 		return nil
 	}
-
-	// TODO: some of the leading slash stuff makes this more confusing than it should be
 
 	frequencies, indices := map[string]int{}, map[string]int{}
 	first, total, prefixSuffixCount := int(^uint(0)>>1), 0, 0

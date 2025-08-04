@@ -7,8 +7,6 @@ import (
 
 var defaultRequestSize = 10 * KiB
 
-// TODO: (currently) if a path contains a %-encoded / symbol, then this will be interpreted as a path delimiter, so will cause incorrect routing in the trie. This could be addressed by splitting on `/` first, then accepting a list in the trie, instead of the full path.
-
 func TestRequestFromRaw(t *testing.T) {
 	expectBody := func(t *testing.T, got []byte, want string) {
 		t.Helper()

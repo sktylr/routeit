@@ -201,14 +201,47 @@ func (req *Request) ClientIP() string {
 	return req.ip
 }
 
-// Access a query parameter if present
-func (req *Request) QueryParam(key string) (string, bool) {
-	// TODO: need additional methods for this
+// Access a query parameter if present. This returns a slice that may contain
+// multiple elements, some of which may be empty (e.g. if the client sends
+// `?foo=`).
+func (req *Request) QueryParam(key string) ([]string, bool) {
 	val, found := req.uri.queryParams[key]
-	if found && len(val) > 0 {
-		return val[0], true
+	return val, found
+}
+
+// Access a query parameter, asserting that it is only present exactly once in
+// the request URI. This will return false if the query parameter is not
+// present, and a 400: Bad Request error if the query parameter is present more
+// than once.
+func (req *Request) QueryParamOnly(key string) (string, bool, error) {
+	val, found := req.QueryParam(key)
+	if !found {
+		return "", false, nil
 	}
-	return "", false
+	if len(val) != 1 {
+		msg := fmt.Sprintf("Query parameter %#q should only be present once", key)
+		return "", true, ErrBadRequest().WithMessage(msg)
+	}
+	return val[0], true, nil
+}
+
+// Access the first query parameter for the given key, if present
+func (req *Request) QueryParamFirst(key string) (string, bool) {
+	val, found := req.QueryParam(key)
+	if !found || len(val) == 0 {
+		return "", false
+	}
+	return val[0], true
+}
+
+// Access the last query parameter for the given key, if present
+func (req *Request) QueryParamLast(key string) (string, bool) {
+	val, found := req.QueryParam(key)
+	length := len(val)
+	if !found || length == 0 {
+		return "", false
+	}
+	return val[length-1], true
 }
 
 // Parses the Json request body into the destination. Ensures that the

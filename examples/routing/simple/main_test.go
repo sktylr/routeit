@@ -27,8 +27,8 @@ func TestFoundRoute(t *testing.T) {
 			res.AssertStatusCode(t, routeit.StatusCreated)
 			wantBody := fmt.Sprintf("Hello from %s!", tc.message)
 			res.AssertBodyMatchesString(t, wantBody)
-			res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
-			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+			res.AssertHeaderMatchesString(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
+			res.AssertHeaderMatchesString(t, "Content-Type", "text/plain")
 		})
 	}
 }
@@ -49,8 +49,8 @@ func TestNotFoundRoute(t *testing.T) {
 			res.AssertStatusCode(t, routeit.StatusNotFound)
 			wantBody := fmt.Sprintf("404: Not Found. Invalid route: %s", tc.path)
 			res.AssertBodyMatchesString(t, wantBody)
-			res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
-			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+			res.AssertHeaderMatchesString(t, "Content-Length", fmt.Sprintf("%d", len(wantBody)))
+			res.AssertHeaderMatchesString(t, "Content-Type", "text/plain")
 		})
 	}
 }

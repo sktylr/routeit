@@ -270,7 +270,7 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 		return nil
 	}
 
-	frequencies, indices := map[string]int{}, map[string]int{}
+	indices := map[string]int{}
 	first, total, prefixSuffixCount := int(^uint(0)>>1), 0, 0
 	trimmed := strings.TrimPrefix(path, string(sep))
 	for i, seg := range strings.Split(trimmed, string(sep)) {
@@ -298,19 +298,10 @@ func dynamicPathToMatcher(path string, sep rune) *dynamicMatcher {
 		if i < first {
 			first = i
 		}
-		count, exists := frequencies[name]
-		if !exists {
-			frequencies[name] = 1
-		} else {
-			frequencies[name] = count + 1
+		if _, exists := indices[name]; exists {
+			panic(fmt.Sprintf("duplicate entries in same route for name %#q", name))
 		}
 		indices[name] = i
-	}
-
-	for k, v := range frequencies {
-		if v != 1 {
-			panic(fmt.Sprintf("duplicate entries in same route for name %#q", k))
-		}
 	}
 
 	if total == 0 {

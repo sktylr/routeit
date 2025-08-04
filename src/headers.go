@@ -17,8 +17,6 @@ type headerVal struct {
 	original string
 }
 
-// TODO: does not handle where a request contains multiple headers of the same key, or a response does
-
 type headers map[string]headerVal
 
 // Writes the headers to the given string builder. Sanitises the keys and
@@ -58,7 +56,10 @@ func (h headers) Set(key, val string) {
 	}
 }
 
-// TODO:
+// Appends a value to the headers. This is not destructive and does not check
+// for the presence of the value already within the list. This is preferred to
+// setting the header to a comma separated string, unless the header values
+// need to be strictly reset.
 func (h headers) Append(key, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)

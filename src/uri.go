@@ -7,8 +7,6 @@ import (
 
 type pathParameters map[string]string
 
-type queryParameters map[string][]string
-
 // A composed structure representing the target of a request. It contains the
 // parsed URL, which does not include the Host header and is always prefixed
 // with a leading slash. Query parameters are extracted into a separate property
@@ -23,7 +21,7 @@ type uri struct {
 	rewritten     bool
 	globalOptions bool
 	pathParams    pathParameters
-	queryParams   queryParameters
+	queryParams   *QueryParams
 }
 
 // TODO: this doesn't enforce that all characters are legal
@@ -76,10 +74,10 @@ func parseUri(uriRaw string) (*uri, *HttpError) {
 		rawPath = "/" + rawPath
 	}
 
-	uri := &uri{edgePath: edgePath, rawPath: rawPath, queryParams: queryParameters{}}
+	uri := &uri{edgePath: edgePath, rawPath: rawPath, queryParams: newQueryParams()}
 
 	if hasQuery {
-		if err := parseQueryParams(rawQuery, &uri.queryParams); err != nil {
+		if err := parseQueryParams(rawQuery, uri.queryParams); err != nil {
 			return nil, err
 		}
 	}
@@ -111,29 +109,4 @@ func (u uri) RemoveNamespace(ns []string) ([]string, bool) {
 		nonNamespace++
 	}
 	return path[nonNamespace:], true
-}
-
-func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError {
-	if strings.Contains(rawQuery, "?") {
-		// There should only be 1 `?`, which we have stripped off. Any `?` that
-		// feature as part of the query string should be URL encoded.
-		return ErrBadRequest()
-	}
-
-	for query := range strings.SplitSeq(rawQuery, "&") {
-		// Most servers interpret the query component "?foo=" or "?foo" to mean
-		// that the value of "foo" is "".
-		key, rest, _ := strings.Cut(query, "=")
-		key, err := url.QueryUnescape(key)
-		if err != nil {
-			return ErrBadRequest()
-		}
-		val, err := url.QueryUnescape(rest)
-		if err != nil {
-			return ErrBadRequest()
-		}
-		(*queryParams)[key] = append((*queryParams)[key], val)
-	}
-
-	return nil
 }

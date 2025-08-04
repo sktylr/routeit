@@ -19,7 +19,7 @@ func GetServer() *routeit.Server {
 // string literal "LET ME IN". If equal, the request is permitted to progress
 // through the rest of the middleware, otherwise it is rejected.
 func AuthorisationMiddleware(c routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
-	auth, found := req.Header("Authorization")
+	auth, found := req.Headers().First("Authorization")
 	if !found || auth != "LET ME IN" {
 		return routeit.ErrUnauthorized()
 	}

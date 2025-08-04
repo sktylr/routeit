@@ -42,7 +42,7 @@ func AuthMiddleware(c routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Re
 		return c.Proceed(rw, req)
 	}
 
-	auth, hasAuth := req.Header("Authorization")
+	auth, hasAuth := req.Headers().First("Authorization")
 
 	if !hasAuth || !strings.HasPrefix(auth, "Bearer ") {
 		return routeit.ErrUnauthorized()

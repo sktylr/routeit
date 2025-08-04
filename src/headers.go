@@ -26,6 +26,11 @@ type ResponseHeaders struct {
 	headers headers
 }
 
+// TODO:
+type RequestHeaders struct {
+	headers headers
+}
+
 func newResponseHeaders() *ResponseHeaders {
 	h := headers{}
 	h.Set("Server", "routeit")
@@ -39,14 +44,14 @@ func newResponseHeaders() *ResponseHeaders {
 // stopping at the first blank line sequence if present. If a blank line is not
 // present, we will return an error since per the RFC-9112 spec, the headers
 // MUST be separated from the body by a blank CRLF line.
-func headersFromRaw(raw [][]byte) (headers, int, *HttpError) {
+func headersFromRaw(raw [][]byte) (*RequestHeaders, int, *HttpError) {
 	h := headers{}
 	for i, line := range raw {
 		if len(line) == 0 {
 			// This is an empty line which is interpreted as the signal between
 			// the end of the headers and the body. We return the current index
 			// since this is the last valid "header" line we processed.
-			return h, i, nil
+			return &RequestHeaders{headers: h}, i, nil
 		}
 
 		kvp := strings.SplitN(string(line), ":", 2)
@@ -63,7 +68,7 @@ func headersFromRaw(raw [][]byte) (headers, int, *HttpError) {
 	// haven't encountered an empty line. This means the headers are malformed,
 	// which we report to the caller by returning an error and reporting the
 	// last valid index as the last element of the input slice.
-	return headers{}, len(raw) - 1, ErrBadRequest()
+	return &RequestHeaders{}, len(raw) - 1, ErrBadRequest()
 }
 
 // Writes the headers to the given string builder. Sanitises the keys and
@@ -129,6 +134,21 @@ func (rh *ResponseHeaders) Set(key, val string) {
 // TODO:
 func (rh *ResponseHeaders) Append(key, val string) {
 	rh.headers.Append(key, val)
+}
+
+// TODO:
+func (rh *RequestHeaders) All(key string) ([]string, bool) {
+	vals, found := rh.headers.All(key)
+	return vals, found
+}
+
+// TODO:
+func (rh *RequestHeaders) First(key string) (string, bool) {
+	vals, found := rh.headers.All(key)
+	if !found || len(vals) == 0 {
+		return "", false
+	}
+	return vals[0], found
 }
 
 // Performs a case insensitive retrieval of the value associated with the given

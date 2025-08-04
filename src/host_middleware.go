@@ -31,8 +31,9 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		}
 	}
 
+	// TODO: header validation middleware should go before this!
 	return func(c Chain, rw *ResponseWriter, req *Request) error {
-		host, hasHost := req.Header("Host")
+		host, hasHost := req.Headers().First("Host")
 		if !hasHost {
 			return ErrBadRequest()
 		}

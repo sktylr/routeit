@@ -163,8 +163,8 @@ func (tc TestClient) Delete(path string, h ...string) *TestResponse {
 
 func (tc TestClient) xRaw(path string, body []byte, ct ContentType, method HttpMethod, h ...string) *TestResponse {
 	headers := constructTestHeaders(h...)
-	headers.Set("Content-Type", ct.string())
-	headers.Set("Content-Length", fmt.Sprintf("%d", len(body)))
+	headers.headers.Set("Content-Type", ct.string())
+	headers.headers.Set("Content-Length", fmt.Sprintf("%d", len(body)))
 	req := testRequest{
 		path:    path,
 		method:  method,
@@ -181,8 +181,8 @@ func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string
 		panic(err)
 	}
 	headers := constructTestHeaders(h...)
-	headers.Set("Content-Type", CTApplicationJson.string())
-	headers.Set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
+	headers.headers.Set("Content-Type", CTApplicationJson.string())
+	headers.headers.Set("Content-Length", fmt.Sprintf("%d", len(bodyJson)))
 	req := testRequest{
 		path:    path,
 		method:  method,
@@ -195,8 +195,8 @@ func (tc TestClient) xJson(path string, body any, method HttpMethod, h ...string
 func (tc TestClient) xText(path string, text string, method HttpMethod, h ...string) *TestResponse {
 	raw := []byte(text)
 	headers := constructTestHeaders(h...)
-	headers.Set("Content-Type", CTTextPlain.string())
-	headers.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
+	headers.headers.Set("Content-Type", CTTextPlain.string())
+	headers.headers.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
 	req := testRequest{
 		path:    path,
 		method:  method,
@@ -213,16 +213,16 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 		req.path = "/" + req.path
 	}
 
-	if _, found := req.headers.Get("Host"); !found {
-		req.headers.Set("Host", "localhost:1234")
+	if _, found := req.headers.All("Host"); !found {
+		req.headers.headers.Set("Host", "localhost:1234")
 	}
-	if _, found := req.headers.Get("User-Agent"); !found {
-		req.headers.Set("User-Agent", "test-client")
+	if _, found := req.headers.All("User-Agent"); !found {
+		req.headers.headers.Set("User-Agent", "test-client")
 	}
 
 	var rb bytes.Buffer
 	rb.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", req.method.name, req.path))
-	_, err := req.headers.WriteTo(&rb)
+	_, err := req.headers.headers.WriteTo(&rb)
 	if err != nil {
 		panic(fmt.Errorf("encountered error writing header for test %v", err))
 	}

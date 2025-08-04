@@ -7,7 +7,7 @@ import (
 
 type pathParameters map[string]string
 
-type queryParameters map[string]string
+type queryParameters map[string][]string
 
 // A composed structure representing the target of a request. It contains the
 // parsed URL, which does not include the Host header and is always prefixed
@@ -132,7 +132,7 @@ func parseQueryParams(rawQuery string, queryParams *queryParameters) *HttpError 
 		if err != nil {
 			return ErrBadRequest()
 		}
-		(*queryParams)[key] = val
+		(*queryParams)[key] = append((*queryParams)[key], val)
 	}
 
 	return nil

@@ -513,7 +513,7 @@ func TestRewritePath(t *testing.T) {
 			base:            map[string]string{"/foo/${bar}": "/baz?id=${bar}"},
 			in:              "/foo/123",
 			wantRewritten:   []string{"baz"},
-			wantQueryParams: queryParameters{"id": "123"},
+			wantQueryParams: queryParameters{"id": {"123"}},
 			rewrite:         true,
 		},
 	}

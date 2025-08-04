@@ -215,7 +215,7 @@ func TestParseAcceptHeader(t *testing.T) {
 				h.Set(k, v)
 			}
 
-			accept := parseAcceptHeader(h)
+			accept := parseAcceptHeader(&RequestHeaders{h})
 
 			if len(accept) != len(tc.want) {
 				t.Errorf(`length = %d, wanted %d`, len(accept), len(tc.want))

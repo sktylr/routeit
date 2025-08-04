@@ -40,7 +40,7 @@ type TestRequest struct {
 
 type testRequest struct {
 	path    string
-	headers headers
+	headers *RequestHeaders
 	method  HttpMethod
 	body    []byte
 }
@@ -72,13 +72,13 @@ func NewTestRequest(t testable, path string, m HttpMethod, opts TestRequestOptio
 		accept:  parseAcceptHeader(headers),
 	}
 
-	if host, hasHost := headers.Get("Host"); hasHost {
+	if host, hasHost := headers.First("Host"); hasHost {
 		req.host = host
 	} else {
 		req.host = "localhost:8080"
 	}
 
-	if ct, hasCt := headers.Get("Content-Type"); hasCt {
+	if ct, hasCt := headers.First("Content-Type"); hasCt {
 		req.ct = parseContentType(ct)
 	}
 
@@ -101,7 +101,7 @@ func (tr *TestRequest) ContextValue(key string) (any, bool) {
 	return tr.req.ContextValue(key)
 }
 
-func constructTestHeaders(h ...string) headers {
+func constructTestHeaders(h ...string) *RequestHeaders {
 	i := 0
 	total := len(h)
 	headers := headers{}
@@ -109,5 +109,5 @@ func constructTestHeaders(h ...string) headers {
 		headers.Set(h[i], h[i+1])
 		i += 2
 	}
-	return headers
+	return &RequestHeaders{headers: headers}
 }

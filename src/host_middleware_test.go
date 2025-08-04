@@ -51,7 +51,7 @@ func BenchmarkHostValidationMiddleware(b *testing.B) {
 						b.StopTimer()
 						headers := headers{}
 						headers.Set("Host", tc.testHost)
-						req := &Request{headers: headers}
+						req := &Request{headers: &RequestHeaders{headers}}
 						rw := &ResponseWriter{}
 						chain := mw.NewChain()
 						b.StartTimer()

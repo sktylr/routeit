@@ -115,7 +115,7 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 		// cause CORS headers to leak over different origins.
 		rw.Headers().Append("Vary", "Origin")
 
-		origin, hasOrigin := req.Header("Origin")
+		origin, hasOrigin := req.Headers().First("Origin")
 		if !hasOrigin {
 			return c.Proceed(rw, req)
 		}
@@ -128,7 +128,7 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 			return ErrForbidden()
 		}
 
-		acrm, hasAcrm := req.Header("Access-Control-Request-Method")
+		acrm, hasAcrm := req.Headers().First("Access-Control-Request-Method")
 		if req.Method() == OPTIONS && hasAcrm {
 			// This is a pre-flight request sent by the browser for non-simple
 			// requests. These requests are sent by browsers to inform the
@@ -162,7 +162,10 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 				rw.Headers().Set("Access-Control-Max-Age", cors.MaxAge)
 			}
 
-			headers, requestsHeaders := req.Header("Access-Control-Request-Headers")
+			// The CORS spec indicates that the client should only send 1 of
+			// these headers, so we are safe to only access 1 element, rather
+			// than assuming there might be multiple in the request.
+			headers, requestsHeaders := req.Headers().First("Access-Control-Request-Headers")
 			if requestsHeaders && cors.AllowedHeaders(headers) {
 				// For security purposes, we only confirm that exactly the
 				// headers requested by the client will be accepted by the

@@ -21,9 +21,9 @@ func TestRequestFromRaw(t *testing.T) {
 			t.Errorf(`Path() = %q, wanted %#q`, got.Path(), want)
 		}
 	}
-	expectHeader := func(t *testing.T, key string, hdrs headers, want string) {
+	expectHeader := func(t *testing.T, key string, hdrs *RequestHeaders, want string) {
 		t.Helper()
-		got, exists := hdrs.Get(key)
+		got, exists := hdrs.headers.Get(key)
 		if !exists {
 			t.Errorf(`expected header %#q to exist`, key)
 		}
@@ -206,8 +206,8 @@ func TestRequestFromRaw(t *testing.T) {
 			// Unparsed since there is no Content-Length header
 			expectBody(t, req.body, "")
 			expectUrl(t, req, "/")
-			if len(req.headers) != 1 {
-				t.Errorf(`requestFromRaw one header headers = %q, wanted {"Host": "localhost"}`, req.headers)
+			if len(req.headers.headers) != 1 {
+				t.Errorf(`requestFromRaw one header headers = %q, wanted {"Host": "localhost"}`, req.headers.headers)
 			}
 			expectHeader(t, "Host", req.headers, "localhost")
 			expectMethod(t, req.mthd, POST)
@@ -230,8 +230,8 @@ func TestRequestFromRaw(t *testing.T) {
 			}
 			expectBody(t, req.body, "the body")
 			expectUrl(t, req, "/")
-			if len(req.headers) != len(wantHdrs) {
-				t.Errorf(`requestFromRaw multiple headers headers = %q, wanted %#q`, req.headers, wantHdrs)
+			if len(req.headers.headers) != len(wantHdrs) {
+				t.Errorf(`requestFromRaw multiple headers headers = %q, wanted %#q`, req.headers.headers, wantHdrs)
 			}
 			expectHeader(t, "Content-Type", req.headers, wantCtRaw)
 			expectHeader(t, "Content-Length", req.headers, wantCl)

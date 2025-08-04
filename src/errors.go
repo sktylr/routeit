@@ -245,6 +245,12 @@ func (he *HttpError) WithMessage(message string) *HttpError {
 	return he
 }
 
+// Shorthand for calling [HttpError.WithMessage] using a format string.
+func (he *HttpError) WithMessagef(format string, args ...any) *HttpError {
+	he.message = fmt.Sprintf(format, args...)
+	return he
+}
+
 func (he *HttpError) WithCause(cause error) *HttpError {
 	he.cause = cause
 	return he
@@ -354,7 +360,7 @@ func (eh *errorHandler) toHttpError(err error, req *Request) *HttpError {
 		return ErrForbidden().WithCause(err)
 	}
 	if errors.Is(err, fs.ErrNotExist) {
-		return ErrNotFound().WithCause(err).WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
+		return ErrNotFound().WithCause(err).WithMessagef("Invalid route: %s", req.Path())
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrServiceUnavailable().WithCause(err)

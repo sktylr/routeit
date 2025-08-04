@@ -1,7 +1,6 @@
 package routeit
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 )
@@ -34,8 +33,7 @@ func (q *QueryParams) Only(key string) (string, bool, error) {
 		return "", false, nil
 	}
 	if len(val) != 1 {
-		msg := fmt.Sprintf("Query parameter %#q should only be present once", key)
-		return "", true, ErrBadRequest().WithMessage(msg)
+		return "", true, ErrBadRequest().WithMessagef("Query parameter %#q should only be present once", key)
 	}
 	return val[0], true, nil
 }

@@ -61,8 +61,8 @@ func TestServer(t *testing.T) {
 				verifyMeta := func(t *testing.T, res *routeit.TestResponse) {
 					t.Helper()
 					res.AssertStatusCode(t, routeit.StatusOK)
-					res.AssertHeaderMatches(t, "Content-Type", tc.wantCT)
-					res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", tc.wantCLen))
+					res.AssertHeaderMatchesString(t, "Content-Type", tc.wantCT)
+					res.AssertHeaderMatchesString(t, "Content-Length", fmt.Sprintf("%d", tc.wantCLen))
 				}
 
 				t.Run("GET", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestServer(t *testing.T) {
 		verify := func(t *testing.T, res *routeit.TestResponse) {
 			t.Helper()
 			res.AssertStatusCode(t, routeit.StatusNotFound)
-			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+			res.AssertHeaderMatchesString(t, "Content-Type", "text/plain")
 		}
 
 		for _, tc := range tests {

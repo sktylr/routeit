@@ -76,9 +76,9 @@ func TestServer(t *testing.T) {
 			}
 			verify := func(t *testing.T, res *routeit.TestResponse) {
 				res.AssertStatusCode(t, routeit.StatusOK)
-				res.AssertHeaderMatches(t, "Content-Type", "application/json")
+				res.AssertHeaderMatchesString(t, "Content-Type", "application/json")
 				b, _ := json.Marshal(wantBody)
-				res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", len(b)))
+				res.AssertHeaderMatchesString(t, "Content-Length", fmt.Sprintf("%d", len(b)))
 			}
 
 			t.Run("GET", func(t *testing.T) {
@@ -103,14 +103,14 @@ func TestServer(t *testing.T) {
 				res := client.PostText(tc.path, "This will not be accepted")
 
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 
 			t.Run("OPTIONS", func(t *testing.T) {
 				res := client.Options(tc.path)
 
 				res.AssertStatusCode(t, routeit.StatusNoContent)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 				res.AssertBodyEmpty(t)
 			})
 		})

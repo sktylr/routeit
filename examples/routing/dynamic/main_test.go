@@ -88,7 +88,7 @@ func TestHello(t *testing.T) {
 			t.Run(tc, func(t *testing.T) {
 				res := client.Get(tc)
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-				res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"POST", "OPTIONS"})
 			})
 		}
 	})
@@ -104,7 +104,7 @@ func TestHello(t *testing.T) {
 			t.Run(tc, func(t *testing.T) {
 				res := client.PostText(tc, "this is not going to be accepted")
 				res.AssertStatusCode(t, routeit.StatusUnsupportedMediaType)
-				res.AssertHeaderMatches(t, "Accept", "application/json")
+				res.AssertHeaderMatchesString(t, "Accept", "application/json")
 			})
 		}
 	})

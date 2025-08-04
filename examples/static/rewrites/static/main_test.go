@@ -15,8 +15,8 @@ func TestIndex(t *testing.T) {
 		t.Helper()
 		res.AssertStatusCode(t, routeit.StatusOK)
 		res.RefuteHeaderPresent(t, "Allow")
-		res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
-		res.AssertHeaderMatches(t, "Content-Length", "563")
+		res.AssertHeaderMatchesString(t, "Content-Type", "text/html; charset=utf-8")
+		res.AssertHeaderMatchesString(t, "Content-Length", "563")
 	}
 
 	for _, r := range routes {
@@ -42,7 +42,7 @@ func TestIndex(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusNoContent)
 				res.AssertBodyEmpty(t)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 
 			t.Run("POST", func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestIndex(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 				res.AssertBodyMatchesString(t, "405: Method Not Allowed")
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 		})
 	}
@@ -62,8 +62,8 @@ func TestAbout(t *testing.T) {
 		t.Helper()
 		res.AssertStatusCode(t, routeit.StatusOK)
 		res.RefuteHeaderPresent(t, "Allow")
-		res.AssertHeaderMatches(t, "Content-Type", "text/html; charset=utf-8")
-		res.AssertHeaderMatches(t, "Content-Length", "1650")
+		res.AssertHeaderMatchesString(t, "Content-Type", "text/html; charset=utf-8")
+		res.AssertHeaderMatchesString(t, "Content-Length", "1650")
 	}
 
 	for _, r := range routes {
@@ -89,7 +89,7 @@ func TestAbout(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusNoContent)
 				res.AssertBodyEmpty(t)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 
 			t.Run("POST", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestAbout(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 				res.AssertBodyMatchesString(t, "405: Method Not Allowed")
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 		})
 	}
@@ -109,8 +109,8 @@ func TestTarget(t *testing.T) {
 		t.Helper()
 		res.AssertStatusCode(t, routeit.StatusOK)
 		res.RefuteHeaderPresent(t, "Allow")
-		res.AssertHeaderMatches(t, "Content-Type", "image/png")
-		res.AssertHeaderMatches(t, "Content-Length", "14513")
+		res.AssertHeaderMatchesString(t, "Content-Type", "image/png")
+		res.AssertHeaderMatchesString(t, "Content-Length", "14513")
 	}
 
 	for _, r := range routes {
@@ -134,7 +134,7 @@ func TestTarget(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusNoContent)
 				res.AssertBodyEmpty(t)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 
 			t.Run("POST", func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestTarget(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 				res.AssertBodyMatchesString(t, "405: Method Not Allowed")
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 		})
 	}
@@ -154,8 +154,8 @@ func TestStyles(t *testing.T) {
 		t.Helper()
 		res.AssertStatusCode(t, routeit.StatusOK)
 		res.RefuteHeaderPresent(t, "Allow")
-		res.AssertHeaderMatches(t, "Content-Type", "text/css; charset=utf-8")
-		res.AssertHeaderMatches(t, "Content-Length", "1113")
+		res.AssertHeaderMatchesString(t, "Content-Type", "text/css; charset=utf-8")
+		res.AssertHeaderMatchesString(t, "Content-Length", "1113")
 	}
 
 	for _, r := range routes {
@@ -181,7 +181,7 @@ func TestStyles(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusNoContent)
 				res.AssertBodyEmpty(t)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 
 			t.Run("POST", func(t *testing.T) {
@@ -189,7 +189,7 @@ func TestStyles(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 				res.AssertBodyMatchesString(t, "405: Method Not Allowed")
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 		})
 	}
@@ -201,8 +201,8 @@ func TestHello(t *testing.T) {
 		t.Helper()
 		res.AssertStatusCode(t, routeit.StatusOK)
 		res.RefuteHeaderPresent(t, "Allow")
-		res.AssertHeaderMatches(t, "Content-Type", "application/json")
-		res.AssertHeaderMatches(t, "Content-Length", "180")
+		res.AssertHeaderMatchesString(t, "Content-Type", "application/json")
+		res.AssertHeaderMatchesString(t, "Content-Length", "180")
 	}
 
 	for _, r := range routes {
@@ -234,7 +234,7 @@ func TestHello(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusNoContent)
 				res.AssertBodyEmpty(t)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 
 			t.Run("POST", func(t *testing.T) {
@@ -242,7 +242,7 @@ func TestHello(t *testing.T) {
 
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
 				res.AssertBodyMatchesString(t, "405: Method Not Allowed")
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 		})
 	}

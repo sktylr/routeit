@@ -109,13 +109,11 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 	cors := cc.toCors()
 
 	return func(c Chain, rw *ResponseWriter, req *Request) error {
-		resHeaders := rw.Headers()
-
 		// Always set the Vary header to at least Origin. This ensures that
 		// intermediary nodes, such as CDNs or proxies know not to return a
 		// cached response if the Origin header is different as this could
 		// cause CORS headers to leak over different origins.
-		resHeaders.Append("Vary", "Origin")
+		rw.Headers().Append("Vary", "Origin")
 
 		origin, hasOrigin := req.Header("Origin")
 		if !hasOrigin {
@@ -123,7 +121,9 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 		}
 		// TODO: should probably return a list
 		allowedOrigin, additionalVaryHeaders := cors.AllowsOrigin(req, origin)
-		resHeaders.Append("Vary", additionalVaryHeaders)
+		if additionalVaryHeaders != "" {
+			rw.Headers().Append("Vary", additionalVaryHeaders)
+		}
 		if !allowedOrigin {
 			return ErrForbidden()
 		}
@@ -138,7 +138,7 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 			// For the same reasons above, we only want the intermediaries
 			// to return this exact cached response if the
 			// Access-Control-Request-Method header is the same
-			resHeaders.Append("Vary", "Access-Control-Request-Method")
+			rw.Headers().Append("Vary", "Access-Control-Request-Method")
 
 			if !cors.IsAllowedMethod(acrm) {
 				return ErrMethodNotAllowed(cors.AllowedMethods...)
@@ -151,15 +151,15 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 			}
 			c.Proceed(rw, req)
 
-			allow, _ := rw.headers.headers.Get("Allow")
-			if !strings.Contains(allow, acrm) {
+			allow, _ := rw.headers.headers.All("Allow")
+			if !slices.Contains(allow, acrm) {
 				return ErrMethodNotAllowed()
 			}
 
-			resHeaders.Set("Access-Control-Allow-Origin", origin)
-			resHeaders.Set("Access-Control-Allow-Methods", acrm)
+			rw.Headers().Set("Access-Control-Allow-Origin", origin)
+			rw.Headers().Set("Access-Control-Allow-Methods", acrm)
 			if cors.MaxAge != "" {
-				resHeaders.Set("Access-Control-Max-Age", cors.MaxAge)
+				rw.Headers().Set("Access-Control-Max-Age", cors.MaxAge)
 			}
 
 			headers, requestsHeaders := req.Header("Access-Control-Request-Headers")
@@ -167,12 +167,12 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 				// For security purposes, we only confirm that exactly the
 				// headers requested by the client will be accepted by the
 				// server, even if there are others that may be.
-				resHeaders.Append("Vary", "Access-Control-Request-Headers")
-				resHeaders.Set("Access-Control-Allow-Headers", headers)
+				rw.Headers().Append("Vary", "Access-Control-Request-Headers")
+				rw.Headers().Set("Access-Control-Allow-Headers", headers)
 			}
 
 			if cors.IncludeCredentials {
-				resHeaders.Set("Access-Control-Allow-Credentials", "true")
+				rw.Headers().Set("Access-Control-Allow-Credentials", "true")
 			}
 
 			// If we don't include CORS specific headers, the browser will know
@@ -184,12 +184,12 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 		// Process the actual request. All we need to do is add the required
 		// Access-Control-* headers and the client is expected to take care of
 		// the rest.
-		resHeaders.Set("Access-Control-Allow-Origin", origin)
+		rw.Headers().Set("Access-Control-Allow-Origin", origin)
 		if cors.ExposeHeaders != "" {
-			resHeaders.Set("Access-Control-Expose-Headers", cors.ExposeHeaders)
+			rw.Headers().Set("Access-Control-Expose-Headers", cors.ExposeHeaders)
 		}
 		if cors.IncludeCredentials {
-			resHeaders.Set("Access-Control-Allow-Credentials", "true")
+			rw.Headers().Set("Access-Control-Allow-Credentials", "true")
 		}
 		return c.Proceed(rw, req)
 	}

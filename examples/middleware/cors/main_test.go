@@ -17,7 +17,7 @@ func TestPreflight(t *testing.T) {
 		wantAllowOrigin  bool
 		wantAllowMethod  bool
 		wantAllowHeaders string
-		wantVary         string
+		wantVary         []string
 		wantMaxAge       bool
 	}{
 		{
@@ -28,7 +28,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -39,7 +39,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -49,7 +49,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/create",
 			wantStatus:      routeit.StatusForbidden,
 			wantAllowOrigin: false,
-			wantVary:        "Origin",
+			wantVary:        []string{"Origin"},
 		},
 		{
 			name:            "invalid origin (wrong host)",
@@ -58,7 +58,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/create",
 			wantStatus:      routeit.StatusForbidden,
 			wantAllowOrigin: false,
-			wantVary:        "Origin",
+			wantVary:        []string{"Origin"},
 		},
 		{
 			name:            "disallowed method (PATCH) despite route being defined",
@@ -67,7 +67,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/update",
 			wantStatus:      routeit.StatusMethodNotAllowed,
 			wantAllowOrigin: false,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 		},
 		{
 			name:            "CORS allowed method (PUT), but route does not support it",
@@ -76,7 +76,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/simple",
 			wantStatus:      routeit.StatusMethodNotAllowed,
 			wantAllowOrigin: false,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 		},
 		{
 			name:            "valid CORS method (DELETE), but route does not support it",
@@ -85,7 +85,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/create",
 			wantStatus:      routeit.StatusMethodNotAllowed,
 			wantAllowOrigin: false,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 		},
 		{
 			name:             "valid preflight with custom header",
@@ -97,7 +97,7 @@ func TestPreflight(t *testing.T) {
 			wantAllowOrigin:  true,
 			wantAllowMethod:  true,
 			wantAllowHeaders: "X-Custom-Header",
-			wantVary:         "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+			wantVary:         []string{"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"},
 			wantMaxAge:       true,
 		},
 		{
@@ -110,7 +110,7 @@ func TestPreflight(t *testing.T) {
 			wantAllowOrigin:  true,
 			wantAllowMethod:  true,
 			wantAllowHeaders: "Content-Type, X-Custom-Header",
-			wantVary:         "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+			wantVary:         []string{"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"},
 			wantMaxAge:       true,
 		},
 		{
@@ -122,7 +122,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -134,7 +134,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -146,7 +146,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -157,7 +157,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -167,7 +167,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/create",
 			wantStatus:      routeit.StatusMethodNotAllowed,
 			wantAllowOrigin: false,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 		},
 		{
 			name:            "valid preflight to /remove with DELETE",
@@ -177,7 +177,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusNoContent,
 			wantAllowOrigin: true,
 			wantAllowMethod: true,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 			wantMaxAge:      true,
 		},
 		{
@@ -188,7 +188,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusMethodNotAllowed,
 			wantAllowOrigin: false,
 			wantAllowMethod: false,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 		},
 		{
 			name:            "invalid preflight to /remove with unsupported method (FOOBAR)",
@@ -198,7 +198,7 @@ func TestPreflight(t *testing.T) {
 			wantStatus:      routeit.StatusMethodNotAllowed,
 			wantAllowOrigin: false,
 			wantAllowMethod: false,
-			wantVary:        "Origin, Access-Control-Request-Method",
+			wantVary:        []string{"Origin", "Access-Control-Request-Method"},
 		},
 		{
 			name:            "invalid origin for /remove (wrong domain)",
@@ -207,7 +207,7 @@ func TestPreflight(t *testing.T) {
 			path:            "/remove",
 			wantStatus:      routeit.StatusForbidden,
 			wantAllowOrigin: false,
-			wantVary:        "Origin",
+			wantVary:        []string{"Origin"},
 		},
 		{
 			name:             "valid preflight to /remove with DELETE and custom header",
@@ -219,7 +219,7 @@ func TestPreflight(t *testing.T) {
 			wantAllowOrigin:  true,
 			wantAllowMethod:  true,
 			wantAllowHeaders: "X-Custom-Header",
-			wantVary:         "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+			wantVary:         []string{"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"},
 			wantMaxAge:       true,
 		},
 	}
@@ -237,24 +237,24 @@ func TestPreflight(t *testing.T) {
 
 			res.AssertStatusCode(t, tc.wantStatus)
 			if tc.wantAllowOrigin {
-				res.AssertHeaderMatches(t, "Access-Control-Allow-Origin", tc.origin)
+				res.AssertHeaderMatchesString(t, "Access-Control-Allow-Origin", tc.origin)
 				res.AssertBodyEmpty(t)
 			} else {
 				res.RefuteHeaderPresent(t, "Access-Control-Allow-Origin")
 			}
 			if tc.wantAllowMethod {
-				res.AssertHeaderMatches(t, "Access-Control-Allow-Methods", tc.method)
+				res.AssertHeaderMatchesString(t, "Access-Control-Allow-Methods", tc.method)
 			} else {
 				res.RefuteHeaderPresent(t, "Access-Control-Allow-Methods")
 			}
 			if tc.wantAllowHeaders != "" {
-				res.AssertHeaderMatches(t, "Access-Control-Allow-Headers", tc.wantAllowHeaders)
+				res.AssertHeaderMatchesString(t, "Access-Control-Allow-Headers", tc.wantAllowHeaders)
 			} else {
 				res.RefuteHeaderPresent(t, "Access-Control-Allow-Headers")
 			}
 			res.AssertHeaderMatches(t, "Vary", tc.wantVary)
 			if tc.wantMaxAge {
-				res.AssertHeaderMatches(t, "Access-Control-Max-Age", "15")
+				res.AssertHeaderMatchesString(t, "Access-Control-Max-Age", "15")
 			} else {
 				res.RefuteHeaderPresent(t, "Access-Control-Max-Age")
 			}
@@ -269,9 +269,8 @@ func TestActualRequests(t *testing.T) {
 		doRequest         func() *routeit.TestResponse
 		wantStatus        routeit.HttpStatus
 		wantBody          string
-		wantAllow         string
+		wantAllow         []string
 		wantAllowOrigin   string
-		wantVary          string
 		wantExposeHeaders string
 	}{
 		{
@@ -281,7 +280,6 @@ func TestActualRequests(t *testing.T) {
 			},
 			wantStatus: routeit.StatusOK,
 			wantBody:   "Hello from GET simple!",
-			wantVary:   "Origin",
 		},
 		{
 			name: "GET /simple with valid Origin",
@@ -291,7 +289,6 @@ func TestActualRequests(t *testing.T) {
 			wantStatus:        routeit.StatusOK,
 			wantBody:          "Hello from GET simple!",
 			wantAllowOrigin:   "http://localhost:3000",
-			wantVary:          "Origin",
 			wantExposeHeaders: "X-Response-Header",
 		},
 		{
@@ -301,7 +298,6 @@ func TestActualRequests(t *testing.T) {
 			},
 			wantStatus:      routeit.StatusForbidden,
 			wantAllowOrigin: "",
-			wantVary:        "Origin",
 		},
 		{
 			name: "DELETE /create without Origin (disallowed method)",
@@ -309,8 +305,7 @@ func TestActualRequests(t *testing.T) {
 				return client.Delete("/create")
 			},
 			wantStatus: routeit.StatusMethodNotAllowed,
-			wantAllow:  "POST, OPTIONS",
-			wantVary:   "Origin",
+			wantAllow:  []string{"POST", "OPTIONS"},
 		},
 		{
 			name: "DELETE /create with valid Origin (method not supported)",
@@ -318,11 +313,10 @@ func TestActualRequests(t *testing.T) {
 				return client.Delete("/create", "Origin", "http://localhost:3000")
 			},
 			wantStatus: routeit.StatusMethodNotAllowed,
-			wantAllow:  "POST, OPTIONS",
+			wantAllow:  []string{"POST", "OPTIONS"},
 			// This tells the client that the requests can be made from their
 			// origin to the server's origin, but not with the requested method
 			wantAllowOrigin:   "http://localhost:3000",
-			wantVary:          "Origin",
 			wantExposeHeaders: "X-Response-Header",
 		},
 		{
@@ -333,7 +327,6 @@ func TestActualRequests(t *testing.T) {
 			wantStatus:        routeit.StatusNoContent,
 			wantBody:          "Deleted!",
 			wantAllowOrigin:   "http://localhost:3000",
-			wantVary:          "Origin",
 			wantExposeHeaders: "X-Response-Header",
 		},
 		{
@@ -343,7 +336,6 @@ func TestActualRequests(t *testing.T) {
 			},
 			wantStatus:      routeit.StatusForbidden,
 			wantAllowOrigin: "",
-			wantVary:        "Origin",
 		},
 		{
 			name: "PATCH /update without Origin",
@@ -351,7 +343,6 @@ func TestActualRequests(t *testing.T) {
 				return client.PatchText("/update", "body")
 			},
 			wantStatus: routeit.StatusOK,
-			wantVary:   "Origin",
 			wantBody:   "Hello from PATCH /update!\n",
 		},
 		{
@@ -361,7 +352,6 @@ func TestActualRequests(t *testing.T) {
 			},
 			wantStatus:        routeit.StatusOK,
 			wantAllowOrigin:   "http://localhost:3000",
-			wantVary:          "Origin",
 			wantBody:          "Hello from PATCH /update!\n",
 			wantExposeHeaders: "X-Response-Header",
 		},
@@ -375,23 +365,19 @@ func TestActualRequests(t *testing.T) {
 			if tc.wantBody != "" {
 				res.AssertBodyContainsString(t, tc.wantBody)
 			}
-			if tc.wantAllow != "" {
+			if len(tc.wantAllow) > 0 {
 				res.AssertHeaderMatches(t, "Allow", tc.wantAllow)
 			} else {
 				res.RefuteHeaderPresent(t, "Allow")
 			}
 			if tc.wantAllowOrigin != "" {
-				res.AssertHeaderMatches(t, "Access-Control-Allow-Origin", tc.wantAllowOrigin)
+				res.AssertHeaderMatchesString(t, "Access-Control-Allow-Origin", tc.wantAllowOrigin)
 			} else {
 				res.RefuteHeaderPresent(t, "Access-Control-Allow-Origin")
 			}
-			if tc.wantVary != "" {
-				res.AssertHeaderMatches(t, "Vary", tc.wantVary)
-			} else {
-				res.RefuteHeaderPresent(t, "Vary")
-			}
+			res.AssertHeaderMatches(t, "Vary", []string{"Origin"})
 			if tc.wantExposeHeaders != "" {
-				res.AssertHeaderMatches(t, "Access-Control-Expose-Headers", tc.wantExposeHeaders)
+				res.AssertHeaderMatchesString(t, "Access-Control-Expose-Headers", tc.wantExposeHeaders)
 			} else {
 				res.RefuteHeaderPresent(t, "Access-Control-Expose-Headers")
 			}

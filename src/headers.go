@@ -13,7 +13,7 @@ import (
 // of the map is a structure containing the value string and the original key
 // string.
 type headerVal struct {
-	val      string
+	vals     []string
 	original string
 }
 
@@ -67,11 +67,13 @@ func (h headers) WriteTo(writer io.Writer) (int64, error) {
 	total := int64(0)
 	for _, v := range h {
 		key := strings.Map(sanitiseHeader, strings.TrimSpace(v.original))
-		val := strings.Map(sanitiseHeader, v.val)
-		written, err := fmt.Fprintf(writer, "%s: %s\r\n", key, val)
-		total += int64(written)
-		if err != nil {
-			return total, err
+		for _, val := range v.vals {
+			val := strings.Map(sanitiseHeader, val)
+			written, err := fmt.Fprintf(writer, "%s: %s\r\n", key, val)
+			total += int64(written)
+			if err != nil {
+				return total, err
+			}
 		}
 	}
 	return total, nil
@@ -87,11 +89,11 @@ func (h headers) Set(key string, val string) {
 	actual, exists := h[sKeyLower]
 	if !exists {
 		h[sKeyLower] = headerVal{
-			val:      sVal,
+			vals:     []string{sVal},
 			original: sKey,
 		}
-	} else if actual.val != sVal {
-		actual.val = sVal
+	} else {
+		actual.vals = []string{sVal}
 		h[sKeyLower] = actual
 	}
 }
@@ -99,9 +101,11 @@ func (h headers) Set(key string, val string) {
 // Performs a case insensitive retrieval of the value associated with the given
 // key, indicating a success or failure in the second return value.
 func (h headers) Get(key string) (string, bool) {
-	lower := strings.ToLower(key)
-	val, found := h[lower]
-	return val.val, found
+	val, found := h[strings.ToLower(key)]
+	if found && len(val.vals) > 0 {
+		return val.vals[0], true
+	}
+	return "", false
 }
 
 // Extract the content length field from the header map, defaulting to 0 if not

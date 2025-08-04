@@ -483,3 +483,133 @@ func TestAcceptsContentType(t *testing.T) {
 		})
 	}
 }
+
+func TestQueryParams(t *testing.T) {
+	tests := []struct {
+		name        string
+		rawUri      string
+		key         string
+		wantFound   bool
+		wantOnly    string
+		wantOnlyOk  bool
+		wantOnlyErr bool
+		wantFirst   string
+		wantFirstOk bool
+		wantLast    string
+		wantLastOk  bool
+	}{
+		{
+			name:        "no param",
+			rawUri:      "/foo/bar",
+			key:         "x",
+			wantFound:   false,
+			wantOnlyOk:  false,
+			wantFirstOk: false,
+			wantLastOk:  false,
+		},
+		{
+			name:        "single param",
+			rawUri:      "/foo/bar?x=hello",
+			key:         "x",
+			wantFound:   true,
+			wantOnly:    "hello",
+			wantOnlyOk:  true,
+			wantFirst:   "hello",
+			wantFirstOk: true,
+			wantLast:    "hello",
+			wantLastOk:  true,
+		},
+		{
+			name:        "multiple param values",
+			rawUri:      "/foo/bar?x=a&x=b&x=c",
+			key:         "x",
+			wantFound:   true,
+			wantOnlyErr: true,
+			wantOnlyOk:  true,
+			wantFirst:   "a",
+			wantFirstOk: true,
+			wantLast:    "c",
+			wantLastOk:  true,
+		},
+		{
+			name:        "empty value",
+			rawUri:      "/foo/bar?x=",
+			key:         "x",
+			wantFound:   true,
+			wantOnly:    "",
+			wantOnlyOk:  true,
+			wantFirst:   "",
+			wantFirstOk: true,
+			wantLast:    "",
+			wantLastOk:  true,
+		},
+		{
+			name:        "empty and non-empty values",
+			rawUri:      "/foo/bar?x=&x=val",
+			key:         "x",
+			wantFound:   true,
+			wantOnlyErr: true,
+			wantOnlyOk:  true,
+			wantFirst:   "",
+			wantFirstOk: true,
+			wantLast:    "val",
+			wantLastOk:  true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			uri, err := parseUri(tc.rawUri)
+			if err != nil {
+				t.Fatalf("parseUri(%q) failed: %v", tc.rawUri, err)
+			}
+			req := &Request{uri: *uri}
+
+			t.Run("QueryParam", func(t *testing.T) {
+				vals, found := req.QueryParam(tc.key)
+				if found != tc.wantFound {
+					t.Errorf("QueryParam(%q): found = %v, want %v", tc.key, found, tc.wantFound)
+				}
+				if found && len(vals) == 0 {
+					t.Errorf("QueryParam(%q): returned empty slice unexpectedly", tc.key)
+				}
+			})
+
+			t.Run("QueryParamOnly", func(t *testing.T) {
+				got, found, err := req.QueryParamOnly(tc.key)
+				if tc.wantOnlyErr && err == nil {
+					t.Errorf("QueryParamOnly(%q): expected error, got nil", tc.key)
+				}
+				if !tc.wantOnlyErr && err != nil {
+					t.Errorf("QueryParamOnly(%q): unexpected error: %v", tc.key, err)
+				}
+				if found != tc.wantOnlyOk {
+					t.Errorf("QueryParamOnly(%q): found = %v, want %v", tc.key, found, tc.wantOnlyOk)
+				}
+				if got != tc.wantOnly {
+					t.Errorf("QueryParamOnly(%q): got = %q, want %q", tc.key, got, tc.wantOnly)
+				}
+			})
+
+			t.Run("QueryParamFirst", func(t *testing.T) {
+				got, found := req.QueryParamFirst(tc.key)
+				if found != tc.wantFirstOk {
+					t.Errorf("QueryParamFirst(%q): found = %v, want %v", tc.key, found, tc.wantFirstOk)
+				}
+				if got != tc.wantFirst {
+					t.Errorf("QueryParamFirst(%q): got = %q, want %q", tc.key, got, tc.wantFirst)
+				}
+			})
+
+			t.Run("QueryParamLast", func(t *testing.T) {
+				got, found := req.QueryParamLast(tc.key)
+				if found != tc.wantLastOk {
+					t.Errorf("QueryParamLast(%q): found = %v, want %v", tc.key, found, tc.wantLastOk)
+				}
+				if got != tc.wantLast {
+					t.Errorf("QueryParamLast(%q): got = %q, want %q", tc.key, got, tc.wantLast)
+				}
+			})
+		})
+	}
+}

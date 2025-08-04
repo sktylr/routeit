@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/sktylr/routeit"
@@ -42,10 +43,13 @@ func GetServer() *routeit.Server {
 			return rw.Json(ex)
 		}),
 		"/echo": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			msg, found := req.QueryParam("message")
+			msg, found, err := req.QueryParamOnly("message")
 			if !found {
 				rw.Text("Looks like you didn't want me to echo anything!\n")
 				return nil
+			}
+			if err != nil {
+				return err
 			}
 
 			rw.Textf("Received message to echo: %s\n", msg)
@@ -149,11 +153,11 @@ func GetServer() *routeit.Server {
 			return nil
 		}),
 		"/update": routeit.Patch(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			conflict, present := req.QueryParam("conflict")
+			conflicts, present := req.QueryParam("conflict")
 			if !present {
 				return routeit.ErrUnprocessableContent()
 			}
-			if conflict == "true" {
+			if slices.Contains(conflicts, "true") {
 				return routeit.ErrConflict()
 			}
 

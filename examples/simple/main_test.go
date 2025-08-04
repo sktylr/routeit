@@ -87,52 +87,72 @@ func TestHello(t *testing.T) {
 }
 
 func TestEcho(t *testing.T) {
-	tests := []struct {
-		name     string
-		query    string
-		wantBody string
-	}{
-		{
-			"no query params",
-			"",
-			"Looks like you didn't want me to echo anything!\n",
-		},
-		{
-			"simple query param",
-			"?message=Hello",
-			"Received message to echo: Hello\n",
-		},
-		{
-			"escaped query param",
-			"?message=%22Hello%20there%21%20This%20is%20escaped%22",
-			"Received message to echo: \"Hello there! This is escaped\"\n",
-		},
-	}
-	verify := func(t *testing.T, res *routeit.TestResponse, wantLen int) {
-		res.AssertStatusCode(t, routeit.StatusOK)
-		res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", wantLen))
-		res.AssertHeaderMatches(t, "Content-Type", "text/plain")
-	}
+	t.Run("success", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			query    string
+			wantBody string
+		}{
+			{
+				"no query params",
+				"",
+				"Looks like you didn't want me to echo anything!\n",
+			},
+			{
+				"simple query param",
+				"?message=Hello",
+				"Received message to echo: Hello\n",
+			},
+			{
+				"escaped query param",
+				"?message=%22Hello%20there%21%20This%20is%20escaped%22",
+				"Received message to echo: \"Hello there! This is escaped\"\n",
+			},
+		}
+		verify := func(t *testing.T, res *routeit.TestResponse, wantLen int) {
+			res.AssertStatusCode(t, routeit.StatusOK)
+			res.AssertHeaderMatches(t, "Content-Length", fmt.Sprintf("%d", wantLen))
+			res.AssertHeaderMatches(t, "Content-Type", "text/plain")
+		}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			endpoint := fmt.Sprintf("/echo%s", tc.query)
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				endpoint := fmt.Sprintf("/echo%s", tc.query)
 
-			t.Run("GET", func(t *testing.T) {
+				t.Run("GET", func(t *testing.T) {
+					res := client.Get(endpoint)
+
+					verify(t, res, len(tc.wantBody))
+					res.AssertBodyMatchesString(t, tc.wantBody)
+				})
+
+				t.Run("HEAD", func(t *testing.T) {
+					res := client.Head(endpoint)
+
+					verify(t, res, len(tc.wantBody))
+					res.AssertBodyEmpty(t)
+				})
+			})
+		}
+	})
+
+	t.Run("validation", func(t *testing.T) {
+		queries := []string{
+			"message=Foo&message=Bar",
+			"message=Foo&name=Bar&message=Baz",
+		}
+
+		for _, q := range queries {
+			t.Run(q, func(t *testing.T) {
+				endpoint := fmt.Sprintf("/echo?%s", q)
+
 				res := client.Get(endpoint)
 
-				verify(t, res, len(tc.wantBody))
-				res.AssertBodyMatchesString(t, tc.wantBody)
+				res.AssertStatusCode(t, routeit.StatusBadRequest)
+				res.AssertBodyMatchesString(t, "400: Bad Request. Query parameter `message` should only be present once")
 			})
-
-			t.Run("HEAD", func(t *testing.T) {
-				res := client.Head(endpoint)
-
-				verify(t, res, len(tc.wantBody))
-				res.AssertBodyEmpty(t)
-			})
-		})
-	}
+		}
+	})
 }
 
 func TestInternalServerError(t *testing.T) {
@@ -386,6 +406,10 @@ func TestUpdate(t *testing.T) {
 				},
 				{
 					"conflict=true",
+					routeit.StatusConflict,
+				},
+				{
+					"conflict=false&conflict=true&conflict=false",
 					routeit.StatusConflict,
 				},
 			}

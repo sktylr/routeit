@@ -10,6 +10,7 @@ type RuneTrie struct {
 }
 
 type runeNode struct {
+	char     string
 	end      bool
 	children [51]*runeNode
 }
@@ -20,8 +21,8 @@ func NewRuneTrie() *RuneTrie {
 	return &RuneTrie{root: &runeNode{}}
 }
 
-func newRuneNode() *runeNode {
-	return &runeNode{children: [51]*runeNode{}}
+func newRuneNode(r rune) *runeNode {
+	return &runeNode{children: [51]*runeNode{}, char: string(r)}
 }
 
 // Determines whether the given input exists in the set of strings
@@ -57,7 +58,7 @@ func (t *RuneTrie) Insert(s string) {
 			return
 		}
 		if cur.children[index] == nil {
-			cur.children[index] = newRuneNode()
+			cur.children[index] = newRuneNode(r)
 		}
 		cur = cur.children[index]
 	}

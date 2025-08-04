@@ -25,7 +25,7 @@ type Request struct {
 	ctx       context.Context
 	mthd      HttpMethod
 	uri       uri
-	headers   headers
+	headers   *RequestHeaders
 	body      []byte
 	ct        ContentType
 	host      string
@@ -81,11 +81,11 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 	}
 
 	ct := ContentType{}
-	ctRaw, hasCType := reqHdrs.Get("Content-Type")
+	ctRaw, hasCType := reqHdrs.First("Content-Type")
 	if hasCType && ptcl.mthd.canHaveBody() {
 		ct = parseContentType(ctRaw)
 	}
-	cLen := reqHdrs.ContentLength()
+	cLen := reqHdrs.headers.ContentLength()
 
 	if cLen > uint(maxSize) {
 		return nil, ErrContentTooLarge()
@@ -129,7 +129,7 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 	}
 
 	accept := parseAcceptHeader(reqHdrs)
-	userAgent, _ := reqHdrs.Get("User-Agent")
+	userAgent, _ := reqHdrs.First("User-Agent")
 	req := Request{
 		mthd:      ptcl.mthd,
 		uri:       ptcl.uri,
@@ -179,10 +179,9 @@ func (req *Request) PathParam(param string) (string, bool) {
 	return val, found
 }
 
-// Access a header value, if present
-func (req *Request) Header(key string) (string, bool) {
-	val, found := req.headers.Get(key)
-	return val, found
+// TODO:
+func (req *Request) Headers() *RequestHeaders {
+	return req.headers
 }
 
 // The Host header of the request. This will always be present and non-empty

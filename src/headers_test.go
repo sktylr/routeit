@@ -68,11 +68,11 @@ func TestHeadersFromRaw(t *testing.T) {
 				if err != nil {
 					t.Errorf("expected error to be nil: %v", err)
 				}
-				if len(h) != len(tc.want) {
-					t.Errorf(`headers from raw len(h) = %d, want %d`, len(h), len(tc.want))
+				if len(h.headers) != len(tc.want) {
+					t.Errorf(`headers from raw len(h) = %d, want %d`, len(h.headers), len(tc.want))
 				}
 				for k, vals := range tc.want {
-					verifyPresentAndMatches(t, h, k, vals)
+					verifyPresentAndMatches(t, h.headers, k, vals)
 				}
 				if i != tc.wantIndex {
 					t.Errorf(`last valid header index = %d, wanted %d`, i, tc.wantIndex)

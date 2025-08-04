@@ -136,15 +136,17 @@ func (ct ContentType) string() string {
 }
 
 // TODO: this will need to handle the multiple possible `Accept` headers
-func parseAcceptHeader(h headers) []ContentType {
-	var accept []ContentType
-	acceptRaw, hasAccept := h.Get("Accept")
+func parseAcceptHeader(h *RequestHeaders) []ContentType {
+	accepts, hasAccept := h.All("Accept")
 	if !hasAccept {
 		// The Accept header is not required to be sent by the client, so we
 		// take a lenient approach and replace it with acceptance of all
 		// content types.
-		accept = []ContentType{CTAcceptAll}
-	} else {
+		return []ContentType{CTAcceptAll}
+	}
+
+	var accept []ContentType
+	for _, acceptRaw := range accepts {
 		for acc := range strings.SplitSeq(acceptRaw, ",") {
 			ct := parseContentType(strings.TrimSpace(acc))
 			if ct.isValid() {

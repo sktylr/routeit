@@ -203,8 +203,12 @@ func (req *Request) ClientIP() string {
 
 // Access a query parameter if present
 func (req *Request) QueryParam(key string) (string, bool) {
+	// TODO: need additional methods for this
 	val, found := req.uri.queryParams[key]
-	return val, found
+	if found && len(val) > 0 {
+		return val[0], true
+	}
+	return "", false
 }
 
 // Parses the Json request body into the destination. Ensures that the

@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -319,22 +320,22 @@ func TestRequestFromRaw(t *testing.T) {
 	t.Run("parses valid query string", func(t *testing.T) {
 		tests := []struct {
 			in   string
-			want map[string]string
+			want map[string][]string
 		}{
 			{
 				"?q1=hello&q2=nice",
-				map[string]string{
-					"q1": "hello",
-					"q2": "nice",
+				map[string][]string{
+					"q1": {"hello"},
+					"q2": {"nice"},
 				},
 			},
 			{
 				"?q1=",
-				map[string]string{"q1": ""},
+				map[string][]string{"q1": {""}},
 			},
 			{
 				"?q1=hello%5D",
-				map[string]string{"q1": "hello]"},
+				map[string][]string{"q1": {"hello]"}},
 			},
 		}
 
@@ -344,21 +345,21 @@ func TestRequestFromRaw(t *testing.T) {
 
 				req, err := requestFromRaw(in, defaultRequestSize, t.Context())
 				if err != nil {
-					t.Errorf("requestFromRaw parses query string unexpected error %s", err)
+					t.Errorf("unexpected error %s", err)
 				}
 				expectBody(t, req.body, "")
 				expectUrl(t, req, "/endpoint")
 				expectMethod(t, req.mthd, GET)
 				if len(req.uri.queryParams) != len(tc.want) {
-					t.Errorf(`requestFromRaw parses query string query = %q, wanted %#q`, req.uri.queryParams, tc.want)
+					t.Errorf(`string query = %q, wanted %#q`, req.uri.queryParams, tc.want)
 				}
 				for key, want := range tc.want {
-					actual, exists := req.QueryParam(key)
+					actual, exists := req.uri.queryParams[key]
 					if !exists {
-						t.Errorf(`requestFromRaw parses query string expected %#q to exist`, key)
+						t.Errorf(`expected %#q to exist`, key)
 					}
-					if actual != want {
-						t.Errorf(`requestFromRaw parses query string QueryParam(%#q) = %q, wanted %#q`, key, actual, want)
+					if !reflect.DeepEqual(actual, want) {
+						t.Errorf(`QueryParam(%#q) = %v, wanted %v`, key, actual, want)
 					}
 				}
 			})

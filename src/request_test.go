@@ -337,6 +337,10 @@ func TestRequestFromRaw(t *testing.T) {
 				"?q1=hello%5D",
 				map[string][]string{"q1": {"hello]"}},
 			},
+			{
+				"?q1=foo&q2=bar&q1=baz",
+				map[string][]string{"q1": {"foo", "baz"}, "q2": {"bar"}},
+			},
 		}
 
 		for _, tc := range tests {

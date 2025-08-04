@@ -232,17 +232,17 @@ func TestHandle(t *testing.T) {
 			if rw.s != tc.wantStatus {
 				t.Errorf(`status = [%d, %s], wanted [%d, %s]`, rw.s.code, rw.s.msg, tc.wantStatus.code, tc.wantStatus.msg)
 			}
-			cType, found := rw.hdrs.Get("Content-Type")
+			cType, found := rw.headers.headers.Get("Content-Type")
 			if found != (tc.wantCType != "") {
 				t.Errorf("Content-Type present = %t, wanted %t", found, tc.wantCType != "")
 			}
 			if cType != tc.wantCType {
 				t.Errorf(`Content-Type = %#q, wanted %#q`, cType, tc.wantCType)
 			}
-			if cLen := rw.hdrs.ContentLength(); cLen != tc.wantCLen {
+			if cLen := rw.headers.headers.ContentLength(); cLen != tc.wantCLen {
 				t.Errorf("content length = %d, wanted %d", cLen, tc.wantCLen)
 			}
-			allow, found := rw.hdrs.Get("Allow")
+			allow, found := rw.headers.headers.Get("Allow")
 			if found != (tc.wantAllow != "") {
 				t.Errorf("Allow present = %t, wanted %t", found, tc.wantAllow != "")
 			}

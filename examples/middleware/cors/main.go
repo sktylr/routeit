@@ -81,7 +81,7 @@ func GetServer() *routeit.Server {
 }
 
 func AddResponseHeader(c routeit.Chain, rw *routeit.ResponseWriter, req *routeit.Request) error {
-	rw.Header("X-Response-Header", fmt.Sprintf("%v: %s", req.Method(), req.Path()))
+	rw.Headers().Set("X-Response-Header", fmt.Sprintf("%v: %s", req.Method(), req.Path()))
 	return c.Proceed(rw, req)
 }
 

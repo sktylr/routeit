@@ -21,6 +21,12 @@ type headerVal struct {
 
 type headers map[string]headerVal
 
+// TODO:
+type ResponseHeaders struct {
+	headers headers
+}
+
+// TODO: may need to migrate this!
 func newResponseHeaders() headers {
 	h := headers{}
 	h.Set("Server", "routeit")
@@ -82,7 +88,7 @@ func (h headers) WriteTo(writer io.Writer) (int64, error) {
 // Sets a key-value pair in the headers. This is a case insensitive operation
 // that will create a new entry in the map if needed or update an existing
 // entry if already present.
-func (h headers) Set(key string, val string) {
+func (h headers) Set(key, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)
 	sKeyLower := strings.ToLower(sKey)
@@ -99,7 +105,7 @@ func (h headers) Set(key string, val string) {
 }
 
 // TODO:
-func (h headers) Append(key string, val string) {
+func (h headers) Append(key, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)
 	sKeyLower := strings.ToLower(sKey)
@@ -114,6 +120,16 @@ func (h headers) Append(key string, val string) {
 		h[sKeyLower] = actual
 	}
 
+}
+
+// TODO:
+func (rh *ResponseHeaders) Set(key, val string) {
+	rh.headers.Set(key, val)
+}
+
+// TODO:
+func (rh *ResponseHeaders) Append(key, val string) {
+	rh.headers.Append(key, val)
 }
 
 // Performs a case insensitive retrieval of the value associated with the given

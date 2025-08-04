@@ -22,19 +22,8 @@ type headerVal struct {
 type headers map[string]headerVal
 
 // TODO:
-type ResponseHeaders struct {
-	headers headers
-}
-
-// TODO:
 type RequestHeaders struct {
 	headers headers
-}
-
-func newResponseHeaders() *ResponseHeaders {
-	h := headers{}
-	h.Set("Server", "routeit")
-	return &ResponseHeaders{headers: h}
 }
 
 // Parses a slice of byte slices into the headers type.
@@ -127,16 +116,6 @@ func (h headers) Append(key, val string) {
 }
 
 // TODO:
-func (rh *ResponseHeaders) Set(key, val string) {
-	rh.headers.Set(key, val)
-}
-
-// TODO:
-func (rh *ResponseHeaders) Append(key, val string) {
-	rh.headers.Append(key, val)
-}
-
-// TODO:
 func (rh *RequestHeaders) All(key string) ([]string, bool) {
 	vals, found := rh.headers.All(key)
 	return vals, found
@@ -151,16 +130,6 @@ func (rh *RequestHeaders) First(key string) (string, bool) {
 	return vals[0], found
 }
 
-// Performs a case insensitive retrieval of the value associated with the given
-// key, indicating a success or failure in the second return value.
-func (h headers) Get(key string) (string, bool) {
-	vals, found := h.All(key)
-	if found && len(vals) > 0 {
-		return vals[0], true
-	}
-	return "", false
-}
-
 func (h headers) All(key string) ([]string, bool) {
 	val, found := h[strings.ToLower(key)]
 	if found {
@@ -172,11 +141,14 @@ func (h headers) All(key string) ([]string, bool) {
 // Extract the content length field from the header map, defaulting to 0 if not
 // present
 func (h headers) ContentLength() uint {
-	cLenRaw, found := h.Get("Content-Length")
+	cLenRaw, found := h.All("Content-Length")
 	if !found {
 		return 0
 	}
-	cLen, err := strconv.Atoi(cLenRaw)
+	if len(cLenRaw) != 1 {
+		return 0
+	}
+	cLen, err := strconv.Atoi(cLenRaw[0])
 	if err != nil {
 		return 0
 	}

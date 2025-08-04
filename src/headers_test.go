@@ -258,12 +258,12 @@ func TestContentLength(t *testing.T) {
 		},
 		{
 			"not parsable",
-			headers{"content-length": headerVal{"abc", "Content-Length"}},
+			headers{"content-length": headerVal{[]string{"abc"}, "Content-Length"}},
 			0,
 		},
 		{
 			"valid",
-			headers{"content-length": headerVal{"85", "Content-Length"}},
+			headers{"content-length": headerVal{[]string{"85"}, "Content-Length"}},
 			85,
 		},
 	}

@@ -2,7 +2,9 @@ package routeit
 
 import "strings"
 
-// TODO:
+// The [RequestHeaders] type can be used to read the headers on the incoming
+// request. Lookup is case insensitive, and the header may appear multiple
+// times within the request.
 type RequestHeaders struct {
 	headers headers
 }
@@ -41,13 +43,15 @@ func headersFromRaw(raw [][]byte) (*RequestHeaders, int, *HttpError) {
 	return &RequestHeaders{}, len(raw) - 1, ErrBadRequest()
 }
 
-// TODO:
+// Access all request header values for the given key.
 func (rh *RequestHeaders) All(key string) ([]string, bool) {
 	vals, found := rh.headers.All(key)
 	return vals, found
 }
 
-// TODO:
+// Use [RequestHeaders.Only] when the header is expected to appear exactly once
+// in the request. It will return an error if the headers is present but does
+// not contain exactly 1 value.
 func (rh *RequestHeaders) Only(key string) (string, bool, error) {
 	vals, found := rh.All(key)
 	if !found {
@@ -59,7 +63,8 @@ func (rh *RequestHeaders) Only(key string) (string, bool, error) {
 	return vals[0], true, nil
 }
 
-// TODO:
+// A wrapper over [RequestHeaders.All] that extracts the first element, if
+// present.
 func (rh *RequestHeaders) First(key string) (string, bool) {
 	vals, found := rh.All(key)
 	if !found || len(vals) == 0 {
@@ -68,7 +73,8 @@ func (rh *RequestHeaders) First(key string) (string, bool) {
 	return vals[0], found
 }
 
-// TODO:
+// A wrapper over [RequestHeaders.All] that extracts the last element, if
+// present.
 func (rh *RequestHeaders) Last(key string) (string, bool) {
 	vals, found := rh.All(key)
 	length := len(vals)

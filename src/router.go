@@ -318,6 +318,7 @@ func (r *router) trimRouteForInsert(s string) string {
 func globalOptionsHandler() *Handler {
 	return &Handler{options: func(rw *ResponseWriter, req *Request) error {
 		// TODO: for testability, this constructs the list deterministically, since map looping is designed to be non-deterministic in go. This should be made more robust
+		// TODO: this should work using header append!
 		allowed := []string{
 			GET.name,
 			HEAD.name,
@@ -327,7 +328,7 @@ func globalOptionsHandler() *Handler {
 			PATCH.name,
 			OPTIONS.name,
 		}
-		rw.Header("Allow", strings.Join(allowed, ", "))
+		rw.Headers().Set("Allow", strings.Join(allowed, ", "))
 		return nil
 	}}
 }

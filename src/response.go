@@ -9,10 +9,10 @@ import (
 )
 
 type ResponseWriter struct {
-	bdy  []byte
-	s    HttpStatus
-	hdrs headers
-	ct   ContentType
+	bdy     []byte
+	s       HttpStatus
+	headers *ResponseHeaders
+	ct      ContentType
 }
 
 // Sets a sensible default for the status code of the response depending on the
@@ -37,7 +37,8 @@ func newResponseWithStatus(status HttpStatus) *ResponseWriter {
 }
 
 func newResponse() *ResponseWriter {
-	return &ResponseWriter{hdrs: newResponseHeaders()}
+	// TODO: should use constructor here!
+	return &ResponseWriter{headers: &ResponseHeaders{headers: newResponseHeaders()}}
 }
 
 // Adds a JSON response body to the response and sets the corresponding
@@ -77,8 +78,8 @@ func (rw *ResponseWriter) Raw(raw []byte) {
 // Destructively sets the body of the response and updates headers accordingly
 func (rw *ResponseWriter) RawWithContentType(raw []byte, ct ContentType) {
 	rw.bdy = raw
-	rw.hdrs.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
-	rw.hdrs.Set("Content-Type", ct.string())
+	rw.headers.Set("Content-Length", fmt.Sprintf("%d", len(raw)))
+	rw.headers.Set("Content-Type", ct.string())
 	rw.ct = ct
 }
 
@@ -93,6 +94,7 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 	rw.s = s
 }
 
+// TODO:
 // Sets a header with the corresponding value. This is destructive, meaning
 // repeated calls using the same key will preserve the last key. Header key and
 // values will be sanitised per HTTP spec before being added to the server's
@@ -101,22 +103,27 @@ func (rw *ResponseWriter) Status(s HttpStatus) {
 // the Content-Type or Content-Length headers as they are managed implicitly
 // whenever a body is written to a response and can cause issues on the client
 // if they contain incorrect values.
-func (rw *ResponseWriter) Header(key string, val string) {
-	rw.hdrs.Set(key, val)
+// func (rw *ResponseWriter) Header(key string, val string) {
+// 	rw.hdrs.Set(key, val)
+// }
+
+// TODO:
+func (rw *ResponseWriter) Headers() *ResponseHeaders {
+	return rw.headers
 }
 
 func (rw *ResponseWriter) clear() {
 	rw.bdy = []byte{}
-	delete(rw.hdrs, "content-type")
-	delete(rw.hdrs, "content-length")
+	delete(rw.headers.headers, "content-type")
+	delete(rw.headers.headers, "content-length")
 }
 
 func (rw *ResponseWriter) write() []byte {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", rw.s.code, rw.s.msg))
 	now := time.Now().UTC()
-	rw.hdrs.Set("Date", now.Format("Mon, 02 Jan 2006 15:04:05 GMT"))
-	rw.hdrs.WriteTo(&buf)
+	rw.headers.Set("Date", now.Format("Mon, 02 Jan 2006 15:04:05 GMT"))
+	rw.headers.headers.WriteTo(&buf)
 	buf.WriteString("\r\n")
 	buf.Write(rw.bdy)
 	return buf.Bytes()

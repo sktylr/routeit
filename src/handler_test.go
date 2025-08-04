@@ -1,6 +1,7 @@
 package routeit
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -112,7 +113,7 @@ func TestHandle(t *testing.T) {
 		wantStatus HttpStatus
 		wantCType  string
 		wantCLen   uint
-		wantAllow  string
+		wantAllow  []string
 		wantErr    bool
 	}{
 		{
@@ -167,7 +168,7 @@ func TestHandle(t *testing.T) {
 			method:     OPTIONS,
 			h:          Get(fn),
 			wantStatus: StatusNoContent,
-			wantAllow:  "GET, HEAD, OPTIONS",
+			wantAllow:  []string{"GET", "HEAD", "OPTIONS"},
 		},
 		{
 			method:     TRACE,
@@ -180,7 +181,7 @@ func TestHandle(t *testing.T) {
 			method:     POST,
 			h:          Get(fn),
 			wantStatus: StatusMethodNotAllowed,
-			wantAllow:  "GET, HEAD, OPTIONS",
+			wantAllow:  []string{"GET", "HEAD", "OPTIONS"},
 			wantErr:    true,
 		},
 		{
@@ -216,12 +217,12 @@ func TestHandle(t *testing.T) {
 				if hErr.status != tc.wantStatus {
 					t.Errorf("status = %v, wanted %v", hErr.status, tc.wantStatus)
 				}
-				allow, found := hErr.headers.Get("Allow")
-				if found != (tc.wantAllow != "") {
-					t.Errorf("Allow present = %t, wanted %t", found, tc.wantAllow != "")
+				allow, found := hErr.headers.All("Allow")
+				if found != (len(tc.wantAllow) != 0) {
+					t.Errorf("Allow present = %t, wanted %t", found, len(tc.wantAllow) != 0)
 				}
-				if allow != tc.wantAllow {
-					t.Errorf(`Allow = %#q, wanted %#q`, allow, tc.wantAllow)
+				if !(len(allow) == 0 && tc.wantAllow == nil) && !reflect.DeepEqual(allow, tc.wantAllow) {
+					t.Errorf(`Allow = %v, wanted %v`, allow, tc.wantAllow)
 				}
 				return
 			}
@@ -242,12 +243,12 @@ func TestHandle(t *testing.T) {
 			if cLen := rw.headers.headers.ContentLength(); cLen != tc.wantCLen {
 				t.Errorf("content length = %d, wanted %d", cLen, tc.wantCLen)
 			}
-			allow, found := rw.headers.headers.Get("Allow")
-			if found != (tc.wantAllow != "") {
-				t.Errorf("Allow present = %t, wanted %t", found, tc.wantAllow != "")
+			allow, found := rw.headers.headers.All("Allow")
+			if found != (len(tc.wantAllow) != 0) {
+				t.Errorf("Allow present = %t, wanted %t", found, len(tc.wantAllow) != 0)
 			}
-			if allow != tc.wantAllow {
-				t.Errorf(`Allow = %#q, wanted %#q`, allow, tc.wantAllow)
+			if !(len(allow) == 0 && tc.wantAllow == nil) && !reflect.DeepEqual(allow, tc.wantAllow) {
+				t.Errorf(`Allow = %v, wanted %v`, allow, tc.wantAllow)
 			}
 			if string(rw.bdy) != tc.wantBody {
 				t.Errorf(`body = %#q, wanted %#q`, string(rw.bdy), tc.wantBody)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -14,7 +15,7 @@ type TestResponse struct{ rw *ResponseWriter }
 // must be passed by reference and not by value.
 func (tr *TestResponse) BodyToJson(t testable, to any) {
 	t.Helper()
-	tr.AssertHeaderMatches(t, "Content-Type", "application/json")
+	tr.AssertHeaderMatchesString(t, "Content-Type", "application/json")
 
 	v := reflect.ValueOf(to)
 	if v.Kind() != reflect.Ptr || v.IsNil() {
@@ -70,15 +71,46 @@ func (tr *TestResponse) AssertBodyStartsWithString(t testable, want string) {
 	}
 }
 
-// Assert that a header is present and matches the given string
-func (tr *TestResponse) AssertHeaderMatches(t testable, header string, want string) {
+// Assert that a header is present and matches the given slice of strings
+func (tr *TestResponse) AssertHeaderMatches(t testable, header string, want []string) {
 	t.Helper()
-	val, found := tr.rw.headers.headers.Get(header)
+	val, found := tr.rw.headers.headers.All(header)
 	if !found {
 		t.Errorf(`expected %#q header to be present`, header)
 	}
-	if val != want {
-		t.Errorf(`headers[%#q] = %#q, wanted %#q`, header, val, want)
+	if !reflect.DeepEqual(val, want) {
+		t.Errorf(`headers[%#q] = %+v, wanted %+v`, header, val, want)
+	}
+}
+
+// Similar to [TestResponse.AssertHeaderMatches], except we assert there is
+// only exactly 1 element in the header slice, and it matches the given string
+// exactly.
+func (tr *TestResponse) AssertHeaderMatchesString(t testable, header, want string) {
+	t.Helper()
+	val, found := tr.rw.headers.headers.All(header)
+	if !found {
+		t.Errorf(`expected %#q header to be present`, header)
+	}
+	if len(val) != 1 {
+		t.Errorf(`headers[%#q] = %+v with length %d, wanted exactly 1 element`, header, val, len(val))
+	}
+	if val[0] != want {
+		t.Errorf(`headers[%#q] = %#q, wanted %#q`, header, val[0], want)
+	}
+}
+
+// Assert a header is present and that it contains the given string. For
+// clarity, this will only compare over a single slice element, it will not
+// join multiple elements into 1 string for comparison.
+func (tr *TestResponse) AssertHeaderContains(t testable, header, want string) {
+	t.Helper()
+	val, found := tr.rw.headers.headers.All(header)
+	if !found {
+		t.Errorf(`expected %#q header to be present`, header)
+	}
+	if !slices.Contains(val, want) {
+		t.Errorf(`headers[%#q] = %+v, wanted %#q`, header, val, want)
 	}
 }
 

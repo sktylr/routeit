@@ -1,8 +1,6 @@
 package routeit
 
-import (
-	"strings"
-)
+import "slices"
 
 // A middleware function is called for all incoming requests that reach the
 // server. It can choose to block the request, or pass it off to the next
@@ -89,13 +87,13 @@ func allowTraceValidationMiddleware() Middleware {
 			h = rw.headers.headers
 		}
 
-		allow, hasAllow := h.Get("Allow")
+		allow, hasAllow := h.All("Allow")
 		if !hasAllow {
 			return err
 		}
 
-		if !strings.Contains(allow, "TRACE") {
-			h.Set("Allow", allow+", TRACE")
+		if !slices.Contains(allow, "TRACE") {
+			h.Append("Allow", "TRACE")
 		}
 
 		return err

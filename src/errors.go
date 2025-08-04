@@ -68,12 +68,10 @@ func ErrNotFound() *HttpError {
 }
 
 func ErrMethodNotAllowed(allowed ...HttpMethod) *HttpError {
-	allow := make([]string, 0, len(allowed))
-	for _, m := range allowed {
-		allow = append(allow, m.name)
-	}
 	headers := headers{}
-	headers.Set("Allow", strings.Join(allow, ", "))
+	for _, m := range allowed {
+		headers.Append("Allow", m.name)
+	}
 	return &HttpError{status: StatusMethodNotAllowed, headers: headers}
 }
 

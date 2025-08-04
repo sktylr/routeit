@@ -61,7 +61,7 @@ func TestHello(t *testing.T) {
 			name       string
 			fn         func() *routeit.TestResponse
 			wantStatus routeit.HttpStatus
-			wantAllow  string
+			wantAllow  []string
 		}{
 			{
 				name:       "GET",
@@ -77,13 +77,13 @@ func TestHello(t *testing.T) {
 				name:       "POST",
 				fn:         func() *routeit.TestResponse { return client.PostText("/hello", "hello!", "Authorization", "LET ME IN") },
 				wantStatus: routeit.StatusMethodNotAllowed,
-				wantAllow:  "GET, HEAD, OPTIONS",
+				wantAllow:  []string{"GET", "HEAD", "OPTIONS"},
 			},
 			{
 				name:       "OPTIONS",
 				fn:         func() *routeit.TestResponse { return client.Options("/hello", "Authorization", "LET ME IN") },
 				wantStatus: routeit.StatusNoContent,
-				wantAllow:  "GET, HEAD, OPTIONS",
+				wantAllow:  []string{"GET", "HEAD", "OPTIONS"},
 			},
 			{
 				name:       "OPTIONS not found",
@@ -96,7 +96,7 @@ func TestHello(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				res := tc.fn()
 				res.AssertStatusCode(t, tc.wantStatus)
-				if tc.wantAllow == "" {
+				if len(tc.wantAllow) == 0 {
 					res.RefuteHeaderPresent(t, "Allow")
 				} else {
 					res.AssertHeaderMatches(t, "Allow", tc.wantAllow)

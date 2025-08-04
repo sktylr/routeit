@@ -109,12 +109,9 @@ func MultiMethod(mmh MultiMethodHandler) Handler {
 			// request methods it can use on the given endpoint, through the
 			// Allow response header. If we have at least 1 method supported on
 			// this handler, then we add an OPTIONS handler to the endpoint.
-			// TODO: this should work using the headers.append thing
-			allowS := make([]string, 0, len(h.allowed))
 			for _, allow := range h.allowed {
-				allowS = append(allowS, allow.name)
+				rw.Headers().Append("Allow", allow.name)
 			}
-			rw.Headers().Set("Allow", strings.Join(allowS, ", "))
 			return nil
 		}
 		h.trace = func(rw *ResponseWriter, req *Request) error {

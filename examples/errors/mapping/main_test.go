@@ -38,7 +38,7 @@ func TestGetEndpoints(t *testing.T) {
 			t.Run("POST", func(t *testing.T) {
 				res := client.PostText(tc.route, "Hello")
 				res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-				res.AssertHeaderMatches(t, "Allow", "GET, HEAD, OPTIONS")
+				res.AssertHeaderMatches(t, "Allow", []string{"GET", "HEAD", "OPTIONS"})
 			})
 		})
 	}
@@ -102,7 +102,7 @@ func TestLogin(t *testing.T) {
 				res := client.PostText("/login", "username=user@email.com,password=Password123!")
 
 				res.AssertStatusCode(t, routeit.StatusUnsupportedMediaType)
-				res.AssertHeaderMatches(t, "Accept", "application/json")
+				res.AssertHeaderMatchesString(t, "Accept", "application/json")
 			})
 
 			t.Run("method not allowed", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestLogin(t *testing.T) {
 					t.Run(tc.name, func(t *testing.T) {
 						res := tc.fn()
 						res.AssertStatusCode(t, routeit.StatusMethodNotAllowed)
-						res.AssertHeaderMatches(t, "Allow", "POST, OPTIONS")
+						res.AssertHeaderMatches(t, "Allow", []string{"POST", "OPTIONS"})
 					})
 				}
 			})

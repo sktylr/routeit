@@ -135,6 +135,7 @@ func (ct ContentType) string() string {
 	return sb.String()
 }
 
+// TODO: this will need to handle the multiple possible `Accept` headers
 func parseAcceptHeader(h headers) []ContentType {
 	var accept []ContentType
 	acceptRaw, hasAccept := h.Get("Accept")

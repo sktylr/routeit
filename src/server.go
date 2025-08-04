@@ -266,7 +266,7 @@ func (s *Server) timeoutMiddleware(c Chain, rw *ResponseWriter, req *Request) er
 func (s *Server) handlingMiddleware(c Chain, rw *ResponseWriter, req *Request) error {
 	handler, found := s.router.Route(req)
 	if !found {
-		return ErrNotFound().WithMessage(fmt.Sprintf("Invalid route: %s", req.Path()))
+		return ErrNotFound().WithMessagef("Invalid route: %s", req.Path())
 	}
 	if req.Method() == TRACE && !s.conf.AllowTraceRequests {
 		return ErrMethodNotAllowed(handler.allowed...)

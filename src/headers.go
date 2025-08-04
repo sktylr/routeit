@@ -119,11 +119,19 @@ func (h headers) Append(key string, val string) {
 // Performs a case insensitive retrieval of the value associated with the given
 // key, indicating a success or failure in the second return value.
 func (h headers) Get(key string) (string, bool) {
-	val, found := h[strings.ToLower(key)]
-	if found && len(val.vals) > 0 {
-		return val.vals[0], true
+	vals, found := h.All(key)
+	if found && len(vals) > 0 {
+		return vals[0], true
 	}
 	return "", false
+}
+
+func (h headers) All(key string) ([]string, bool) {
+	val, found := h[strings.ToLower(key)]
+	if found {
+		return val.vals, true
+	}
+	return []string{}, false
 }
 
 // Extract the content length field from the header map, defaulting to 0 if not

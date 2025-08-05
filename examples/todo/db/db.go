@@ -2,7 +2,9 @@ package db
 
 import (
 	"database/sql"
+	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-sql-driver/mysql"
 )
 
@@ -29,4 +31,16 @@ func Connect() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+// [WithTestConnection] can be used to generate a mock connection to a MySQL
+// database in test contexts.
+func WithTestConnection(tb testing.TB, fn func(*sql.DB, sqlmock.Sqlmock)) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		tb.Fatalf("error while opening mock connection: %+v", err)
+	}
+	defer db.Close()
+
+	fn(db, mock)
 }

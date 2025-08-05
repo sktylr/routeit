@@ -812,7 +812,8 @@ func TestNewRewrite(t *testing.T) {
 				want:     map[string][]string{"foo-suf": {"bar", "baz"}, "suf": {"bar"}},
 			},
 			{
-				// TODO: need to confirm if this is okay??
+				// This is technically fine but a discouraged practice as it
+				// can lead to ambiguous collisions.
 				name:     "colliding but 1 with prefix, other with suffix",
 				existing: []string{"/${foo|pref} /bar"},
 				raw:      "/${foo||suf} /bar/baz",

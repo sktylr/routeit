@@ -106,7 +106,7 @@ func constructTestHeaders(h ...string) headers {
 	total := len(h)
 	headers := headers{}
 	for i < total-1 {
-		headers.Set(h[i], h[i+1])
+		headers.Append(h[i], h[i+1])
 		i += 2
 	}
 	return headers

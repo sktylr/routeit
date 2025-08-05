@@ -92,6 +92,13 @@ func (u uri) Path() []string {
 	return u.edgePath
 }
 
+func (u uri) EdgePathString() string {
+	if u.globalOptions {
+		return "*"
+	}
+	return "/" + strings.Join(u.edgePath, "/")
+}
+
 // Strips the namespace from the uri's path, returning false if that is not
 // possible for some reason (e.g. the path does not start with the namespace).
 func (u uri) RemoveNamespace(ns []string) ([]string, bool) {

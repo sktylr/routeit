@@ -1,7 +1,11 @@
 package main
 
-import "github.com/sktylr/routeit"
+import (
+	"database/sql"
 
-func GetBackendServer() *routeit.Server {
-	return nil
+	"github.com/sktylr/routeit"
+)
+
+func GetBackendServer(db *sql.DB) *routeit.Server {
+	return routeit.NewServer(routeit.ServerConfig{})
 }

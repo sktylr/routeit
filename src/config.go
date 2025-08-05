@@ -86,6 +86,16 @@ type ServerConfig struct {
 	// that outputs to [os.Stdout]. Level defaults to INFO but will be set to
 	// DEBUG if [ServerConfig.Debug] is true.
 	LoggingHandler slog.Handler
+	// Http request and response headers may appear multiple times in the
+	// message. For certain headers, repeated entries can pose security risks
+	// or not make sense when attempting to interpret the request. routeit will
+	// block requests that repeat specific header values automatically. By
+	// default, the list of headers where only 0 or 1 value is allowed is
+	// "Authorization", "Content-Length", "Content-Type", "Cookie", "Expect",
+	// "Host", "Origin", "Range", "Referer" and "User-Agent". If you have
+	// additional headers that should be limited to 0 or 1 appearances, they
+	// can be included in this property. Lookup is case-insensitive.
+	StrictSingletonHeaders []string
 }
 
 // The internal server config, which only stores the necessary values

@@ -32,7 +32,7 @@ func NewServer(conf ServerConfig) *Server {
 	log := newLogger(conf.LoggingHandler, conf.Debug)
 	s := &Server{conf: conf.internalise(), router: router, log: log, errorHandler: errorHandler}
 	s.middleware = newMiddleware(s.handlingMiddleware)
-	s.RegisterMiddleware(s.timeoutMiddleware)
+	s.RegisterMiddleware(s.timeoutMiddleware, headerValidationMiddleware(conf.StrictSingletonHeaders))
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
 	if len(conf.AllowedHosts) == 0 && s.conf.Debug {

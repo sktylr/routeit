@@ -534,3 +534,56 @@ func TestClientAcceptHeaderValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestHeaderValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		headers   []string
+		badHeader string
+	}{
+		{
+			name:      "repeated default header",
+			headers:   []string{"Host", "foobar", "Host", "bazqux"},
+			badHeader: "Host",
+		},
+		{
+			name:      "repeated custom header",
+			headers:   []string{"X-My-Header", "localhost:8080", "X-My-Header", "localhost:8080"},
+			badHeader: "X-My-Header",
+		},
+		{
+			name:      "repeated custom header, different case",
+			headers:   []string{"X-My-Header", "localhost:8080", "x-my-header", "localhost:8080"},
+			badHeader: "X-My-Header",
+		},
+		{
+			name:      "repeated custom header with empty value",
+			headers:   []string{"X-My-Header", "", "X-My-Header", ""},
+			badHeader: "X-My-Header",
+		},
+		{
+			name:      "mixed-case custom header, repeated with various casing",
+			headers:   []string{"x-my-header", "abc", "X-MY-HEADER", "def"},
+			badHeader: "X-My-Header",
+		},
+		{
+			name:      "multiple disallowed headers, one repeated",
+			headers:   []string{"Host", "1", "Content-Type", "2", "Content-Type", "3", "X-My-Header", "4"},
+			badHeader: "Content-Type",
+		},
+		{
+			name:      "multiple repeated disallowed headers, first lexicographically caught",
+			headers:   []string{"Content-Type", "a", "Content-Type", "b", "Content-Length", "x", "Content-Length", "y"},
+			badHeader: "Content-Length",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := client.Get("/hello", tc.headers...)
+
+			res.AssertStatusCode(t, routeit.StatusBadRequest)
+			res.AssertBodyMatchesStringf(t, "400: Bad Request. Header %#q cannot appear more than once", tc.badHeader)
+		})
+	}
+}

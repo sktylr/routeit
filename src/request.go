@@ -38,7 +38,7 @@ type HttpMethod struct {
 	name string
 }
 
-type protocolLine struct {
+type requestLine struct {
 	mthd  HttpMethod
 	prtcl string
 	uri   uri
@@ -46,21 +46,21 @@ type protocolLine struct {
 
 // Parses the raw byte slice of the request into a more usable request structure
 //
-// The request is made up of three components: the protocol line, headers and the
+// The request is made up of three components: the request line, headers and the
 // body. For HTTP/1.1, at a bare minimum the Host header must be included, though
 // the body is optional (and ignored for certain request methods such as GET).
 //
-// Each section is split using carriage returns (CRLF or \r\n). After the protocol
-// line, and each header line is also split using a carriage return. The protocol
+// Each section is split using carriage returns (CRLF or \r\n). After the request
+// line, and each header line is also split using a carriage return. The request
 // line is always only a single line made up of three components - the request
-// method, the path (or URI) and the http protocol, and a blank line (using a
+// method, the path (or URI) and the HTTP protocol, and a blank line (using a
 // carriage return) also follows the headers before the optional body.
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
 func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Request, *HttpError) {
 	sections := bytes.Split(raw, []byte("\r\n"))
 
-	// We are expecting 1 carriage return after the protocol line and 1
+	// We are expecting 1 carriage return after the request line and 1
 	// carriage return after all the headers. This means there will be at least
 	// 3 sections.
 	if len(sections) < 3 {
@@ -68,7 +68,7 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 	}
 
 	prtclRaw := sections[0]
-	ptcl, err := parseProtocolLine(prtclRaw)
+	reqLine, err := parseRequestLine(prtclRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 
 	ct := ContentType{}
 	ctRaw, hasCType := reqHdrs.First("Content-Type")
-	if hasCType && ptcl.mthd.canHaveBody() {
+	if hasCType && reqLine.mthd.canHaveBody() {
 		ct = parseContentType(ctRaw)
 	}
 	cLen := reqHdrs.headers.ContentLength()
@@ -90,20 +90,20 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 		return nil, ErrContentTooLarge()
 	}
 
-	if !ct.isValid() && cLen != 0 && ptcl.mthd.canHaveBody() {
+	if !ct.isValid() && cLen != 0 && reqLine.mthd.canHaveBody() {
 		return nil, ErrBadRequest().WithMessage("Cannot specify a Content-Length without Content-Type")
 	}
 
 	bdyRaw := bytes.Join(hdrsRaw[lastHeader+1:], []byte("\r\n"))
 	var body []byte
-	if cLen == 0 || !ptcl.mthd.canHaveBody() {
+	if cLen == 0 || !reqLine.mthd.canHaveBody() {
 		// For GET, HEAD or OPTIONS requests, the request body should be
 		// ignored even if provided. Servers can technically accept request
 		// bodies for OPTIONS requests, however it is up to the server
 		// implementation, and routeit chooses not to. Where we are consuming
 		// the body, we should only look for Content-Length bytes and no more.
 		body = []byte{}
-		if ptcl.mthd == TRACE {
+		if reqLine.mthd == TRACE {
 			// TRACE requests should not have a body. However, they should
 			// return the entire received request in their own response body.
 			// To simplify data storage, we will store the raw request on the
@@ -130,8 +130,8 @@ func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Requ
 	accept := parseAcceptHeader(reqHdrs)
 	userAgent, _ := reqHdrs.First("User-Agent")
 	req := Request{
-		mthd:      ptcl.mthd,
-		uri:       ptcl.uri,
+		mthd:      reqLine.mthd,
+		uri:       reqLine.uri,
 		headers:   reqHdrs,
 		body:      body,
 		ct:        ct,
@@ -335,43 +335,42 @@ func (m HttpMethod) isValid() bool {
 }
 
 // Parses the first line of the request. This line should contain the HTTP
-// method, requested URI and the protocol. parseProtocolLine will parse all
-// components and group them into a [protocolLine] struct, returning an error
-// if the protocol line is malformed. The URI is only treated as being
-// origin-form (the most common - e.g. "/foo/bar?baz=qux") or asterisk-form
-// (used for global OPTIONS requests - "*"). There are two other formats the
-// request can appear in - absolute-form ("http://example.com/") and
-// authority-form ("www.example.com:80"). Authority-form is only used for
-// CONNECT requests and absolute-form is used for non-CONNECT requests to a
-// proxy. Since routeit does not support CONNECT requests and is not intended
-// to be used as a proxy, we don't support absolute- or authority-form
-// explicitly.
-func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
+// method, requested URI and the protocol. parseRequestLine will parse all
+// components and group them into a [requestLine] struct, returning an error if
+// the request line is malformed. The URI is only treated as being origin-form
+// (the most common - e.g. "/foo/bar?baz=qux") or asterisk-form (used for
+// global OPTIONS requests - "*"). There are two other formats the request can
+// appear in - absolute-form ("http://example.com/") and authority-form
+// ("www.example.com:80"). Authority-form is only used for CONNECT requests and
+// absolute-form is used for non-CONNECT requests to a proxy. Since routeit
+// does not support CONNECT requests and is not intended to be used as a proxy,
+// we don't support absolute- or authority-form explicitly.
+func parseRequestLine(raw []byte) (requestLine, *HttpError) {
 	startLineSplit := bytes.Split(raw, []byte(" "))
 	if len(startLineSplit) != 3 {
-		return protocolLine{}, ErrBadRequest()
+		return requestLine{}, ErrBadRequest()
 	}
 
 	mthdRaw, uriRaw, prtcl := startLineSplit[0], string(startLineSplit[1]), string(startLineSplit[2])
 	mthd := HttpMethod{name: string(mthdRaw)}
 	if !mthd.isValid() {
-		return protocolLine{}, ErrNotImplemented()
+		return requestLine{}, ErrNotImplemented()
 	}
 	if prtcl != "HTTP/1.1" {
-		return protocolLine{}, ErrHttpVersionNotSupported()
+		return requestLine{}, ErrHttpVersionNotSupported()
 	}
 	if uriRaw == "*" && mthd != OPTIONS {
-		return protocolLine{}, ErrBadRequest().WithMessage("Invalid request-target for method")
+		return requestLine{}, ErrBadRequest().WithMessage("Invalid request-target for method")
 	}
 
 	if RequestSize(len(uriRaw)) > (8 * KiB) {
-		return protocolLine{}, ErrURITooLong()
+		return requestLine{}, ErrURITooLong()
 	}
 
 	uri, err := parseUri(uriRaw)
 	if err != nil {
-		return protocolLine{}, err
+		return requestLine{}, err
 	}
 
-	return protocolLine{mthd: mthd, prtcl: prtcl, uri: *uri}, nil
+	return requestLine{mthd: mthd, prtcl: prtcl, uri: *uri}, nil
 }

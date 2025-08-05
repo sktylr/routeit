@@ -68,6 +68,31 @@ func (t *RuneTrie) Insert(s string) {
 	}
 }
 
+// Traverse the keys of the trie. This will perform an approximately
+// lexicographical traversal, where digits will appear before alphabetical
+// characters, which will appear before symbols.
+func (t *RuneTrie) Traverse() <-chan string {
+	out := make(chan string)
+	go func() {
+		var dfs func(node *runeNode, prefix string)
+		dfs = func(n *runeNode, prefix string) {
+			if n == nil {
+				return
+			}
+			if n.end {
+				out <- prefix + n.char
+			}
+
+			for _, child := range n.children {
+				dfs(child, prefix+n.char)
+			}
+		}
+		dfs(t.root, "")
+		close(out)
+	}()
+	return out
+}
+
 // The children of each node are stored in a fixed size array of 51 elements
 // (since there are 51 total allowed characters in a HTTP header key, assuming
 // case insensitivity). This function will convert the character to the

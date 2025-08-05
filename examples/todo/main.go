@@ -2,6 +2,8 @@ package main
 
 import (
 	"sync"
+
+	"github.com/sktylr/routeit/examples/todo/db"
 )
 
 func main() {
@@ -9,10 +11,15 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	db, err := db.Connect()
+	if err != nil {
+		panic(err)
+	}
+
 	// The first is the backend, which is the piece we are actually testing
 	go func() {
 		defer wg.Done()
-		// GetBackendServer().StartOrPanic()
+		GetBackendServer(db).StartOrPanic()
 	}()
 
 	// The second is the front end, which is used to demonstrate easily how

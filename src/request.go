@@ -58,7 +58,6 @@ type protocolLine struct {
 //
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages
 func requestFromRaw(raw []byte, maxSize RequestSize, ctx context.Context) (*Request, *HttpError) {
-	// TODO: need to add support for all request-target forms (origin-form, absolute-form, authority-form, asterisk-form) that should be accepted by a HTTP only server.
 	sections := bytes.Split(raw, []byte("\r\n"))
 
 	// We are expecting 1 carriage return after the protocol line and 1
@@ -338,7 +337,15 @@ func (m HttpMethod) isValid() bool {
 // Parses the first line of the request. This line should contain the HTTP
 // method, requested URI and the protocol. parseProtocolLine will parse all
 // components and group them into a [protocolLine] struct, returning an error
-// if the protocol line is malformed.
+// if the protocol line is malformed. The URI is only treated as being
+// origin-form (the most common - e.g. "/foo/bar?baz=qux") or asterisk-form
+// (used for global OPTIONS requests - "*"). There are two other formats the
+// request can appear in - absolute-form ("http://example.com/") and
+// authority-form ("www.example.com:80"). Authority-form is only used for
+// CONNECT requests and absolute-form is used for non-CONNECT requests to a
+// proxy. Since routeit does not support CONNECT requests and is not intended
+// to be used as a proxy, we don't support absolute- or authority-form
+// explicitly.
 func parseProtocolLine(raw []byte) (protocolLine, *HttpError) {
 	startLineSplit := bytes.Split(raw, []byte(" "))
 	if len(startLineSplit) != 3 {

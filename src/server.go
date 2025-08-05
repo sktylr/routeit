@@ -155,7 +155,6 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 	buf := make([]byte, s.conf.RequestSize)
 	_, err := conn.Read(buf)
 	if err != nil {
-		// TODO: should handle read timeouts here and return 408 Request Timeout
 		s.log.Warn("Failed to read request from connection", "err", err)
 		return
 	}

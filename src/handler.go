@@ -171,8 +171,6 @@ func staticLoader(namespace []string) *Handler {
 		url, _ := req.uri.RemoveNamespace(namespace)
 		path := path.Join(url...)
 
-		// TODO: need to have better general handling here! Make sure the path is valid etc.
-
 		// First determine the file's presence. This allows us to return more
 		// meaningful errors - e.g. if the file is not present we can map that
 		// to a 404.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"testing"
 )
 
 // The [TestRequestOptions] allow you to specify certain traits the request
@@ -47,7 +48,7 @@ type testRequest struct {
 
 // This will create a new test request object that can be used in tests, for
 // example when unit testing middleware.
-func NewTestRequest(t testable, path string, m HttpMethod, opts TestRequestOptions) *TestRequest {
+func NewTestRequest(t testing.TB, path string, m HttpMethod, opts TestRequestOptions) *TestRequest {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}

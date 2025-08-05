@@ -30,6 +30,7 @@ func GetServer() *routeit.Server {
 		AllowedHosts:           []string{".example.com", ".localhost", "[::1]"},
 		StrictClientAcceptance: true,
 		AllowTraceRequests:     true,
+		StrictSingletonHeaders: []string{"X-My-Header"},
 	})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {

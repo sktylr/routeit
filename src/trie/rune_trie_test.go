@@ -182,3 +182,62 @@ func TestContains(t *testing.T) {
 		})
 	}
 }
+
+func TestTraverse(t *testing.T) {
+	tests := []struct {
+		name   string
+		inputs []string
+		want   []string
+	}{
+		{
+			name:   "simple",
+			inputs: []string{"foo", "bar", "baz"},
+			want:   []string{"bar", "baz", "foo"},
+		},
+		{
+			name: "empty",
+		},
+		{
+			name:   "single element",
+			inputs: []string{"foo"},
+			want:   []string{"foo"},
+		},
+		{
+			name:   "handles duplicates",
+			inputs: []string{"foo", "bar", "foo", "foo", "bar"},
+			want:   []string{"bar", "foo"},
+		},
+		{
+			name:   "preserves original case",
+			inputs: []string{"foO", "FOO"},
+			want:   []string{"foO"},
+		},
+		{
+			name:   "multiple words with same prefix",
+			inputs: []string{"prefixed", "pref", "pre", "prefixes", "prefix"},
+			want:   []string{"pre", "pref", "prefix", "prefixed", "prefixes"},
+		},
+		{
+			name:   "symbols and digits sort correctly",
+			inputs: []string{"1foo", "!bar", "#baz", "foo"},
+			want:   []string{"1foo", "foo", "!bar", "#baz"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			trie := NewRuneTrie()
+			for _, s := range tc.inputs {
+				trie.Insert(s)
+			}
+
+			i := 0
+			for val := range trie.Traverse() {
+				if val != tc.want[i] {
+					t.Errorf(`trie @ %d = %#q, wanted %#q`, i, val, tc.want[i])
+				}
+				i++
+			}
+		})
+	}
+}

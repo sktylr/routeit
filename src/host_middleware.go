@@ -7,7 +7,7 @@ import (
 	"github.com/sktylr/routeit/cmp"
 )
 
-// Middleware that is always registered as the second piece of middleware for
+// Middleware that is always registered as the third piece of middleware for
 // the server, and rejects all incoming requests that do not match the server's
 // expected Host header pattern. Per RFC-9112 Sec 7.2, the server MUST reject
 // the request and return 400: Bad Request when it does not contain a Host

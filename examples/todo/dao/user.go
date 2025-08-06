@@ -1,9 +1,11 @@
 package dao
 
+import "time"
+
 type User struct {
 	Id       string
-	Created  int64
-	Updated  int64
+	Created  time.Time
+	Updated  time.Time
 	Name     string
 	Email    string
 	Password string

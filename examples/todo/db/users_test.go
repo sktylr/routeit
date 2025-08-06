@@ -198,8 +198,8 @@ func TestGetUserById(t *testing.T) {
 		const email = "test@example.com"
 		const name = "John Doe"
 		const hashedPassword = "$2a$10$somehashedpw"
-		const created = int64(1700000000)
-		const updated = int64(1700000500)
+		created := time.Unix(1700000000, 0)
+		updated := time.Unix(1700000500, 0)
 
 		tests := []struct {
 			name       string

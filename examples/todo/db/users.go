@@ -56,9 +56,7 @@ func (r *UsersRepository) CreateUser(ctx context.Context, name, email, password 
 	}
 
 	user := dao.User{
-		Id:       idS,
-		Created:  now,
-		Updated:  now,
+		Meta:     dao.Meta{Id: idS, Created: now, Updated: now},
 		Name:     name,
 		Email:    email,
 		Password: hashedPw,

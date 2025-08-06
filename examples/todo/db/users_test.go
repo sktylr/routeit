@@ -6,10 +6,12 @@ import (
 	"errors"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-sql-driver/mysql"
 	"github.com/sktylr/routeit/examples/todo/auth"
 	"github.com/sktylr/routeit/examples/todo/dao"
 )
@@ -68,6 +70,35 @@ func TestCreateUser(t *testing.T) {
 			_, err := repo.CreateUser(context.Background(), "Bob", "bob@example.com", "MyPassword")
 			if err == nil {
 				t.Fatal("expected error but got nil")
+			}
+		})
+	})
+
+	t.Run("fails with ErrDuplicateKey on duplicate email", func(t *testing.T) {
+		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+			repo := NewUsersRepository(db)
+
+			sqlErr := &mysql.MySQLError{
+				Number:  1062,
+				Message: "Duplicate entry 'alice@example.com' for key 'users.email'",
+			}
+
+			mock.ExpectExec(regexp.QuoteMeta(
+				"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
+			)).
+				WithArgs(sqlmock.AnyArg(), "Alice", "alice@example.com", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+				WillReturnError(sqlErr)
+
+			_, err := repo.CreateUser(context.Background(), "Alice", "alice@example.com", "SomePass")
+
+			if err == nil {
+				t.Fatal("expected duplicate key error, got nil")
+			}
+			if !errors.Is(err, ErrDuplicateKey) {
+				t.Fatalf("expected error to be ErrDuplicateKey, got: %v", err)
+			}
+			if !strings.Contains(err.Error(), sqlErr.Message) {
+				t.Errorf("wrapped error message missing original SQL error: %v", err)
 			}
 		})
 	})

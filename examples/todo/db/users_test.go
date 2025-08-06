@@ -170,3 +170,87 @@ func TestGetUserByEmail(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUserById(t *testing.T) {
+	WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+		repo := NewUsersRepository(db)
+
+		const userID = "12345678-1234-1234-1234-123456789abc"
+		const email = "test@example.com"
+		const name = "John Doe"
+		const hashedPassword = "$2a$10$somehashedpw"
+		const created = int64(1700000000)
+		const updated = int64(1700000500)
+
+		tests := []struct {
+			name       string
+			setupMock  func()
+			inputId    string
+			wantFound  bool
+			wantErr    bool
+			wantUserId string
+		}{
+			{
+				name:    "user found",
+				inputId: userID,
+				setupMock: func() {
+					mock.ExpectQuery(`SELECT id, name, email, password, created, updated FROM users WHERE id = \?`).
+						WithArgs(userID).
+						WillReturnRows(
+							sqlmock.NewRows([]string{"id", "name", "email", "password", "created", "updated"}).
+								AddRow(userID, name, email, hashedPassword, created, updated),
+						)
+				},
+				wantFound:  true,
+				wantErr:    false,
+				wantUserId: userID,
+			},
+			{
+				name:    "user not found",
+				inputId: "nonexistent-id",
+				setupMock: func() {
+					mock.ExpectQuery(`SELECT id, name, email, password, created, updated FROM users WHERE id = \?`).
+						WithArgs("nonexistent-id").
+						WillReturnError(sql.ErrNoRows)
+				},
+				wantFound: false,
+				wantErr:   false,
+			},
+			{
+				name:    "db error",
+				inputId: "bad-id",
+				setupMock: func() {
+					mock.ExpectQuery(`SELECT id, name, email, password, created, updated FROM users WHERE id = \?`).
+						WithArgs("bad-id").
+						WillReturnError(errors.New("db failure"))
+				},
+				wantFound: false,
+				wantErr:   true,
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				tc.setupMock()
+
+				user, found, err := repo.GetUserById(context.Background(), tc.inputId)
+
+				if (err != nil) != tc.wantErr {
+					t.Fatalf("unexpected error: got %v, want error: %v", err, tc.wantErr)
+				}
+
+				if found != tc.wantFound {
+					t.Fatalf("found = %v, want %v", found, tc.wantFound)
+				}
+
+				if found && user.Id != tc.wantUserId {
+					t.Errorf("user.Id = %v, want %v", user.Id, tc.wantUserId)
+				}
+
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("there were unfulfilled expectations: %v", err)
+				}
+			})
+		}
+	})
+}

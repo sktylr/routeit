@@ -84,3 +84,33 @@ func (r *UsersRepository) GetUserByEmail(ctx context.Context, email string) (*da
 
 	return &user, true, nil
 }
+
+func (r *UsersRepository) GetUserById(ctx context.Context, id string) (*dao.User, bool, error) {
+	const query = `
+		SELECT id, name, email, password, created, updated
+		FROM users
+		WHERE id = ?
+	`
+
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	var user dao.User
+	err := row.Scan(
+		&user.Id,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.Created,
+		&user.Updated,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, false, nil
+	}
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	return &user, true, nil
+}

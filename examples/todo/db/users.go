@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -54,4 +55,32 @@ func (r *UsersRepository) CreateUser(context context.Context, name, email, passw
 		Password: hashedPw,
 	}
 	return &user, nil
+}
+
+func (r *UsersRepository) GetUserByEmail(ctx context.Context, email string) (*dao.User, bool, error) {
+	query := `
+		SELECT id, name, email, password, created, updated
+		FROM users
+		WHERE email = ?
+	`
+
+	row := r.db.QueryRowContext(ctx, query, email)
+
+	var user dao.User
+	err := row.Scan(
+		&user.Id,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.Created,
+		&user.Updated,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return &user, true, nil
 }

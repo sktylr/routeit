@@ -34,9 +34,9 @@ func Connect() (*sql.DB, error) {
 	return db, nil
 }
 
-// [WithTestConnection] can be used to generate a mock connection to a MySQL
-// database in test contexts.
-func WithTestConnection(tb testing.TB, fn func(*sql.DB, sqlmock.Sqlmock)) {
+// [WithUnitTestConnection] can be used to simulate a mock connection to a
+// MySQL database in unit test contexts.
+func WithUnitTestConnection(tb testing.TB, fn func(*sql.DB, sqlmock.Sqlmock)) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		tb.Fatalf("error while opening mock connection: %+v", err)

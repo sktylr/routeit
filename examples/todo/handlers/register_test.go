@@ -122,7 +122,7 @@ func TestRegisterUserHandler(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			db.WithTestConnection(t, func(dbConn *sql.DB, mock sqlmock.Sqlmock) {
+			db.WithUnitTestConnection(t, func(dbConn *sql.DB, mock sqlmock.Sqlmock) {
 				if tc.mockSetup != nil {
 					tc.mockSetup(mock)
 				}

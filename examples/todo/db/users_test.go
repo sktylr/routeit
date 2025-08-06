@@ -17,7 +17,7 @@ import (
 
 func TestCreateUser(t *testing.T) {
 	t.Run("successfully creates user", func(t *testing.T) {
-		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+		WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 			repo := NewUsersRepository(db)
 			name := "Alice"
 			email := "alice@example.com"
@@ -53,7 +53,7 @@ func TestCreateUser(t *testing.T) {
 	})
 
 	t.Run("fails when insert fails", func(t *testing.T) {
-		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+		WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 			repo := NewUsersRepository(db)
 			mock.ExpectExec(regexp.QuoteMeta(
 				"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
@@ -70,7 +70,7 @@ func TestCreateUser(t *testing.T) {
 	})
 
 	t.Run("fails with ErrDuplicateKey on duplicate email", func(t *testing.T) {
-		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+		WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 			repo := NewUsersRepository(db)
 			sqlErr := &mysql.MySQLError{
 				Number:  1062,
@@ -152,7 +152,7 @@ func TestGetUserByEmail(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+			WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 				repo := NewUsersRepository(db)
 				query := regexp.QuoteMeta(`
 					SELECT id, name, email, password, created, updated
@@ -189,7 +189,7 @@ func TestGetUserByEmail(t *testing.T) {
 }
 
 func TestGetUserById(t *testing.T) {
-	WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+	WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 		repo := NewUsersRepository(db)
 
 		const userID = "12345678-1234-1234-1234-123456789abc"

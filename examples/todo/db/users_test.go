@@ -80,8 +80,8 @@ func TestGetUserByEmail(t *testing.T) {
 		Name:     "Test User",
 		Email:    testEmail,
 		Password: "hashed-pw",
-		Created:  time.Now().Unix(),
-		Updated:  time.Now().Unix(),
+		Created:  time.Now(),
+		Updated:  time.Now(),
 	}
 
 	tests := []struct {

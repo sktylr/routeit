@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/sktylr/routeit/examples/todo/auth"
 	"github.com/sktylr/routeit/examples/todo/dao"
@@ -44,6 +45,13 @@ func (r *UsersRepository) CreateUser(ctx context.Context, name, email, password 
 		now,
 	)
 	if err != nil {
+		var sqlErr *mysql.MySQLError
+		if errors.As(err, &sqlErr) && sqlErr.Number == 1062 {
+			// 1062 is MySQL's code to indicate a duplicate key error occurred.
+			// For user creation this is either the id or email. Due to the way
+			// UUID's work, it is most likely the email.
+			return nil, fmt.Errorf("%w: %v", ErrDuplicateKey, err)
+		}
 		return nil, err
 	}
 

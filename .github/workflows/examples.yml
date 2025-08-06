@@ -23,6 +23,7 @@ jobs:
                 - static/rewrites/complex
                 - static/rewrites/dynamic
                 - static/rewrites/static
+                - todo
 
     steps:
       - uses: actions/checkout@v4

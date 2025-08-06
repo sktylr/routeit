@@ -2,14 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-sql-driver/mysql"
 )
-
-var ErrDuplicateKey = errors.New("duplicate key")
 
 // [Connect] attempts to create a live connection to the sample MySQL database
 // used for this application.

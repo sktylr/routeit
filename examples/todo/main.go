@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"sync"
 
 	"github.com/sktylr/routeit/examples/todo/db"
@@ -11,7 +12,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	db, err := db.Connect()
+	db, err := db.Connect(context.Background())
 	if err != nil {
 		panic(err)
 	}

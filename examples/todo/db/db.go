@@ -1,16 +1,22 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"testing"
+
+	_ "embed"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-sql-driver/mysql"
 )
 
+//go:embed sql/init.sql
+var initSchema string
+
 // [Connect] attempts to create a live connection to the sample MySQL database
 // used for this application.
-func Connect() (*sql.DB, error) {
+func Connect(ctx context.Context) (*sql.DB, error) {
 	// We hardcode all config options, including the password. In a real app we
 	// wouldn't do this, but this makes it easier to reproduce across different
 	// systems.
@@ -31,6 +37,10 @@ func Connect() (*sql.DB, error) {
 		return nil, err
 	}
 
+	if _, err := db.ExecContext(ctx, initSchema); err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -44,4 +54,22 @@ func WithUnitTestConnection(tb testing.TB, fn func(*sql.DB, sqlmock.Sqlmock)) {
 	defer db.Close()
 
 	fn(db, mock)
+}
+
+// [WithIntegrationTestConnection] spins up a SQLite3 in-memory database that
+// can be used to run integration tests. Although slower than mocking, this
+// allows the test to perform real SQL queries, so poses a more realistic base
+// upon which the tests are executed.
+func WithIntegrationTestConnection(tb testing.TB, fn func(*sql.DB)) {
+	dbConn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		tb.Fatalf("error while opening db: %v", err)
+	}
+	defer dbConn.Close()
+
+	if _, err = dbConn.ExecContext(tb.Context(), initSchema); err != nil {
+		tb.Fatalf(`failed to initialise db: %v`, err)
+	}
+
+	fn(dbConn)
 }

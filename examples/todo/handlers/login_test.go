@@ -118,7 +118,7 @@ func TestLoginHandler(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to marshal request: %v", err)
 				}
-				req := routeit.NewTestRequest(t, "/login", routeit.POST, routeit.TestRequestOptions{
+				req := routeit.NewTestRequest(t, "/auth/login", routeit.POST, routeit.TestRequestOptions{
 					Body: bodyBytes,
 					Headers: []string{
 						"Content-Type", "application/json",

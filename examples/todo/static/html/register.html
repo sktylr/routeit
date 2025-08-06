@@ -28,24 +28,49 @@
   <script>
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const errorEl = document.getElementById('registerError');
+      errorEl.textContent = '';
+
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
 
-      const res = await fetch('http://localhost:8080/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, confirm_password: confirmPassword })
-      });
+      try {
+        const res = await fetch('http://localhost:8080/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, confirm_password: confirmPassword })
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        window.location.href = '/';
-      } else {
-        document.getElementById('registerError').textContent = data.message || 'Registration failed.';
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          window.location.href = '/';
+          return
+        }
+
+        switch (res.status) {
+          case 400:
+            errorEl.textContent = "Invalid registration details. Double check your details and make sure you don't already have an account.";
+            break;
+          case 422:
+            errorEl.textContent = "Please fill in all required details.";
+            break;
+          default:
+            if (res.status >= 500 && res.status < 600) {
+              errorEl.textContent = "Server error. Please try again later.";
+            } else {
+              const data = await res.json();
+              errorEl.textContent = data.message || "Login failed.";
+            }
+            break;
+        }
+      } catch (err) {
+        errorEl.textContent = "Network error. Please check your connection.";
+        console.error("Registration error:", err);
       }
     });
   </script>

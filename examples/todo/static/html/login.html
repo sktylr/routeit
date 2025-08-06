@@ -26,22 +26,50 @@
   <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value;
+
+      const errorEl = document.getElementById('loginError');
+      errorEl.textContent = '';
+
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
-      const res = await fetch('http://localhost:8080/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      try {
+        const res = await fetch('http://localhost:8080/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        window.location.href = '/';
-      } else {
-        document.getElementById('loginError').textContent = data.message || 'Login failed.';
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          window.location.href = '/';
+          return;
+        }
+
+        switch (res.status) {
+          case 404:
+            errorEl.textContent = "No account found with this email.";
+            break;
+          case 422:
+            errorEl.textContent = "Please fill in both email and password.";
+            break;
+          case 400:
+            errorEl.textContent = "Incorrect password or invalid login details.";
+            break;
+          default:
+            if (res.status >= 500 && res.status < 600) {
+              errorEl.textContent = "Server error. Please try again later.";
+            } else {
+              const data = await res.json();
+              errorEl.textContent = data.message || "Login failed.";
+            }
+            break;
+        }
+      } catch (err) {
+        errorEl.textContent = "Network error. Please check your connection.";
+        console.error("Login error:", err);
       }
     });
   </script>

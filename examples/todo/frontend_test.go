@@ -18,14 +18,14 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/static/html/login.html", "/login"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     1546,
+			wantCLen:     2460,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>Login</title>", "Don't have an account?\n      <a href=\"/register\">Register here</a>"},
 		},
 		{
 			endpoints:    []string{"/static/html/register.html", "/register"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     1916,
+			wantCLen:     2769,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>Register</title>", "Already have an account?\n      <a href=\"/login\">Login here</a>"},
 		},

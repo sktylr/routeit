@@ -100,12 +100,10 @@ func TestCreateUser(t *testing.T) {
 func TestGetUserByEmail(t *testing.T) {
 	testEmail := "test@example.com"
 	expectedUser := dao.User{
-		Id:       "some-uuid",
+		Meta:     dao.Meta{Id: "some-uuid", Created: time.Now(), Updated: time.Now()},
 		Name:     "Test User",
 		Email:    testEmail,
 		Password: "hashed-pw",
-		Created:  time.Now(),
-		Updated:  time.Now(),
 	}
 
 	tests := []struct {

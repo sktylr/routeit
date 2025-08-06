@@ -23,6 +23,7 @@ func Connect() (*sql.DB, error) {
 	conf.Net = "tcp"
 	conf.Addr = "127.0.0.1:3306"
 	conf.DBName = "todo_sample_app"
+	conf.ParseTime = true
 
 	db, err := sql.Open("mysql", conf.FormatDSN())
 	if err != nil {

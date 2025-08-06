@@ -135,7 +135,7 @@ func TestRegisterUserHandler(t *testing.T) {
 					t.Fatalf("failed to marshal request: %v", err)
 				}
 
-				req := routeit.NewTestRequest(t, "/register", routeit.POST, routeit.TestRequestOptions{
+				req := routeit.NewTestRequest(t, "/auth/register", routeit.POST, routeit.TestRequestOptions{
 					Body: bodyBytes,
 					Headers: []string{
 						"Content-Type", "application/json",

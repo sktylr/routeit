@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"reflect"
@@ -20,12 +19,9 @@ func TestCreateUser(t *testing.T) {
 	t.Run("successfully creates user", func(t *testing.T) {
 		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 			repo := NewUsersRepository(db)
-
-			ctx := context.Background()
 			name := "Alice"
 			email := "alice@example.com"
 			password := "SecurePass123"
-
 			mock.ExpectExec(regexp.QuoteMeta(
 				"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
 			)).
@@ -39,15 +35,14 @@ func TestCreateUser(t *testing.T) {
 				).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 
-			user, err := repo.CreateUser(ctx, name, email, password)
+			user, err := repo.CreateUser(t.Context(), name, email, password)
+
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
-
 			if user.Name != name || user.Email != email {
 				t.Errorf("unexpected user returned: %+v", user)
 			}
-
 			if user.Id == "" {
 				t.Errorf("expected non-empty user ID")
 			}
@@ -60,14 +55,14 @@ func TestCreateUser(t *testing.T) {
 	t.Run("fails when insert fails", func(t *testing.T) {
 		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 			repo := NewUsersRepository(db)
-
 			mock.ExpectExec(regexp.QuoteMeta(
 				"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
 			)).
 				WithArgs(sqlmock.AnyArg(), "Bob", "bob@example.com", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnError(sqlmock.ErrCancelled)
 
-			_, err := repo.CreateUser(context.Background(), "Bob", "bob@example.com", "MyPassword")
+			_, err := repo.CreateUser(t.Context(), "Bob", "bob@example.com", "MyPassword")
+
 			if err == nil {
 				t.Fatal("expected error but got nil")
 			}
@@ -77,19 +72,17 @@ func TestCreateUser(t *testing.T) {
 	t.Run("fails with ErrDuplicateKey on duplicate email", func(t *testing.T) {
 		WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 			repo := NewUsersRepository(db)
-
 			sqlErr := &mysql.MySQLError{
 				Number:  1062,
 				Message: "Duplicate entry 'alice@example.com' for key 'users.email'",
 			}
-
 			mock.ExpectExec(regexp.QuoteMeta(
 				"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
 			)).
 				WithArgs(sqlmock.AnyArg(), "Alice", "alice@example.com", sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 				WillReturnError(sqlErr)
 
-			_, err := repo.CreateUser(context.Background(), "Alice", "alice@example.com", "SomePass")
+			_, err := repo.CreateUser(t.Context(), "Alice", "alice@example.com", "SomePass")
 
 			if err == nil {
 				t.Fatal("expected duplicate key error, got nil")
@@ -163,13 +156,11 @@ func TestGetUserByEmail(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			WithTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
 				repo := NewUsersRepository(db)
-
 				query := regexp.QuoteMeta(`
 					SELECT id, name, email, password, created, updated
 					FROM users
 					WHERE email = ?
 				`)
-
 				if tc.mockRows != nil {
 					mock.ExpectQuery(query).
 						WithArgs(tc.email).
@@ -180,20 +171,17 @@ func TestGetUserByEmail(t *testing.T) {
 						WillReturnError(tc.mockErr)
 				}
 
-				user, found, err := repo.GetUserByEmail(context.Background(), tc.email)
+				user, found, err := repo.GetUserByEmail(t.Context(), tc.email)
 
 				if (err != nil) != tc.wantErr {
 					t.Fatalf("unexpected error: %v", err)
 				}
-
 				if found != tc.wantFound {
 					t.Errorf("found = %v, want %v", found, tc.wantFound)
 				}
-
 				if !reflect.DeepEqual(user, tc.wantUser) {
 					t.Errorf("user = %+v, want %+v", user, tc.wantUser)
 				}
-
 				if err := mock.ExpectationsWereMet(); err != nil {
 					t.Errorf("unmet mock expectations: %v", err)
 				}
@@ -264,7 +252,7 @@ func TestGetUserById(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				tc.setupMock()
 
-				user, found, err := repo.GetUserById(context.Background(), tc.inputId)
+				user, found, err := repo.GetUserById(t.Context(), tc.inputId)
 
 				if (err != nil) != tc.wantErr {
 					t.Fatalf("unexpected error: got %v, want error: %v", err, tc.wantErr)

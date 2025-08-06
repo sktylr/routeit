@@ -21,10 +21,7 @@ type RegisterUserRequest struct {
 	ConfirmPassword string `json:"confirm_password"`
 }
 
-type RegisterUserResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
+type RegisterUserResponse tokenResponse
 
 func RegisterUserHandler(repo *db.UsersRepository) routeit.Handler {
 	return routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {

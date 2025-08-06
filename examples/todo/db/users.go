@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +20,7 @@ func NewUsersRepository(db *sql.DB) *UsersRepository {
 	return &UsersRepository{db: db}
 }
 
-func (r *UsersRepository) CreateUser(context context.Context, name, email, password string) (*dao.User, error) {
+func (r *UsersRepository) CreateUser(ctx context.Context, name, email, password string) (*dao.User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
@@ -33,7 +34,7 @@ func (r *UsersRepository) CreateUser(context context.Context, name, email, passw
 
 	now := time.Now().Unix()
 	_, err = r.db.ExecContext(
-		context,
+		ctx,
 		"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
 		idS,
 		name,
@@ -58,41 +59,16 @@ func (r *UsersRepository) CreateUser(context context.Context, name, email, passw
 }
 
 func (r *UsersRepository) GetUserByEmail(ctx context.Context, email string) (*dao.User, bool, error) {
-	query := `
-		SELECT id, name, email, password, created, updated
-		FROM users
-		WHERE email = ?
-	`
-
-	row := r.db.QueryRowContext(ctx, query, email)
-
-	var user dao.User
-	err := row.Scan(
-		&user.Id,
-		&user.Name,
-		&user.Email,
-		&user.Password,
-		&user.Created,
-		&user.Updated,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return &user, true, nil
+	return r.getUserByX(ctx, "email", email)
 }
 
 func (r *UsersRepository) GetUserById(ctx context.Context, id string) (*dao.User, bool, error) {
-	const query = `
-		SELECT id, name, email, password, created, updated
-		FROM users
-		WHERE id = ?
-	`
+	return r.getUserByX(ctx, "id", id)
+}
 
-	row := r.db.QueryRowContext(ctx, query, id)
+func (r *UsersRepository) getUserByX(ctx context.Context, column, value string) (*dao.User, bool, error) {
+	query := fmt.Sprintf("SELECT id, name, email, password, created, updated FROM users WHERE %s = ?", column)
+	row := r.db.QueryRowContext(ctx, query, value)
 
 	var user dao.User
 	err := row.Scan(
@@ -107,7 +83,6 @@ func (r *UsersRepository) GetUserById(ctx context.Context, id string) (*dao.User
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, false, nil
 	}
-
 	if err != nil {
 		return nil, false, err
 	}

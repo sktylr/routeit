@@ -32,7 +32,7 @@ func (r *UsersRepository) CreateUser(ctx context.Context, name, email, password 
 		return nil, err
 	}
 
-	now := time.Now().Unix()
+	now := time.Now()
 	_, err = r.db.ExecContext(
 		ctx,
 		"INSERT INTO users (id, name, email, password, created, updated) VALUES (?, ?, ?, ?, ?, ?)",

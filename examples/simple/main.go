@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -31,6 +32,14 @@ func GetServer() *routeit.Server {
 		StrictClientAcceptance: true,
 		AllowTraceRequests:     true,
 		StrictSingletonHeaders: []string{"X-My-Header"},
+		LogAttrExtractor: func(r *routeit.Request, hs routeit.HttpStatus) []slog.Attr {
+			if custom, hasCustom := r.Headers().First("X-My-Header"); hasCustom {
+				return []slog.Attr{
+					slog.String("x-my-header", custom),
+				}
+			}
+			return []slog.Attr{}
+		},
 	})
 	srv.RegisterRoutes(routeit.RouteRegistry{
 		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {

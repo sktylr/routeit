@@ -29,7 +29,7 @@ func NewServer(conf ServerConfig) *Server {
 	router.GlobalNamespace(conf.Namespace)
 	router.NewStaticDir(conf.StaticDir)
 	errorHandler := newErrorHandler(conf.ErrorMapper)
-	log := newLogger(conf.LoggingHandler, conf.Debug)
+	log := newLogger(conf.LoggingHandler, conf.Debug, conf.LogAttrExtractor)
 	s := &Server{conf: conf.internalise(), router: router, log: log, errorHandler: errorHandler}
 	s.middleware = newMiddleware(s.handlingMiddleware)
 	s.RegisterMiddleware(s.timeoutMiddleware, headerValidationMiddleware(conf.StrictSingletonHeaders))

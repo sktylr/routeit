@@ -96,6 +96,9 @@ type ServerConfig struct {
 	// additional headers that should be limited to 0 or 1 appearances, they
 	// can be included in this property. Lookup is case-insensitive.
 	StrictSingletonHeaders []string
+	// Use [LogAttrExtractor] to include additional metadata in the default
+	// request line that is dumped for all incoming requests.
+	LogAttrExtractor LogAttrExtractor
 }
 
 // The internal server config, which only stores the necessary values

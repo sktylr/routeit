@@ -45,7 +45,7 @@ func (l *logger) LogRequestAndResponse(rw *ResponseWriter, req *Request) {
 		slog.String("client_ip", req.ip),
 	}
 
-	l.log.LogAttrs(context.Background(), level, "Received request", attrs...)
+	l.log.LogAttrs(req.Context(), level, "Received request", attrs...)
 
 	if rw.s.isError() && len(req.body) != 0 {
 		l.log.Debug("Request failed", slog.String("body", string(req.body)))

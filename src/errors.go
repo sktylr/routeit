@@ -358,7 +358,7 @@ func (eh *errorHandler) toHttpError(err error, req *Request) *HttpError {
 		return ErrForbidden().WithCause(err)
 	}
 	if errors.Is(err, fs.ErrNotExist) {
-		return ErrNotFound().WithCause(err).WithMessagef("Invalid route: %s", req.Path())
+		return ErrNotFound().WithCause(err).WithMessagef("Invalid route: %s", req.RawPath())
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return ErrServiceUnavailable().WithCause(err)

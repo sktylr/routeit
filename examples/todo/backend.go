@@ -16,9 +16,10 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 		AllowedHosts:           []string{".localhost"},
 	})
 	srv.RegisterMiddleware(routeit.CorsMiddleware(routeit.DefaultCors()))
-	srv.RegisterRoutes(routeit.RouteRegistry{
-		"/auth/register": handlers.RegisterUserHandler(usersRepo),
-		"/auth/login":    handlers.LoginHandler(usersRepo),
+	srv.RegisterRoutesUnderNamespace("/auth", routeit.RouteRegistry{
+		"/login":    handlers.LoginHandler(usersRepo),
+		"/refresh":  handlers.RefreshTokenHandler(usersRepo),
+		"/register": handlers.RegisterUserHandler(usersRepo),
 	})
 	return srv
 }

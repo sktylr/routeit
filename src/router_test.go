@@ -437,7 +437,7 @@ func TestNewStaticDir(t *testing.T) {
 	}
 }
 
-func TestRewritePath(t *testing.T) {
+func TestRewriteUri(t *testing.T) {
 	tests := []struct {
 		name            string
 		base            map[string]string
@@ -546,6 +546,95 @@ func TestRewritePath(t *testing.T) {
 			}
 			if tc.wantQueryParams != nil && !reflect.DeepEqual(uri.queryParams.q, tc.wantQueryParams) {
 				t.Errorf("RewritePath(%q) query params = %#v, wanted %#v", tc.in, uri.queryParams.q, tc.wantQueryParams)
+			}
+		})
+	}
+}
+
+func BenchmarkRewriteUri(b *testing.B) {
+	type testCase struct {
+		name        string
+		route       string
+		target      string
+		request     string
+		expectSegs  int
+		expectQuery bool
+	}
+	cases := []testCase{
+		{
+			name:        "static_no_query",
+			route:       "/foo/bar",
+			target:      "/baz/qux",
+			request:     "/foo/bar",
+			expectSegs:  2,
+			expectQuery: false,
+		},
+		{
+			name:        "static_with_query",
+			route:       "/foo/bar",
+			target:      "/baz/qux?id=123",
+			request:     "/foo/bar",
+			expectSegs:  2,
+			expectQuery: true,
+		},
+		{
+			name:        "dynamic_var_no_query",
+			route:       "/foo/${bar}",
+			target:      "/baz/${bar}",
+			request:     "/foo/123",
+			expectSegs:  2,
+			expectQuery: false,
+		},
+		{
+			name:        "dynamic_var_with_query",
+			route:       "/foo/${bar}",
+			target:      "/baz?id=${bar}",
+			request:     "/foo/123",
+			expectSegs:  1,
+			expectQuery: true,
+		},
+	}
+	for n := 1; n <= 10; n++ {
+		source := "/source"
+		targetParts := make([]string, n)
+		for i := range targetParts {
+			targetParts[i] = fmt.Sprintf("part%d", i+1)
+		}
+		target := "/" + strings.Join(targetParts, "/")
+		cases = append(cases, testCase{
+			name:        fmt.Sprintf("long_static_segments_%d", n),
+			route:       source,
+			target:      target,
+			request:     "/source",
+			expectSegs:  n,
+			expectQuery: false,
+		})
+	}
+
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			router := newRouter()
+			router.NewRewrite(fmt.Sprintf("%s %s", tc.route, tc.target))
+			uri, err := parseUri(tc.request)
+			if err != nil {
+				b.Fatalf("failed to parse URI: %v", err)
+			}
+			b.ResetTimer()
+
+			for b.Loop() {
+				u := *uri
+				err := router.RewriteUri(&u)
+				if err != nil {
+					b.Fatalf("RewriteUri failed: %v", err)
+				}
+
+				if len(u.rewrittenPath) != tc.expectSegs {
+					b.Fatalf("expected %d path segments, got %d", tc.expectSegs, len(u.rewrittenPath))
+				}
+
+				if tc.expectQuery && len(u.queryParams.q) == 0 {
+					b.Fatalf("expected query params, but got none")
+				}
 			}
 		})
 	}

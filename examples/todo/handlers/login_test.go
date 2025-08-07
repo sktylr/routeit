@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +22,6 @@ func TestLoginHandler(t *testing.T) {
 		mockSetup      func(mock sqlmock.Sqlmock)
 		expectedStatus routeit.HttpStatus
 		assertBody     func(t *testing.T, res *routeit.TestResponse)
-		wantErrMsg     string
 	}{
 		{
 			name: "valid login returns tokens",
@@ -53,7 +51,7 @@ func TestLoginHandler(t *testing.T) {
 				Email:    "",
 				Password: "pass",
 			},
-			wantErrMsg: "422: Unprocessable Content",
+			expectedStatus: routeit.StatusUnprocessableContent,
 		},
 		{
 			name: "missing password returns 422",
@@ -61,7 +59,7 @@ func TestLoginHandler(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "",
 			},
-			wantErrMsg: "422: Unprocessable Content",
+			expectedStatus: routeit.StatusUnprocessableContent,
 		},
 		{
 			name: "user not found returns 404",
@@ -74,7 +72,7 @@ func TestLoginHandler(t *testing.T) {
 					WithArgs("ghost@example.com").
 					WillReturnRows(sqlmock.NewRows([]string{}))
 			},
-			wantErrMsg: "404: Not Found",
+			expectedStatus: routeit.StatusNotFound,
 		},
 		{
 			name: "password mismatch returns 400",
@@ -89,7 +87,7 @@ func TestLoginHandler(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "created", "updated"}).
 						AddRow("bob-123", "Bob", "bob@example.com", hashed, time.Now(), time.Now()))
 			},
-			wantErrMsg: "400: Bad Request",
+			expectedStatus: routeit.StatusBadRequest,
 		},
 		{
 			name: "internal db error returns 503",
@@ -102,7 +100,7 @@ func TestLoginHandler(t *testing.T) {
 					WithArgs("fail@example.com").
 					WillReturnError(errors.New("db connection lost"))
 			},
-			wantErrMsg: "503: Service Unavailable",
+			expectedStatus: routeit.StatusServiceUnavailable,
 		},
 	}
 
@@ -125,19 +123,20 @@ func TestLoginHandler(t *testing.T) {
 						"Content-Length", fmt.Sprintf("%d", len(bodyBytes)),
 					},
 				})
+				wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 
 				res, err := routeit.TestHandler(handler, req)
 
 				if err != nil {
-					if tc.wantErrMsg == "" {
+					if !wantErr {
 						t.Fatalf("unexpected error returned: %v", err)
 					}
 					httpErr, ok := err.(*routeit.HttpError)
 					if !ok {
 						t.Fatalf("expected HttpError, got %T", err)
 					}
-					if !strings.Contains(httpErr.Error(), tc.wantErrMsg) {
-						t.Errorf(`Error() = %#q, wanted %#q`, httpErr.Error(), tc.wantErrMsg)
+					if httpErr.Status() != tc.expectedStatus {
+						t.Errorf(`status = %+v, wanted %+v`, httpErr.Status(), tc.expectedStatus)
 					}
 				} else {
 					res.AssertStatusCode(t, tc.expectedStatus)

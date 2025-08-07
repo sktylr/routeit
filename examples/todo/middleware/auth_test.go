@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"database/sql"
-	"strings"
 	"testing"
 	"time"
 
@@ -61,13 +60,13 @@ func TestJwtMiddleware(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		path          string
-		setup         func(sqlmock.Sqlmock)
-		headers       []string
-		expectError   string
-		expectProceed bool
-		expectUserSet bool
+		name              string
+		path              string
+		setup             func(sqlmock.Sqlmock)
+		headers           []string
+		expectErrorStatus routeit.HttpStatus
+		expectProceed     bool
+		expectUserSet     bool
 	}{
 		{
 			name:          "bypasses /auth path",
@@ -75,33 +74,33 @@ func TestJwtMiddleware(t *testing.T) {
 			expectProceed: true,
 		},
 		{
-			name:        "missing Authorization header",
-			path:        "/todos",
-			expectError: "401: Unauthorized",
+			name:              "missing Authorization header",
+			path:              "/todos",
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
-			name:        "Authorization header present but without bearer prefix",
-			path:        "/todos",
-			expectError: "401: Unauthorized",
-			headers:     []string{"Authorization", "Basic 123"},
+			name:              "Authorization header present but without bearer prefix",
+			path:              "/todos",
+			headers:           []string{"Authorization", "Basic 123"},
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
-			name:        "malformed token",
-			path:        "/todos",
-			headers:     []string{"Authorization", "Bearer invalid.token.string"},
-			expectError: "401: Unauthorized",
+			name:              "malformed token",
+			path:              "/todos",
+			headers:           []string{"Authorization", "Bearer invalid.token.string"},
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
-			name:        "expired token",
-			path:        "/todos",
-			headers:     []string{"Authorization", gen(expiredClaims)},
-			expectError: "401: Unauthorized",
+			name:              "expired token",
+			path:              "/todos",
+			headers:           []string{"Authorization", gen(expiredClaims)},
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
-			name:        "invalid token type (refresh)",
-			path:        "/todos",
-			headers:     []string{"Authorization", gen(invalidClaims)},
-			expectError: "401: Unauthorized",
+			name:              "invalid token type (refresh)",
+			path:              "/todos",
+			headers:           []string{"Authorization", gen(invalidClaims)},
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
 			name:    "user not found",
@@ -112,7 +111,7 @@ func TestJwtMiddleware(t *testing.T) {
 					WithArgs(user.Id).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "created", "updated"}))
 			},
-			expectError: "401: Unauthorized",
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
 			name:    "user lookup fails",
@@ -123,7 +122,7 @@ func TestJwtMiddleware(t *testing.T) {
 					WithArgs(user.Id).
 					WillReturnError(sql.ErrConnDone)
 			},
-			expectError: "401: Unauthorized",
+			expectErrorStatus: routeit.StatusUnauthorized,
 		},
 		{
 			name:    "valid token, user found",
@@ -146,7 +145,6 @@ func TestJwtMiddleware(t *testing.T) {
 				if tc.setup != nil {
 					tc.setup(mock)
 				}
-
 				repo := db.NewUsersRepository(sqlDB)
 				req := routeit.NewTestRequest(t, tc.path, routeit.GET, routeit.TestRequestOptions{
 					Headers: tc.headers,
@@ -154,12 +152,16 @@ func TestJwtMiddleware(t *testing.T) {
 
 				_, proceeded, err := routeit.TestMiddleware(JwtMiddleware(repo), req)
 
-				if tc.expectError != "" {
+				if tc.expectErrorStatus.Is4xx() || tc.expectErrorStatus.Is5xx() {
 					if err == nil {
-						t.Fatalf("expected error containing %q, got nil", tc.expectError)
+						t.Fatal("expected error, got nil")
 					}
-					if !strings.HasPrefix(err.Error(), tc.expectError) {
-						t.Errorf("unexpected error: got %q, want prefix %q", err.Error(), tc.expectError)
+					httpErr, ok := err.(*routeit.HttpError)
+					if !ok {
+						t.Fatalf("expected HttpError, got %T", err)
+					}
+					if httpErr.Status() != tc.expectErrorStatus {
+						t.Errorf(`status = %+v, wanted %+v`, httpErr.Status(), tc.expectErrorStatus)
 					}
 					if proceeded {
 						t.Errorf("expected middleware to block request, but it proceeded")

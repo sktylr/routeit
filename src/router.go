@@ -238,16 +238,14 @@ func (r *router) RewriteUri(uri *uri) *HttpError {
 	var rewrittenPath []string
 	rewrittenQuery := ""
 	for _, seg := range *rewritten {
-		if strings.ContainsRune(seg, '?') {
-			path, query, _ := strings.Cut(seg, "?")
-			rewrittenPath = append(rewrittenPath, path)
+		path, query, hasQuery := strings.Cut(seg, "?")
+		rewrittenPath = append(rewrittenPath, path)
+		if hasQuery {
 			// By construction, we know this is always in the last path segment
 			// (if present at all), so we can safely treat this query as the
 			// only query string and terminate.
 			rewrittenQuery = query
 			break
-		} else {
-			rewrittenPath = append(rewrittenPath, seg)
 		}
 	}
 

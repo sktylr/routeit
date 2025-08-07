@@ -59,3 +59,29 @@ func GenerateTokens(uid string) (JwtToken, error) {
 
 	return JwtToken{AccessToken: accessT, RefreshToken: refreshT}, nil
 }
+
+func (c *Claims) IsExpired() bool {
+	return c.ExpiresAt.Before(time.Now())
+}
+
+func ParseAccessToken(raw string) (*Claims, error) {
+	return parseToken(raw, "access")
+}
+
+func ParseRefreshToken(raw string) (*Claims, error) {
+	return parseToken(raw, "refresh")
+}
+
+func parseToken(raw, wantType string) (*Claims, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(raw, claims, func(t *jwt.Token) (any, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if token.Valid && claims.Type == wantType {
+		return claims, nil
+	}
+	return nil, jwt.ErrTokenInvalidClaims
+}

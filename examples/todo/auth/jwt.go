@@ -18,20 +18,31 @@ type JwtToken struct {
 	RefreshToken string
 }
 
+type Claims struct {
+	jwt.RegisteredClaims
+	Type string
+}
+
 func GenerateTokens(uid string) (JwtToken, error) {
 	now := time.Now()
 
-	accessCl := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(now.Add(accessTTL)),
-		Issuer:    "todo-sample-app",
-		IssuedAt:  jwt.NewNumericDate(now),
-		Subject:   uid,
+	accessCl := Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(accessTTL)),
+			Issuer:    "todo-sample-app",
+			IssuedAt:  jwt.NewNumericDate(now),
+			Subject:   uid,
+		},
+		Type: "access",
 	}
-	refreshCl := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(now.Add(refreshTTL)),
-		Issuer:    "todo-sample-app",
-		IssuedAt:  jwt.NewNumericDate(now),
-		Subject:   uid,
+	refreshCl := Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(refreshTTL)),
+			Issuer:    "todo-sample-app",
+			IssuedAt:  jwt.NewNumericDate(now),
+			Subject:   uid,
+		},
+		Type: "refresh",
 	}
 
 	access := jwt.NewWithClaims(jwt.SigningMethodHS384, accessCl)

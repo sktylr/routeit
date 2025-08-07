@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -22,7 +21,6 @@ func TestRegisterUserHandler(t *testing.T) {
 		mockSetup      func(mock sqlmock.Sqlmock)
 		expectedStatus routeit.HttpStatus
 		assertBody     func(t *testing.T, res *routeit.TestResponse)
-		wantErrMsg     string
 	}{
 		{
 			name: "valid request returns tokens",
@@ -56,8 +54,8 @@ func TestRegisterUserHandler(t *testing.T) {
 				Password:        "Secret!",
 				ConfirmPassword: "Secret!",
 			},
-			mockSetup:  nil,
-			wantErrMsg: "422: Unprocessable Content",
+			mockSetup:      nil,
+			expectedStatus: routeit.StatusUnprocessableContent,
 		},
 		{
 			name: "password mismatch returns 400",
@@ -67,8 +65,8 @@ func TestRegisterUserHandler(t *testing.T) {
 				Password:        "abc123",
 				ConfirmPassword: "123abc",
 			},
-			mockSetup:  nil,
-			wantErrMsg: "Password does not match",
+			mockSetup:      nil,
+			expectedStatus: routeit.StatusBadRequest,
 		},
 		{
 			name: "duplicate email returns 400",
@@ -89,7 +87,7 @@ func TestRegisterUserHandler(t *testing.T) {
 					Message: "Duplicate entry",
 				})
 			},
-			wantErrMsg: "400: Bad Request",
+			expectedStatus: routeit.StatusBadRequest,
 		},
 		{
 			name: "internal DB error returns 503",
@@ -107,7 +105,7 @@ func TestRegisterUserHandler(t *testing.T) {
 					sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
 				).WillReturnError(errors.New("DB connection lost"))
 			},
-			wantErrMsg: "503: Service Unavailable",
+			expectedStatus: routeit.StatusServiceUnavailable,
 		}, {
 			name: "invalid email format",
 			request: RegisterUserRequest{
@@ -116,7 +114,7 @@ func TestRegisterUserHandler(t *testing.T) {
 				Password:        "Secret123",
 				ConfirmPassword: "Secret123",
 			},
-			wantErrMsg: "400: Bad Request. Invalid email address format.",
+			expectedStatus: routeit.StatusBadRequest,
 		},
 	}
 
@@ -126,15 +124,12 @@ func TestRegisterUserHandler(t *testing.T) {
 				if tc.mockSetup != nil {
 					tc.mockSetup(mock)
 				}
-
 				repo := db.NewUsersRepository(dbConn)
 				handler := RegisterUserHandler(repo)
-
 				bodyBytes, err := json.Marshal(tc.request)
 				if err != nil {
 					t.Fatalf("failed to marshal request: %v", err)
 				}
-
 				req := routeit.NewTestRequest(t, "/auth/register", routeit.POST, routeit.TestRequestOptions{
 					Body: bodyBytes,
 					Headers: []string{
@@ -142,19 +137,20 @@ func TestRegisterUserHandler(t *testing.T) {
 						"Content-Length", fmt.Sprintf("%d", len(bodyBytes)),
 					},
 				})
+				wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 
 				res, err := routeit.TestHandler(handler, req)
 
 				if err != nil {
-					if tc.wantErrMsg == "" {
+					if !wantErr {
 						t.Fatalf("unexpected error returned: %v", err)
 					}
 					httpErr, ok := err.(*routeit.HttpError)
 					if !ok {
 						t.Fatalf("expected HttpError, got %T", err)
 					}
-					if !strings.Contains(httpErr.Error(), tc.wantErrMsg) {
-						t.Errorf(`Error() = %#q, wanted %#q`, httpErr.Error(), tc.wantErrMsg)
+					if httpErr.Status() != tc.expectedStatus {
+						t.Errorf(`status = %+v, wanted %+v`, httpErr.Status(), tc.expectedStatus)
 					}
 				} else {
 					res.AssertStatusCode(t, tc.expectedStatus)

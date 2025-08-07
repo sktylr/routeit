@@ -49,18 +49,21 @@ func TestRefreshTokenHandler(t *testing.T) {
 			expectTokenData bool
 		}{
 			{
-				name:      "missing token",
-				mockQuery: func() {},
+				name:           "missing token",
+				mockQuery:      func() {},
+				expectedStatus: routeit.StatusUnprocessableContent,
 			},
 			{
-				name:         "malformed token",
-				refreshToken: "invalid.token.here",
-				mockQuery:    func() {},
+				name:           "malformed token",
+				refreshToken:   "invalid.token.here",
+				mockQuery:      func() {},
+				expectedStatus: routeit.StatusUnauthorized,
 			},
 			{
-				name:         "expired token",
-				refreshToken: expiredToken,
-				mockQuery:    func() {},
+				name:           "expired token",
+				refreshToken:   expiredToken,
+				mockQuery:      func() {},
+				expectedStatus: routeit.StatusUnauthorized,
 			},
 			{
 				name:         "user not found",
@@ -70,6 +73,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 						WithArgs(validUserID).
 						WillReturnRows(sqlmock.NewRows([]string{}))
 				},
+				expectedStatus: routeit.StatusUnauthorized,
 			},
 			{
 				name:         "db error on lookup",
@@ -79,11 +83,13 @@ func TestRefreshTokenHandler(t *testing.T) {
 						WithArgs(validUserID).
 						WillReturnError(errors.New("db failure"))
 				},
+				expectedStatus: routeit.StatusUnauthorized,
 			},
 			{
-				name:         "using access token instead of refresh",
-				refreshToken: validTokens.AccessToken,
-				mockQuery:    func() {},
+				name:           "using access token instead of refresh",
+				refreshToken:   validTokens.AccessToken,
+				mockQuery:      func() {},
+				expectedStatus: routeit.StatusUnauthorized,
 			},
 			{
 				name:         "success",
@@ -122,6 +128,13 @@ func TestRefreshTokenHandler(t *testing.T) {
 				if !tc.expectSuccess {
 					if err == nil {
 						t.Error("no error when expected failure")
+					}
+					httpErr, ok := err.(*routeit.HttpError)
+					if !ok {
+						t.Fatalf(`error = %T, wanted routeit.HttpError`, httpErr)
+					}
+					if httpErr.Status() != tc.expectedStatus {
+						t.Errorf(`status = %+v, wanted %+v`, httpErr.Status(), tc.expectedStatus)
 					}
 					return
 				}

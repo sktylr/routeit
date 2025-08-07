@@ -264,6 +264,10 @@ func (e *HttpError) Error() string {
 	return sb.String()
 }
 
+func (he *HttpError) Status() HttpStatus {
+	return he.status
+}
+
 // Returns the underlying error that caused the application to return a 4xx or
 // 5xx response. This error is not always present, such as when the server
 // returns 404: Not Found.

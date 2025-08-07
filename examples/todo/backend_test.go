@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sktylr/routeit"
+	"github.com/sktylr/routeit/examples/todo/auth"
 	"github.com/sktylr/routeit/examples/todo/db"
 	"github.com/sktylr/routeit/examples/todo/handlers"
 )
@@ -167,6 +170,132 @@ func TestAuthLogin(t *testing.T) {
 			}
 			res := client.PostJson("/auth/login", loginReq)
 			res.AssertStatusCode(t, routeit.StatusBadRequest)
+		})
+	})
+}
+
+func TestAuthRefresh(t *testing.T) {
+	registerAndLogin := func(t *testing.T, client routeit.TestClient, email, password string) handlers.LoginResponse {
+		registerReq := handlers.RegisterUserRequest{
+			Name:            "Test User",
+			Email:           email,
+			Password:        password,
+			ConfirmPassword: password,
+		}
+		regRes := client.PostJson("/auth/register", registerReq)
+		regRes.AssertStatusCode(t, routeit.StatusCreated)
+
+		loginReq := handlers.LoginRequest{
+			Email:    email,
+			Password: password,
+		}
+		loginRes := client.PostJson("/auth/login", loginReq)
+		loginRes.AssertStatusCode(t, routeit.StatusCreated)
+
+		var tokens handlers.LoginResponse
+		loginRes.BodyToJson(t, &tokens)
+		return tokens
+	}
+
+	t.Run("valid refresh token returns new tokens", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := registerAndLogin(t, client, "refresh@example.com", "StrongPass123!")
+
+			refreshReq := handlers.RefreshTokenRequest{
+				RefreshToken: tokens.RefreshToken,
+			}
+			res := client.PostJson("/auth/refresh", refreshReq)
+			res.AssertStatusCode(t, routeit.StatusCreated)
+
+			var newTokens handlers.RefreshTokenResponse
+			res.BodyToJson(t, &newTokens)
+
+			if newTokens.AccessToken == "" || newTokens.RefreshToken == "" {
+				t.Errorf("expected new tokens, got %+v", newTokens)
+			}
+		})
+	})
+
+	t.Run("missing token returns 422", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+
+			refreshReq := handlers.RefreshTokenRequest{}
+			res := client.PostJson("/auth/refresh", refreshReq)
+
+			res.AssertStatusCode(t, routeit.StatusUnprocessableContent)
+		})
+	})
+
+	t.Run("invalid token returns 401", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+
+			refreshReq := handlers.RefreshTokenRequest{
+				RefreshToken: "not-a-real-token",
+			}
+			res := client.PostJson("/auth/refresh", refreshReq)
+
+			res.AssertStatusCode(t, routeit.StatusUnauthorized)
+		})
+	})
+
+	t.Run("expired token returns 401", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			email := "expired@example.com"
+			password := "SecurePass!"
+			registerAndLogin(t, client, email, password)
+
+			expired := time.Now().Add(-1 * time.Hour)
+			claims := auth.Claims{
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(expired),
+					Issuer:    "todo-sample-app",
+					IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+					Subject:   "fake-user-id",
+				},
+				Type: "refresh",
+			}
+			token := jwt.NewWithClaims(jwt.SigningMethodHS384, claims)
+			expiredToken, err := token.SignedString([]byte("super-secret-key"))
+			if err != nil {
+				t.Fatalf("failed to sign expired token: %v", err)
+			}
+
+			refreshReq := handlers.RefreshTokenRequest{
+				RefreshToken: expiredToken,
+			}
+			res := client.PostJson("/auth/refresh", refreshReq)
+			res.AssertStatusCode(t, routeit.StatusUnauthorized)
+		})
+	})
+
+	t.Run("refresh token for nonexistent user returns 401", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+
+			claims := auth.Claims{
+				RegisteredClaims: jwt.RegisteredClaims{
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+					Issuer:    "todo-sample-app",
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+					Subject:   "nonexistent-user-id",
+				},
+				Type: "refresh",
+			}
+			token := jwt.NewWithClaims(jwt.SigningMethodHS384, claims)
+			fakeToken, err := token.SignedString([]byte("super-secret-key"))
+			if err != nil {
+				t.Fatalf("failed to sign token: %v", err)
+			}
+
+			refreshReq := handlers.RefreshTokenRequest{
+				RefreshToken: fakeToken,
+			}
+			res := client.PostJson("/auth/refresh", refreshReq)
+			res.AssertStatusCode(t, routeit.StatusUnauthorized)
 		})
 	})
 }

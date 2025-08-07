@@ -6,6 +6,7 @@ import (
 	"github.com/sktylr/routeit"
 	"github.com/sktylr/routeit/examples/todo/db"
 	"github.com/sktylr/routeit/examples/todo/handlers"
+	"github.com/sktylr/routeit/examples/todo/middleware"
 )
 
 func GetBackendServer(dbConn *sql.DB) *routeit.Server {
@@ -15,7 +16,10 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 		StrictClientAcceptance: true,
 		AllowedHosts:           []string{".localhost"},
 	})
-	srv.RegisterMiddleware(routeit.CorsMiddleware(routeit.DefaultCors()))
+	srv.RegisterMiddleware(
+		routeit.CorsMiddleware(routeit.DefaultCors()),
+		middleware.JwtMiddleware(usersRepo),
+	)
 	srv.RegisterRoutesUnderNamespace("/auth", routeit.RouteRegistry{
 		"/login":    handlers.LoginHandler(usersRepo),
 		"/refresh":  handlers.RefreshTokenHandler(usersRepo),

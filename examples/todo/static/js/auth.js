@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8080/auth';
+import { API_BASE } from "./api.js";
 
 /**
  * Logs a user in.
@@ -57,7 +57,7 @@ export async function refreshToken() {
  */
 async function makeRequest(endpoint, body, { redirect = true } = {}) {
   try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const res = await fetch(`${API_BASE}/auth${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)

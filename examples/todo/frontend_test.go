@@ -25,7 +25,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/static/html/register.html", "/register"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     2769,
+			wantCLen:     2202,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>Register</title>", "Already have an account?\n      <a href=\"/login\">Login here</a>"},
 		},
@@ -51,7 +51,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/auth.js", "/static/js/auth.js"},
 			wantCT:       "text/javascript; charset=utf-8",
-			wantCLen:     868,
+			wantCLen:     1654,
 			wantStart:    "const API_BASE = 'http://localhost:8080/auth';",
 			wantContains: []string{"export async function login(email, password) {"},
 		},

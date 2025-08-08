@@ -18,7 +18,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/static/html/login.html", "/login"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     2460,
+			wantCLen:     1922,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>Login</title>", "Don't have an account?\n      <a href=\"/register\">Register here</a>"},
 		},
@@ -47,6 +47,13 @@ func TestFrontend(t *testing.T) {
 			wantContains: []string{
 				"input:focus {\n  border-color: #007bff;\n  outline: none;\n  background: #f0f8ff;\n}",
 			},
+		},
+		{
+			endpoints:    []string{"/auth.js", "/static/js/auth.js"},
+			wantCT:       "text/javascript; charset=utf-8",
+			wantCLen:     868,
+			wantStart:    "const API_BASE = 'http://localhost:8080/auth';",
+			wantContains: []string{"export async function login(email, password) {"},
 		},
 	}
 	client := routeit.NewTestClient(GetFrontendServer())

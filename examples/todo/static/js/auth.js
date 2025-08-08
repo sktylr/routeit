@@ -8,25 +8,7 @@ const API_BASE = 'http://localhost:8080/auth';
  * @returns {Promise<number>} HTTP status code or -1 on network error
  */
 export async function login(email, password) {
-  try {
-    const res = await fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
-      window.location.href = '/';
-    }
-
-    return res.status;
-  } catch (err) {
-    console.error("Login error:", err);
-    return -1;
-  }
+  return makeRequest("/login", { email, password })
 }
 
 /**
@@ -37,11 +19,21 @@ export async function login(email, password) {
  * @returns {Promise<number>} HTTP status code or -1 on network error
  */
 export async function register(name, email, password, confirmPassword) {
+  return makeRequest("/register", { name, email, password, confirm_password: confirmPassword })
+}
+
+/**
+ * Private helper for auth-related API requests.
+ * @param {string} endpoint - e.g. "/login" or "/register"
+ * @param {object} body - Request payload
+ * @returns {Promise<number>} HTTP status code or -1 on network error
+ */
+async function makeRequest(endpoint, body) {
   try {
-    const res = await fetch(`${API_BASE}/register`, {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, confirm_password: confirmPassword })
+      body: JSON.stringify(body)
     });
 
     if (res.ok) {
@@ -53,7 +45,7 @@ export async function register(name, email, password, confirmPassword) {
 
     return res.status;
   } catch (err) {
-    console.error("Register error:", err);
+    console.error(`Auth request error [${endpoint}]:`, err);
     return -1;
   }
 }

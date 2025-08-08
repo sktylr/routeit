@@ -184,12 +184,19 @@ func staticLoader(namespace []string) *Handler {
 		}
 
 		cType := parseContentType(http.DetectContentType(data))
-		if cType.part == "text" && cType.subtype == "plain" && strings.HasSuffix(path, ".css") {
-			// net/http.DetectContentType is not capable of inferring CSS content
-			// types. This causes issues with browsers since the inferred content
-			// type is text/plain which cannot be understood as a stylesheet by some
-			// browsers.
-			cType.subtype = "css"
+		if cType.part == "text" && cType.subtype == "plain" {
+			// [net/http.DetectContentType] typically cannot infer the content
+			// type of CSS or JS files, and instead returns text/plain.
+			// Browsers will typically not trust stylesheets or scripts that
+			// have text/plain content type, so we need to adjust for the
+			// proper content type here. This works by reading the file
+			// extension, so it requires that the file extension allows for
+			// more accurate inference.
+			if strings.HasSuffix(path, ".css") {
+				cType.subtype = "css"
+			} else if strings.HasSuffix(path, ".js") {
+				cType.subtype = "javascript"
+			}
 		}
 		rw.RawWithContentType(data, cType)
 

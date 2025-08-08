@@ -8,7 +8,7 @@ const API_BASE = 'http://localhost:8080/auth';
  * @returns {Promise<number>} HTTP status code or -1 on network error
  */
 export async function login(email, password) {
-  return makeRequest("/login", { email, password })
+  return makeRequest("/login", { email, password }).then(res => res.status)
 }
 
 /**
@@ -19,16 +19,43 @@ export async function login(email, password) {
  * @returns {Promise<number>} HTTP status code or -1 on network error
  */
 export async function register(name, email, password, confirmPassword) {
-  return makeRequest("/register", { name, email, password, confirm_password: confirmPassword })
+  return makeRequest("/register", {
+    name,
+    email,
+    password,
+    confirm_password: confirmPassword
+  }).then(res => res.status)
+}
+
+/**
+ * Refreshes the access token using the stored refresh token.
+ * @returns {Promise<string>} New access token or "" if refresh fails
+ */
+export async function refreshToken() {
+  const storedRefresh = localStorage.getItem('refresh_token');
+  if (!storedRefresh) {
+    console.warn('No refresh token found in storage.');
+    return '';
+  }
+
+  return makeRequest(
+    "/refresh",
+    { refresh_token: storedRefresh },
+    { redirect: false }
+  ).then(res => res.accessToken)
 }
 
 /**
  * Private helper for auth-related API requests.
- * @param {string} endpoint - e.g. "/login" or "/register"
+ * Handles fetch, token storage, and optional redirect.
+ *
+ * @param {string} endpoint - e.g. "/login", "/register", "/refresh"
  * @param {object} body - Request payload
- * @returns {Promise<number>} HTTP status code or -1 on network error
+ * @param {object} [options] - Optional config
+ * @param {boolean} [options.redirect=true] - Whether to redirect to "/" on success
+ * @returns {Promise<{ status: number, accessToken: string, refreshToken: string }>}
  */
-async function makeRequest(endpoint, body) {
+async function makeRequest(endpoint, body, { redirect = true } = {}) {
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
@@ -36,16 +63,25 @@ async function makeRequest(endpoint, body) {
       body: JSON.stringify(body)
     });
 
+    let accessToken = '';
+    let refreshToken = '';
+
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
-      window.location.href = '/';
+      accessToken = data.access_token || '';
+      refreshToken = data.refresh_token || '';
+
+      if (accessToken) localStorage.setItem('access_token', accessToken);
+      if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
+
+      if (redirect) {
+        window.location.href = '/';
+      }
     }
 
-    return res.status;
+    return { status: res.status, accessToken, refreshToken };
   } catch (err) {
     console.error(`Auth request error [${endpoint}]:`, err);
-    return -1;
+    return { status: -1, accessToken: '', refreshToken: '' };
   }
 }

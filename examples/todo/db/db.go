@@ -11,8 +11,14 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-//go:embed sql/init.sql
-var initSchema string
+//go:embed sql/users.sql
+var usersSchema string
+
+//go:embed sql/lists.sql
+var listsSchema string
+
+//go:embed sql/items.sql
+var itemsSchema string
 
 // [Connect] attempts to create a live connection to the sample MySQL database
 // used for this application.
@@ -37,7 +43,15 @@ func Connect(ctx context.Context) (*sql.DB, error) {
 		return nil, err
 	}
 
-	if _, err := db.ExecContext(ctx, initSchema); err != nil {
+	if _, err := db.ExecContext(ctx, usersSchema); err != nil {
+		return nil, err
+	}
+
+	if _, err := db.ExecContext(ctx, listsSchema); err != nil {
+		return nil, err
+	}
+
+	if _, err := db.ExecContext(ctx, itemsSchema); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +81,15 @@ func WithIntegrationTestConnection(tb testing.TB, fn func(*sql.DB)) {
 	}
 	defer dbConn.Close()
 
-	if _, err = dbConn.ExecContext(tb.Context(), initSchema); err != nil {
+	if _, err = dbConn.ExecContext(tb.Context(), usersSchema); err != nil {
+		tb.Fatalf(`failed to initialise db: %v`, err)
+	}
+
+	if _, err = dbConn.ExecContext(tb.Context(), listsSchema); err != nil {
+		tb.Fatalf(`failed to initialise db: %v`, err)
+	}
+
+	if _, err = dbConn.ExecContext(tb.Context(), itemsSchema); err != nil {
 		tb.Fatalf(`failed to initialise db: %v`, err)
 	}
 

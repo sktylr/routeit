@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS items (
+	id 			CHAR(36) NOT NULL,
+	created 	DATETIME NOT NULL,
+	updated 	DATETIME NOT NULL,
+	user_id		CHAR(36) NOT NULL,
+	list_id		CHAR(36) NOT NULL,
+	name 		VARCHAR(255) NOT NULL,
+	status 		VARCHAR(255) NOT NULL,
+	PRIMARY KEY (`id`),
+	FOREIGN KEY (user_id) REFERENCES users(id),
+	FOREIGN KEY (list_id) REFERENCES lists(id)
+);

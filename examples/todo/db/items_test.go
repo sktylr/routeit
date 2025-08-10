@@ -95,3 +95,88 @@ func TestUpdateStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateItem(t *testing.T) {
+	type args struct {
+		userId string
+		listId string
+		name   string
+	}
+
+	tests := []struct {
+		name      string
+		args      args
+		mockSetup func(sqlmock.Sqlmock)
+		wantErr   bool
+	}{
+		{
+			name: "success",
+			args: args{
+				userId: "user-123",
+				listId: "list-456",
+				name:   "Test item",
+			},
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`INSERT INTO items`).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						"user-123",
+						"list-456",
+						"Test item",
+					).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+			},
+			wantErr: false,
+		},
+		{
+			name: "db error",
+			args: args{
+				userId: "user-err",
+				listId: "list-err",
+				name:   "Fail item",
+			},
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`INSERT INTO items`).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						"user-err",
+						"list-err",
+						"Fail item",
+					).
+					WillReturnError(errors.New("insert failed"))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoItemRepository(sqlDB)
+
+				item, err := repo.CreateItem(t.Context(), tc.args.userId, tc.args.listId, tc.args.name)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if !tc.wantErr {
+					if item.UserId != tc.args.userId || item.TodoListId != tc.args.listId ||
+						item.Name != tc.args.name || item.Status != "PENDING" {
+						t.Errorf("unexpected item returned: %+v", item)
+					}
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}

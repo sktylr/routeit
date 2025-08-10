@@ -180,3 +180,68 @@ func TestCreateItem(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateName(t *testing.T) {
+	tests := []struct {
+		name      string
+		id        string
+		newName   string
+		mockSetup func(sqlmock.Sqlmock)
+		wantErr   bool
+	}{
+		{
+			name:    "success",
+			id:      "item-123",
+			newName: "Updated name",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`UPDATE items`).
+					WithArgs("Updated name", sqlmock.AnyArg(), "item-123").
+					WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			wantErr: false,
+		},
+		{
+			name:    "db error",
+			id:      "item-err",
+			newName: "Bad update",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`UPDATE items`).
+					WithArgs("Bad update", sqlmock.AnyArg(), "item-err").
+					WillReturnError(errors.New("update failed"))
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no rows affected",
+			id:      "item-missing",
+			newName: "No change",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`UPDATE items`).
+					WithArgs("No change", sqlmock.AnyArg(), "item-missing").
+					WillReturnResult(sqlmock.NewResult(0, 0))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoItemRepository(sqlDB)
+
+				err := repo.UpdateName(t.Context(), tc.id, tc.newName)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}

@@ -24,3 +24,14 @@ func (r *TodoItemRepository) MarkAsCompleted(ctx context.Context, id string) err
 	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
 	return err
 }
+
+func (r *TodoItemRepository) MarkAsPending(ctx context.Context, id string) error {
+	query := `
+		UPDATE items
+		SET status = 'PENDING',
+		    updated = ?
+		WHERE id = ?
+	`
+	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
+	return err
+}

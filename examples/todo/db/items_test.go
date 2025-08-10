@@ -245,3 +245,64 @@ func TestUpdateName(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteItem(t *testing.T) {
+	tests := []struct {
+		name      string
+		id        string
+		mockSetup func(sqlmock.Sqlmock)
+		wantErr   bool
+	}{
+		{
+			name: "success",
+			id:   "item-123",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`DELETE FROM items`).
+					WithArgs("item-123").
+					WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+			wantErr: false,
+		},
+		{
+			name: "db error",
+			id:   "item-err",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`DELETE FROM items`).
+					WithArgs("item-err").
+					WillReturnError(errors.New("delete failed"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "no rows affected",
+			id:   "item-missing",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectExec(`DELETE FROM items`).
+					WithArgs("item-missing").
+					WillReturnResult(sqlmock.NewResult(0, 0))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoItemRepository(sqlDB)
+
+				err := repo.DeleteItem(t.Context(), tc.id)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}

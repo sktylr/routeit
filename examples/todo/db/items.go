@@ -83,6 +83,27 @@ func (r *TodoItemRepository) MarkAsPending(ctx context.Context, id string) error
 	return r.markAsX(ctx, id, "PENDING")
 }
 
+func (r *TodoItemRepository) DeleteItem(ctx context.Context, id string) error {
+	query := `
+		DELETE FROM items
+		WHERE id = ?
+	`
+	res, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrItemNotFound{itemId: id}
+	}
+
+	return nil
+}
+
 func (r *TodoItemRepository) markAsX(ctx context.Context, id, status string) error {
 	query := fmt.Sprintf(`
 		UPDATE items

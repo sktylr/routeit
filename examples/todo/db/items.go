@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -50,6 +51,35 @@ func (r *TodoItemRepository) CreateItem(ctx context.Context, userId, listId, nam
 		Name:       name,
 		Status:     "PENDING",
 	}
+	return &item, nil
+}
+
+func (r *TodoItemRepository) GetById(ctx context.Context, id string) (*dao.TodoItem, error) {
+	query := `
+		SELECT id, created, updated, user_id, list_id, name, status
+		FROM items
+		WHERE id = ?
+	`
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	var item dao.TodoItem
+	err := row.Scan(
+		&item.Id,
+		&item.Created,
+		&item.Updated,
+		&item.UserId,
+		&item.TodoListId,
+		&item.Name,
+		&item.Status,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrItemNotFound{itemId: id}
+		}
+		return nil, err
+	}
+
 	return &item, nil
 }
 

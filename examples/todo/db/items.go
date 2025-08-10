@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/sktylr/routeit/examples/todo/dao"
 )
 
 type TodoItemRepository struct {
@@ -13,6 +16,37 @@ type TodoItemRepository struct {
 
 func NewTodoItemRepository(db *sql.DB) *TodoItemRepository {
 	return &TodoItemRepository{db: db}
+}
+
+func (r *TodoItemRepository) CreateItem(ctx context.Context, userId, listId, name string) (*dao.TodoItem, error) {
+	uuid, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+	id := uuid.String()
+
+	now := time.Now()
+	query := `
+		INSERT INTO items (id, created, updated, user_id, list_id, name, status)
+		VALUES (?, ?, ?, ?, ?, ?, 'PENDING')
+	`
+	_, err = r.db.ExecContext(ctx, query, id, now, now, userId, listId, name)
+	if err != nil {
+		return nil, err
+	}
+
+	item := dao.TodoItem{
+		Meta: dao.Meta{
+			Id:      id,
+			Created: now,
+			Updated: now,
+		},
+		UserId:     userId,
+		TodoListId: listId,
+		Name:       name,
+		Status:     "PENDING",
+	}
+	return &item, nil
 }
 
 func (r *TodoItemRepository) MarkAsCompleted(ctx context.Context, id string) error {

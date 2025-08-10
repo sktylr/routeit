@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/sktylr/routeit/examples/todo/dao"
 )
 
 func TestUpdateStatus(t *testing.T) {
@@ -87,6 +89,87 @@ func TestUpdateStatus(t *testing.T) {
 				}
 				if !tc.wantErr && err != nil {
 					t.Errorf("did not expect error, got %v", err)
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}
+
+func TestGetById(t *testing.T) {
+	tests := []struct {
+		name      string
+		id        string
+		mockSetup func(sqlmock.Sqlmock)
+		wantItem  *dao.TodoItem
+		wantErr   bool
+	}{
+		{
+			name: "success",
+			id:   "item-123",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items WHERE id = \?`).
+					WithArgs("item-123").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "created", "updated", "user_id", "list_id", "name", "status"}).
+						AddRow("item-123", time.Now(), time.Now(), "user-1", "list-1", "Test Item", "PENDING"))
+			},
+			wantItem: &dao.TodoItem{
+				Meta:       dao.Meta{Id: "item-123"},
+				UserId:     "user-1",
+				TodoListId: "list-1",
+				Name:       "Test Item",
+				Status:     "PENDING",
+			},
+			wantErr: false,
+		},
+		{
+			name: "not found",
+			id:   "missing-item",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items WHERE id = \?`).
+					WithArgs("missing-item").
+					WillReturnError(sql.ErrNoRows)
+			},
+			wantErr: true,
+		},
+		{
+			name: "db error",
+			id:   "error-item",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items WHERE id = \?`).
+					WithArgs("error-item").
+					WillReturnError(errors.New("db error"))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoItemRepository(sqlDB)
+
+				item, err := repo.GetById(t.Context(), tc.id)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if !tc.wantErr && item != nil {
+					if item.Id != tc.wantItem.Id ||
+						item.UserId != tc.wantItem.UserId ||
+						item.TodoListId != tc.wantItem.TodoListId ||
+						item.Name != tc.wantItem.Name ||
+						item.Status != tc.wantItem.Status ||
+						item.Created.IsZero() ||
+						item.Updated.IsZero() {
+						t.Errorf("unexpected item: %+v", item)
+					}
 				}
 				if err := mock.ExpectationsWereMet(); err != nil {
 					t.Errorf("unmet sqlmock expectations: %v", err)

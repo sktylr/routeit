@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -15,23 +16,20 @@ func NewTodoItemRepository(db *sql.DB) *TodoItemRepository {
 }
 
 func (r *TodoItemRepository) MarkAsCompleted(ctx context.Context, id string) error {
-	query := `
-		UPDATE items
-		SET status = 'COMPLETED',
-			updated = ?
-		WHERE id = ?
-	`
-	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
-	return err
+	return r.markAsX(ctx, id, "COMPLETED")
 }
 
 func (r *TodoItemRepository) MarkAsPending(ctx context.Context, id string) error {
-	query := `
+	return r.markAsX(ctx, id, "PENDING")
+}
+
+func (r *TodoItemRepository) markAsX(ctx context.Context, id, status string) error {
+	query := fmt.Sprintf(`
 		UPDATE items
-		SET status = 'PENDING',
+		SET status = '%s',
 		    updated = ?
 		WHERE id = ?
-	`
+	`, status)
 	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
 	return err
 }

@@ -14,6 +14,10 @@ type TodoItemRepository struct {
 	db *sql.DB
 }
 
+type ErrItemNotFound struct {
+	itemId string
+}
+
 func NewTodoItemRepository(db *sql.DB) *TodoItemRepository {
 	return &TodoItemRepository{db: db}
 }
@@ -49,6 +53,28 @@ func (r *TodoItemRepository) CreateItem(ctx context.Context, userId, listId, nam
 	return &item, nil
 }
 
+func (r *TodoItemRepository) UpdateName(ctx context.Context, id, newName string) error {
+	query := `
+		UPDATE items
+		SET name = ?, updated = ?
+		WHERE id = ?
+	`
+	res, err := r.db.ExecContext(ctx, query, newName, time.Now(), id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrItemNotFound{itemId: id}
+	}
+
+	return nil
+}
+
 func (r *TodoItemRepository) MarkAsCompleted(ctx context.Context, id string) error {
 	return r.markAsX(ctx, id, "COMPLETED")
 }
@@ -66,4 +92,8 @@ func (r *TodoItemRepository) markAsX(ctx context.Context, id, status string) err
 	`, status)
 	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
 	return err
+}
+
+func (e ErrItemNotFound) Error() string {
+	return fmt.Sprintf("todo item with ID %q not found", e.itemId)
 }

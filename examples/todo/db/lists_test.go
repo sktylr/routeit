@@ -509,3 +509,66 @@ func TestGetListById(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteList(t *testing.T) {
+	tests := []struct {
+		name      string
+		listId    string
+		setupMock func(sqlmock.Sqlmock)
+		wantErr   bool
+	}{
+		{
+			name:   "list deleted successfully",
+			listId: "list1",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectExec(`DELETE FROM lists WHERE id = \?`).
+					WithArgs("list1").
+					WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+		},
+		{
+			name:   "list not found",
+			listId: "missing-list",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectExec(`DELETE FROM lists WHERE id = \?`).
+					WithArgs("missing-list").
+					WillReturnResult(sqlmock.NewResult(0, 0))
+			},
+			wantErr: true,
+		},
+		{
+			name:   "db error",
+			listId: "list1",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectExec(`DELETE FROM lists WHERE id = \?`).
+					WithArgs("list1").
+					WillReturnError(errors.New("connection lost"))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+				repo := NewTodoListRepository(db)
+				tc.setupMock(mock)
+
+				err := repo.DeleteList(t.Context(), tc.listId)
+
+				if tc.wantErr {
+					if err == nil {
+						t.Fatal("expected error got nil")
+					}
+				} else {
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
+					}
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet mock expectations: %v", err)
+				}
+			})
+		})
+	}
+}

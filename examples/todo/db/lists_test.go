@@ -31,7 +31,6 @@ func TestCreateList(t *testing.T) {
 						"user-123", "Groceries", "Things to buy this week").
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
-			expectErr: false,
 		},
 		{
 			name:     "db error",
@@ -98,7 +97,6 @@ func TestUpdateList(t *testing.T) {
 					WithArgs("Updated Groceries", "Updated description", sqlmock.AnyArg(), "list-123").
 					WillReturnResult(sqlmock.NewResult(0, 1))
 			},
-			expectErr: false,
 		},
 		{
 			name:    "list not found",
@@ -191,13 +189,10 @@ func TestGetListsByUser(t *testing.T) {
 		expectedLists []dao.AggregateTodoList
 	}{
 		{
-			name:          "no lists",
-			page:          1,
-			pageSize:      10,
-			userId:        "user1",
-			mockListRows:  nil,
-			mockItemRows:  nil,
-			expectedLists: nil,
+			name:     "no lists",
+			page:     1,
+			pageSize: 10,
+			userId:   "user1",
 		},
 		{
 			name:     "one list no items",
@@ -211,7 +206,6 @@ func TestGetListsByUser(t *testing.T) {
 					totalItems: 0, completedItems: 0,
 				},
 			},
-			mockItemRows: nil,
 			expectedLists: []dao.AggregateTodoList{
 				{
 					TodoList: dao.TodoList{
@@ -223,7 +217,6 @@ func TestGetListsByUser(t *testing.T) {
 						UserId:      "user1",
 						Name:        "List One",
 						Description: "Desc",
-						Items:       nil,
 					},
 					TotalItems:     0,
 					CompletedItems: 0,
@@ -263,15 +256,15 @@ func TestGetListsByUser(t *testing.T) {
 						UserId:      "user1",
 						Name:        "List One",
 						Description: "Desc",
-						Items: []dao.TodoItem{
-							{
-								Meta:   dao.Meta{Id: "item1", Created: now, Updated: now},
-								UserId: "user1", TodoListId: "list1", Name: "Task 1", Status: "PENDING",
-							},
-							{
-								Meta:   dao.Meta{Id: "item2", Created: now.Add(time.Second), Updated: now.Add(time.Second)},
-								UserId: "user1", TodoListId: "list1", Name: "Task 2", Status: "COMPLETED",
-							},
+					},
+					Items: []dao.TodoItem{
+						{
+							Meta:   dao.Meta{Id: "item1", Created: now, Updated: now},
+							UserId: "user1", TodoListId: "list1", Name: "Task 1", Status: "PENDING",
+						},
+						{
+							Meta:   dao.Meta{Id: "item2", Created: now.Add(time.Second), Updated: now.Add(time.Second)},
+							UserId: "user1", TodoListId: "list1", Name: "Task 2", Status: "COMPLETED",
 						},
 					},
 					TotalItems:     2,
@@ -329,8 +322,8 @@ func TestGetListsByUser(t *testing.T) {
 							UserId:      "user1",
 							Name:        "Big List",
 							Description: "Lots of tasks",
-							Items:       expected,
 						},
+						Items:          expected,
 						TotalItems:     12,
 						CompletedItems: 5,
 					},
@@ -461,8 +454,7 @@ func TestGetListById(t *testing.T) {
 				`).WithArgs("missing-list").
 					WillReturnError(sql.ErrNoRows)
 			},
-			wantErr:      true,
-			expectedList: nil,
+			wantErr: true,
 		},
 		{
 			name:   "unexpected db error",
@@ -475,8 +467,7 @@ func TestGetListById(t *testing.T) {
 				`).WithArgs("bad-query").
 					WillReturnError(errors.New("db connection failed"))
 			},
-			expectedList: nil,
-			wantErr:      true,
+			wantErr: true,
 		},
 	}
 

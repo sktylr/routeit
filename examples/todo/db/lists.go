@@ -87,6 +87,22 @@ func (r *TodoListRepository) UpdateList(ctx context.Context, listId, name, descr
 	return list, nil
 }
 
+func (r *TodoListRepository) DeleteList(ctx context.Context, id string) error {
+	query := `DELETE FROM lists WHERE id = ?`
+	res, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return &ErrListNotFound{listId: id}
+	}
+	return nil
+}
+
 func (r *TodoListRepository) GetListById(ctx context.Context, id string) (*dao.TodoList, error) {
 	query := `
 		SELECT id, created, updated, user_id, name, description

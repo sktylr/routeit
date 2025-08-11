@@ -1,6 +1,14 @@
 package db
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/sktylr/routeit/examples/todo/dao"
+)
 
 type TodoListRepository struct {
 	db *sql.DB
@@ -8,4 +16,34 @@ type TodoListRepository struct {
 
 func NewTodoListRepository(db *sql.DB) *TodoListRepository {
 	return &TodoListRepository{db: db}
+}
+
+func (r *TodoListRepository) CreateList(ctx context.Context, userId, name, description string) (*dao.TodoList, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate list ID: %w", err)
+	}
+	idS := id.String()
+
+	now := time.Now()
+	query := `
+		INSERT INTO lists (id, created, updated, user_id, name, description)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
+	_, err = r.db.ExecContext(ctx, query, idS, now, now, userId, name, description)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create list: %w", err)
+	}
+
+	list := dao.TodoList{
+		Meta: dao.Meta{
+			Id:      idS,
+			Created: now,
+			Updated: now,
+		},
+		UserId:      userId,
+		Name:        name,
+		Description: description,
+	}
+	return &list, nil
 }

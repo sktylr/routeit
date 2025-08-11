@@ -5,11 +5,11 @@ type TodoList struct {
 	UserId      string
 	Name        string
 	Description string
-	Items       []TodoItem
 }
 
 type AggregateTodoList struct {
 	TodoList
+	Items          []TodoItem
 	TotalItems     int
 	CompletedItems int
 }

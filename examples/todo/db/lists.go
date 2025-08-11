@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -86,6 +87,33 @@ func (r *TodoListRepository) UpdateList(ctx context.Context, listId, name, descr
 	return list, nil
 }
 
+func (r *TodoListRepository) GetListById(ctx context.Context, id string) (*dao.TodoList, error) {
+	query := `
+		SELECT id, created, updated, user_id, name, description
+		FROM lists
+		WHERE id = ?
+	`
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	var list dao.TodoList
+	err := row.Scan(
+		&list.Id,
+		&list.Created,
+		&list.Updated,
+		&list.UserId,
+		&list.Name,
+		&list.Description,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, &ErrListNotFound{listId: id}
+		}
+		return nil, err
+	}
+
+	return &list, nil
+}
+
 func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, page, pageSize int) ([]*dao.AggregateTodoList, error) {
 	offset := (page - 1) * pageSize
 	listQuery := `
@@ -119,7 +147,6 @@ func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
 	if len(lists) == 0 {
 		return lists, nil
 	}

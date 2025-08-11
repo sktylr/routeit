@@ -165,7 +165,7 @@ func TestGetListsByUser(t *testing.T) {
 		id             string
 		created        time.Time
 		updated        time.Time
-		userID         string
+		userId         string
 		name           string
 		description    string
 		totalItems     int64
@@ -175,8 +175,8 @@ func TestGetListsByUser(t *testing.T) {
 		id      string
 		created time.Time
 		updated time.Time
-		userID  string
-		listID  string
+		userId  string
+		listId  string
 		name    string
 		status  string
 	}
@@ -185,7 +185,7 @@ func TestGetListsByUser(t *testing.T) {
 		name          string
 		page          int
 		pageSize      int
-		userID        string
+		userId        string
 		mockListRows  []listRow
 		mockItemRows  []itemRow
 		expectedLists []dao.AggregateTodoList
@@ -194,7 +194,7 @@ func TestGetListsByUser(t *testing.T) {
 			name:          "no lists",
 			page:          1,
 			pageSize:      10,
-			userID:        "user1",
+			userId:        "user1",
 			mockListRows:  nil,
 			mockItemRows:  nil,
 			expectedLists: nil,
@@ -203,11 +203,11 @@ func TestGetListsByUser(t *testing.T) {
 			name:     "one list no items",
 			page:     1,
 			pageSize: 10,
-			userID:   "user1",
+			userId:   "user1",
 			mockListRows: []listRow{
 				{
 					id: "list1", created: now, updated: now,
-					userID: "user1", name: "List One", description: "Desc",
+					userId: "user1", name: "List One", description: "Desc",
 					totalItems: 0, completedItems: 0,
 				},
 			},
@@ -234,22 +234,22 @@ func TestGetListsByUser(t *testing.T) {
 			name:     "one list with <=10 items",
 			page:     1,
 			pageSize: 10,
-			userID:   "user1",
+			userId:   "user1",
 			mockListRows: []listRow{
 				{
 					id: "list1", created: now, updated: now,
-					userID: "user1", name: "List One", description: "Desc",
+					userId: "user1", name: "List One", description: "Desc",
 					totalItems: 2, completedItems: 1,
 				},
 			},
 			mockItemRows: []itemRow{
 				{
 					id: "item1", created: now, updated: now,
-					userID: "user1", listID: "list1", name: "Task 1", status: "PENDING",
+					userId: "user1", listId: "list1", name: "Task 1", status: "PENDING",
 				},
 				{
 					id: "item2", created: now.Add(time.Second), updated: now.Add(time.Second),
-					userID: "user1", listID: "list1", name: "Task 2", status: "COMPLETED",
+					userId: "user1", listId: "list1", name: "Task 2", status: "COMPLETED",
 				},
 			},
 			expectedLists: []dao.AggregateTodoList{
@@ -283,11 +283,11 @@ func TestGetListsByUser(t *testing.T) {
 			name:     "one list with >10 items truncates",
 			page:     1,
 			pageSize: 10,
-			userID:   "user1",
+			userId:   "user1",
 			mockListRows: []listRow{
 				{
 					id: "list1", created: now, updated: now,
-					userID: "user1", name: "Big List", description: "Lots of tasks",
+					userId: "user1", name: "Big List", description: "Lots of tasks",
 					totalItems: 12, completedItems: 5,
 				},
 			},
@@ -298,7 +298,7 @@ func TestGetListsByUser(t *testing.T) {
 						id:      uuid.NewString(),
 						created: now.Add(time.Duration(i) * time.Second),
 						updated: now.Add(time.Duration(i) * time.Second),
-						userID:  "user1", listID: "list1",
+						userId:  "user1", listId: "list1",
 						name: "Task", status: "PENDING",
 					})
 				}
@@ -359,9 +359,9 @@ func TestGetListsByUser(t *testing.T) {
 					"id", "created", "updated", "user_id", "name", "description", "total_items", "completed_items",
 				})
 				for _, lr := range tc.mockListRows {
-					listRows.AddRow(lr.id, lr.created, lr.updated, lr.userID, lr.name, lr.description, lr.totalItems, lr.completedItems)
+					listRows.AddRow(lr.id, lr.created, lr.updated, lr.userId, lr.name, lr.description, lr.totalItems, lr.completedItems)
 				}
-				mock.ExpectQuery(listQuery).WithArgs(tc.userID, tc.pageSize, (tc.page-1)*tc.pageSize).WillReturnRows(listRows)
+				mock.ExpectQuery(listQuery).WithArgs(tc.userId, tc.pageSize, (tc.page-1)*tc.pageSize).WillReturnRows(listRows)
 
 				if len(tc.mockListRows) > 0 {
 					itemQuery := `SELECT id, created, updated, user_id, list_id, name, status
@@ -372,12 +372,12 @@ func TestGetListsByUser(t *testing.T) {
 						"id", "created", "updated", "user_id", "list_id", "name", "status",
 					})
 					for _, ir := range tc.mockItemRows {
-						itemRows.AddRow(ir.id, ir.created, ir.updated, ir.userID, ir.listID, ir.name, ir.status)
+						itemRows.AddRow(ir.id, ir.created, ir.updated, ir.userId, ir.listId, ir.name, ir.status)
 					}
 					mock.ExpectQuery(itemQuery).WillReturnRows(itemRows)
 				}
 
-				got, err := r.GetListsByUser(t.Context(), tc.userID, tc.page, tc.pageSize)
+				got, err := r.GetListsByUser(t.Context(), tc.userId, tc.page, tc.pageSize)
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -407,6 +407,112 @@ func TestGetListsByUser(t *testing.T) {
 
 				if err := mock.ExpectationsWereMet(); err != nil {
 					t.Errorf("there were unfulfilled expectations: %v", err)
+				}
+			})
+		})
+	}
+}
+
+func TestGetListById(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name         string
+		listId       string
+		setupMock    func(sqlmock.Sqlmock)
+		wantErr      bool
+		expectedList *dao.TodoList
+	}{
+		{
+			name:   "list found",
+			listId: "list1",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(`
+					SELECT id, created, updated, user_id, name, description
+					FROM lists
+					WHERE id = \?
+				`).WithArgs("list1").
+					WillReturnRows(
+						sqlmock.NewRows([]string{
+							"id", "created", "updated", "user_id", "name", "description",
+						}).AddRow(
+							"list1", now, now, "user1", "Groceries", "Things to buy",
+						),
+					)
+			},
+			expectedList: &dao.TodoList{
+				Meta: dao.Meta{
+					Id:      "list1",
+					Created: now,
+					Updated: now,
+				},
+				UserId:      "user1",
+				Name:        "Groceries",
+				Description: "Things to buy",
+			},
+		},
+		{
+			name:   "list not found",
+			listId: "missing-list",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(`
+					SELECT id, created, updated, user_id, name, description
+					FROM lists
+					WHERE id = \?
+				`).WithArgs("missing-list").
+					WillReturnError(sql.ErrNoRows)
+			},
+			wantErr:      true,
+			expectedList: nil,
+		},
+		{
+			name:   "unexpected db error",
+			listId: "bad-query",
+			setupMock: func(mock sqlmock.Sqlmock) {
+				mock.ExpectQuery(`
+					SELECT id, created, updated, user_id, name, description
+					FROM lists
+					WHERE id = \?
+				`).WithArgs("bad-query").
+					WillReturnError(errors.New("db connection failed"))
+			},
+			expectedList: nil,
+			wantErr:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(db *sql.DB, mock sqlmock.Sqlmock) {
+				repo := NewTodoListRepository(db)
+				tc.setupMock(mock)
+
+				got, err := repo.GetListById(t.Context(), tc.listId)
+
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet mock expectations: %v", err)
+				}
+				if tc.wantErr {
+					if err == nil {
+						t.Fatal("expected error got nil")
+					}
+					if got != nil {
+						t.Errorf("expected no list, got %+v", got)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if got == nil {
+					t.Fatalf("expected a list, got nil")
+				}
+				if got.Id != tc.expectedList.Id ||
+					!got.Created.Equal(tc.expectedList.Created) ||
+					!got.Updated.Equal(tc.expectedList.Updated) ||
+					got.UserId != tc.expectedList.UserId ||
+					got.Name != tc.expectedList.Name ||
+					got.Description != tc.expectedList.Description {
+					t.Errorf("got %+v, expected %+v", got, tc.expectedList)
 				}
 			})
 		})

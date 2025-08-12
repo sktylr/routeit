@@ -17,10 +17,6 @@ type TodoListRepository struct {
 	db *sql.DB
 }
 
-type ErrListNotFound struct {
-	listId string
-}
-
 func NewTodoListRepository(db *sql.DB) *TodoListRepository {
 	return &TodoListRepository{db: db}
 }
@@ -72,7 +68,7 @@ func (r *TodoListRepository) UpdateList(ctx context.Context, listId, name, descr
 		return nil, fmt.Errorf("failed to determine rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return nil, &ErrListNotFound{listId: listId}
+		return nil, ErrListNotFound{listId: listId}
 	}
 
 	list := &dao.TodoList{
@@ -98,7 +94,7 @@ func (r *TodoListRepository) DeleteList(ctx context.Context, id string) error {
 		return err
 	}
 	if rows == 0 {
-		return &ErrListNotFound{listId: id}
+		return ErrListNotFound{listId: id}
 	}
 	return nil
 }
@@ -122,7 +118,7 @@ func (r *TodoListRepository) GetListById(ctx context.Context, id string) (*dao.T
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, &ErrListNotFound{listId: id}
+			return nil, ErrListNotFound{listId: id}
 		}
 		return nil, err
 	}
@@ -215,8 +211,4 @@ func (r *TodoListRepository) getListItems(ctx context.Context, ids []any) (map[s
 		return nil, err
 	}
 	return itemsByList, nil
-}
-
-func (e *ErrListNotFound) Error() string {
-	return fmt.Sprintf("todo list with ID %s not found", e.listId)
 }

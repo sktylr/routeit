@@ -15,10 +15,6 @@ type TodoItemRepository struct {
 	db *sql.DB
 }
 
-type ErrItemNotFound struct {
-	itemId string
-}
-
 func NewTodoItemRepository(db *sql.DB) *TodoItemRepository {
 	return &TodoItemRepository{db: db}
 }
@@ -143,8 +139,4 @@ func (r *TodoItemRepository) markAsX(ctx context.Context, id, status string) err
 	`, status)
 	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
 	return err
-}
-
-func (e ErrItemNotFound) Error() string {
-	return fmt.Sprintf("todo item with ID %q not found", e.itemId)
 }

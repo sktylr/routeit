@@ -2,7 +2,6 @@ package routeit
 
 import (
 	"fmt"
-	"maps"
 	"strings"
 	"testing"
 )
@@ -59,7 +58,7 @@ func NewTestRequest(t testing.TB, path string, m HttpMethod, opts TestRequestOpt
 	}
 
 	if opts.PathParams != nil {
-		maps.Copy(uri.pathParams, opts.PathParams)
+		uri.pathParams = opts.PathParams
 	}
 
 	headers := &RequestHeaders{constructTestHeaders(opts.Headers...)}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -37,7 +38,16 @@ type CreateListRequest struct {
 	Description string `json:"description"`
 }
 
+// TODO: should consolidate these!
 type CreateListResponse struct {
+	Id          string    `json:"id"`
+	Created     time.Time `json:"created"`
+	Updated     time.Time `json:"updated"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+}
+
+type GetListResponse struct {
 	Id          string    `json:"id"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
@@ -141,5 +151,37 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 			}
 			return rw.Json(res)
 		},
+	})
+}
+
+func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
+	return routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+		userId, hasUser := userIdFromRequest(req)
+		if !hasUser {
+			return routeit.ErrUnauthorized()
+		}
+
+		id, _ := req.PathParam("list")
+		list, err := repo.GetListById(req.Context(), id)
+		if err != nil {
+			var nf db.ErrListNotFound
+			if errors.As(err, &nf) {
+				return routeit.ErrNotFound().WithCause(err)
+			}
+			return routeit.ErrServiceUnavailable().WithCause(err)
+		}
+
+		if list.UserId != userId {
+			return routeit.ErrForbidden()
+		}
+
+		res := GetListResponse{
+			Id:          list.Id,
+			Created:     list.Created,
+			Updated:     list.Updated,
+			Name:        list.Name,
+			Description: list.Description,
+		}
+		return rw.Json(res)
 	})
 }

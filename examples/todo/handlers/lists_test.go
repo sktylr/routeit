@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -292,6 +293,132 @@ func TestListsMultiHandler(t *testing.T) {
 					} else {
 						res.AssertStatusCode(t, tc.expectedStatus)
 						tc.assertBody(t, res)
+					}
+					if err := mock.ExpectationsWereMet(); err != nil {
+						t.Errorf("unmet SQL mock expectations: %v", err)
+					}
+				})
+			})
+		}
+	})
+}
+
+func TestListsIndividualHandler(t *testing.T) {
+	t.Run("GET", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			listId         string
+			addUser        bool
+			mockSetup      func(mock sqlmock.Sqlmock)
+			expectedStatus routeit.HttpStatus
+			assertBody     func(t *testing.T, res *routeit.TestResponse)
+		}{
+			{
+				name:    "successfully retrieves list",
+				listId:  "list-123",
+				addUser: true,
+				mockSetup: func(mock sqlmock.Sqlmock) {
+					created := time.Now().Add(-time.Hour)
+					updated := created.Add(30 * time.Minute)
+					mock.ExpectQuery(regexp.QuoteMeta(`
+					SELECT id, created, updated, user_id, name, description
+					FROM lists
+					WHERE id = ?
+				`)).
+						WithArgs("list-123").
+						WillReturnRows(sqlmock.NewRows([]string{
+							"id", "created", "updated", "user_id", "name", "description",
+						}).AddRow("list-123", created, updated, "user-123", "Groceries", "Weekly shopping"))
+				},
+				expectedStatus: routeit.StatusOK,
+				assertBody: func(t *testing.T, res *routeit.TestResponse) {
+					var body GetListResponse
+					res.BodyToJson(t, &body)
+					if body.Name != "Groceries" {
+						t.Errorf("expected name 'Groceries', got %q", body.Name)
+					}
+				},
+			},
+			{
+				name:           "missing user header returns 401",
+				listId:         "list-123",
+				addUser:        false,
+				expectedStatus: routeit.StatusUnauthorized,
+			},
+			{
+				name:    "list not found returns error from repo",
+				listId:  "missing-list",
+				addUser: true,
+				mockSetup: func(mock sqlmock.Sqlmock) {
+					mock.ExpectQuery(regexp.QuoteMeta(`
+					SELECT id, created, updated, user_id, name, description
+					FROM lists
+					WHERE id = ?
+				`)).
+						WithArgs("missing-list").
+						WillReturnError(sql.ErrNoRows)
+				},
+				expectedStatus: routeit.StatusNotFound,
+			},
+			{
+				name:    "list belongs to another user returns 403",
+				listId:  "list-xyz",
+				addUser: true,
+				mockSetup: func(mock sqlmock.Sqlmock) {
+					created := time.Now()
+					updated := created
+					mock.ExpectQuery(regexp.QuoteMeta(`
+					SELECT id, created, updated, user_id, name, description
+					FROM lists
+					WHERE id = ?
+				`)).
+						WithArgs("list-xyz").
+						WillReturnRows(sqlmock.NewRows([]string{
+							"id", "created", "updated", "user_id", "name", "description",
+						}).AddRow("list-xyz", created, updated, "different-user", "Other list", "Not yours"))
+				},
+				expectedStatus: routeit.StatusForbidden,
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				db.WithUnitTestConnection(t, func(dbConn *sql.DB, mock sqlmock.Sqlmock) {
+					if tc.mockSetup != nil {
+						tc.mockSetup(mock)
+					}
+					repo := db.NewTodoListRepository(dbConn)
+					handler := ListsIndividualHandler(repo)
+					req := routeit.NewTestRequest(t,
+						fmt.Sprintf("/lists/%s", tc.listId),
+						routeit.GET,
+						routeit.TestRequestOptions{
+							PathParams: map[string]string{"list": tc.listId},
+						},
+					)
+					if tc.addUser {
+						req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
+					}
+
+					res, err := routeit.TestHandler(handler, req)
+
+					wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
+					if err != nil {
+						if !wantErr {
+							t.Fatalf("unexpected error: %v", err)
+						}
+						httpErr, ok := err.(*routeit.HttpError)
+						if !ok {
+							t.Fatalf("expected HttpError, got %T", err)
+						}
+						if httpErr.Status() != tc.expectedStatus {
+							t.Errorf("status = %v, want %v", httpErr.Status(), tc.expectedStatus)
+						}
+					} else {
+						res.AssertStatusCode(t, tc.expectedStatus)
+						if tc.assertBody != nil {
+							tc.assertBody(t, res)
+						}
 					}
 					if err := mock.ExpectationsWereMet(); err != nil {
 						t.Errorf("unmet SQL mock expectations: %v", err)

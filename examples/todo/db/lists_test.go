@@ -299,7 +299,7 @@ func TestGetListsByUser(t *testing.T) {
 			}(),
 			expectedLists: func() []dao.AggregateTodoList {
 				expected := []dao.TodoItem{}
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					expected = append(expected, dao.TodoItem{
 						Meta: dao.Meta{
 							Created: now.Add(time.Duration(i) * time.Second),

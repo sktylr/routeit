@@ -28,7 +28,10 @@ type ServerConfig struct {
 	// for responses.
 	WriteDeadline time.Duration
 	// A global namespace that **all** routes are registered under. Common
-	// examples include /api. Does not need to include a leading slash.
+	// examples include /api. Does not need to include a leading slash. The
+	// global namespace may not contain dynamic routing segments - e.g. a
+	// global namespace of /:foo will register all routes on the server
+	// directly under the literal "/:foo" route.
 	Namespace string
 	// The location of the statically loaded files served by the server. All
 	// requests to reach these files must also start with this prefix and may

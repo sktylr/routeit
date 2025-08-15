@@ -56,11 +56,12 @@ func (s *Server) RegisterRoutes(rreg RouteRegistry) {
 
 // RegisterRoutesUnderNamespace registers all routes in the registry under a
 // specific namespace. All routes already obey the global namespace (if
-// configured). This is a destructive operation.
-//
-// For example, if the /api/foo route has already been registered, and this
-// function is called with the /api namespace and the registry contains a /foo
-// route, this function will overwrite the original routing entry.
+// configured). This is a destructive operation - for example, if the /api/foo
+// route has already been registered, and this function is called with the /api
+// namespace and the registry contains a /foo route, this function will
+// overwrite the original routing entry. The local namespace used here may
+// contain dynamic path components, and will match in the same manner that
+// regular dynamic path components do in their routing.
 //
 // Examples:
 //

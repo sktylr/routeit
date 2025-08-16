@@ -25,25 +25,25 @@ type Server struct {
 // Constructs a new server given the config. Defaults are provided for all
 // options to ensure that the server can run with sane values from the get-go.
 func NewServer(conf ServerConfig) *Server {
+	if len(conf.AllowedHosts) == 0 && conf.Debug {
+		conf.AllowedHosts = []string{".localhost", "127.0.0.1", "[::1]"}
+	}
 	router := newRouter()
 	router.GlobalNamespace(conf.Namespace)
 	router.NewStaticDir(conf.StaticDir)
-	errorHandler := newErrorHandler(conf.ErrorMapper)
-	log := newLogger(conf.LoggingHandler, conf.Debug, conf.LogAttrExtractor)
 	s := &Server{
 		conf:         conf.internalise(),
 		router:       router,
-		log:          log,
-		errorHandler: errorHandler,
+		log:          newLogger(conf.LoggingHandler, conf.Debug, conf.LogAttrExtractor),
+		errorHandler: newErrorHandler(conf.ErrorMapper),
 		middleware:   newMiddleware(),
 	}
-	s.RegisterMiddleware(s.timeoutMiddleware, headerValidationMiddleware(conf.StrictSingletonHeaders))
+	s.RegisterMiddleware(
+		s.timeoutMiddleware,
+		headerValidationMiddleware(conf.StrictSingletonHeaders),
+		hostValidationMiddleware(conf.AllowedHosts),
+	)
 	s.configureRewrites(conf.URLRewritePath)
-	s.errorHandler = newErrorHandler(conf.ErrorMapper)
-	if len(conf.AllowedHosts) == 0 && s.conf.Debug {
-		conf.AllowedHosts = []string{".localhost", "127.0.0.1", "[::1]"}
-	}
-	s.RegisterMiddleware(hostValidationMiddleware(conf.AllowedHosts))
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
 	}

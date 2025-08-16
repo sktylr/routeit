@@ -155,33 +155,66 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 }
 
 func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
-	return routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-		userId, hasUser := userIdFromRequest(req)
-		if !hasUser {
-			return routeit.ErrUnauthorized()
-		}
-
-		id, _ := req.PathParam("list")
-		list, err := repo.GetListById(req.Context(), id)
-		if err != nil {
-			var nf db.ErrListNotFound
-			if errors.As(err, &nf) {
-				return routeit.ErrNotFound().WithCause(err)
+	return routeit.MultiMethod(routeit.MultiMethodHandler{
+		Get: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			userId, hasUser := userIdFromRequest(req)
+			if !hasUser {
+				return routeit.ErrUnauthorized()
 			}
-			return routeit.ErrServiceUnavailable().WithCause(err)
-		}
 
-		if list.UserId != userId {
-			return routeit.ErrForbidden()
-		}
+			id, _ := req.PathParam("list")
+			list, err := repo.GetListById(req.Context(), id)
+			if err != nil {
+				var nf db.ErrListNotFound
+				if errors.As(err, &nf) {
+					return routeit.ErrNotFound().WithCause(err)
+				}
+				return routeit.ErrServiceUnavailable().WithCause(err)
+			}
 
-		res := GetListResponse{
-			Id:          list.Id,
-			Created:     list.Created,
-			Updated:     list.Updated,
-			Name:        list.Name,
-			Description: list.Description,
-		}
-		return rw.Json(res)
+			if list.UserId != userId {
+				return routeit.ErrForbidden()
+			}
+
+			res := GetListResponse{
+				Id:          list.Id,
+				Created:     list.Created,
+				Updated:     list.Updated,
+				Name:        list.Name,
+				Description: list.Description,
+			}
+			return rw.Json(res)
+		},
+		Delete: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			userId, hasUser := userIdFromRequest(req)
+			if !hasUser {
+				return routeit.ErrUnauthorized()
+			}
+
+			id, _ := req.PathParam("list")
+			list, err := repo.GetListById(req.Context(), id)
+			if err != nil {
+				var nf db.ErrListNotFound
+				if errors.As(err, &nf) {
+					return routeit.ErrNotFound().WithCause(err)
+				}
+				return routeit.ErrServiceUnavailable().WithCause(err)
+			}
+
+			if list.UserId != userId {
+				return routeit.ErrForbidden()
+			}
+
+			// TODO: in future, this error mapping should be handled at the top level. Unfortunately the tests would all need to be reworked since they depend on the function returning a HttpError.
+			err = repo.DeleteList(req.Context(), list.Id)
+			if err != nil {
+				var nf db.ErrListNotFound
+				if errors.As(err, &nf) {
+					return routeit.ErrNotFound().WithCause(err)
+				}
+				return routeit.ErrServiceUnavailable().WithCause(err)
+			}
+			return nil
+		},
 	})
 }

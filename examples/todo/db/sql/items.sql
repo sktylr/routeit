@@ -7,6 +7,6 @@ CREATE TABLE IF NOT EXISTS items (
 	name 		VARCHAR(255) NOT NULL,
 	status 		VARCHAR(255) NOT NULL,
 	PRIMARY KEY (`id`),
-	FOREIGN KEY (user_id) REFERENCES users(id),
-	FOREIGN KEY (list_id) REFERENCES lists(id)
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
 );

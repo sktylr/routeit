@@ -91,9 +91,9 @@ func TestChainProceed(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mware := newMiddleware(tc.last)
+			mware := newMiddleware()
 			mware.Register(tc.mwares...)
-			c := mware.NewChain()
+			c := mware.NewChain(tc.last)
 			c.i = tc.start
 
 			err := c.Proceed(nil, nil)

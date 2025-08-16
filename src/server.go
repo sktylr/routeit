@@ -30,8 +30,13 @@ func NewServer(conf ServerConfig) *Server {
 	router.NewStaticDir(conf.StaticDir)
 	errorHandler := newErrorHandler(conf.ErrorMapper)
 	log := newLogger(conf.LoggingHandler, conf.Debug, conf.LogAttrExtractor)
-	s := &Server{conf: conf.internalise(), router: router, log: log, errorHandler: errorHandler}
-	s.middleware = newMiddleware(s.handlingMiddleware)
+	s := &Server{
+		conf:         conf.internalise(),
+		router:       router,
+		log:          log,
+		errorHandler: errorHandler,
+		middleware:   newMiddleware(),
+	}
 	s.RegisterMiddleware(s.timeoutMiddleware, headerValidationMiddleware(conf.StrictSingletonHeaders))
 	s.configureRewrites(conf.URLRewritePath)
 	s.errorHandler = newErrorHandler(conf.ErrorMapper)
@@ -217,7 +222,8 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 
 	s.router.RewriteUri(&req.uri)
 	rw = newResponseForMethod(req.mthd)
-	chain := s.middleware.NewChain()
+	handler, _ := s.router.Route(req)
+	chain := s.middleware.NewChain(handlingMiddleware(handler, s.conf.handlingConfig))
 	err = chain.Proceed(rw, req)
 
 	// Error handling is all done in the defer block, so we can proceed here
@@ -255,28 +261,6 @@ func (s *Server) timeoutMiddleware(c Chain, rw *ResponseWriter, req *Request) er
 		}
 	case <-req.ctx.Done():
 		return req.ctx.Err()
-	}
-	return nil
-}
-
-// After all middleware is processed, the last piece is for the server to
-// handle the request itself, such as routing. To simplify the logic, this is
-// done using middleware. We force the last piece of middleware to always be a
-// handler that routes the request and returns the response.
-func (s *Server) handlingMiddleware(c Chain, rw *ResponseWriter, req *Request) error {
-	handler, found := s.router.Route(req)
-	if !found {
-		return ErrNotFound().WithMessagef("Invalid route: %s", req.RawPath())
-	}
-	if req.Method() == TRACE && !s.conf.AllowTraceRequests {
-		return ErrMethodNotAllowed(handler.allowed...)
-	}
-	err := handler.handle(rw, req)
-	if !s.conf.StrictClientAcceptance || err != nil {
-		return err
-	}
-	if !req.AcceptsContentType(rw.ct) {
-		return ErrNotAcceptable()
 	}
 	return nil
 }

@@ -106,26 +106,32 @@ type ServerConfig struct {
 
 // The internal server config, which only stores the necessary values
 type serverConfig struct {
-	Port                   uint16
-	RequestSize            RequestSize
-	ReadDeadline           time.Duration
-	WriteDeadline          time.Duration
-	Namespace              string
-	Debug                  bool
-	StrictClientAcceptance bool
+	Port          uint16
+	RequestSize   RequestSize
+	ReadDeadline  time.Duration
+	WriteDeadline time.Duration
+	Namespace     string
+	Debug         bool
+	handlingConfig
+}
+
+type handlingConfig struct {
 	AllowTraceRequests     bool
+	StrictClientAcceptance bool
 }
 
 func (sc ServerConfig) internalise() serverConfig {
 	out := serverConfig{
-		Port:                   sc.Port,
-		RequestSize:            sc.RequestSize,
-		ReadDeadline:           sc.ReadDeadline,
-		WriteDeadline:          sc.WriteDeadline,
-		Namespace:              sc.Namespace,
-		Debug:                  sc.Debug,
-		StrictClientAcceptance: sc.StrictClientAcceptance,
-		AllowTraceRequests:     sc.AllowTraceRequests,
+		Port:          sc.Port,
+		RequestSize:   sc.RequestSize,
+		ReadDeadline:  sc.ReadDeadline,
+		WriteDeadline: sc.WriteDeadline,
+		Namespace:     sc.Namespace,
+		Debug:         sc.Debug,
+		handlingConfig: handlingConfig{
+			StrictClientAcceptance: sc.StrictClientAcceptance,
+			AllowTraceRequests:     sc.AllowTraceRequests,
+		},
 	}
 	if sc.RequestSize == 0 {
 		out.RequestSize = KiB

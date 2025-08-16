@@ -204,3 +204,26 @@ func staticLoader(namespace []string) *Handler {
 	})
 	return &h
 }
+
+// After all middleware is processed, the last piece is for the server to
+// handle the request itself, such as method restriction. To simplify the
+// logic, this is done using middleware. We force the last piece of middleware
+// to always be a handler that handles the request and returns the response.
+func handlingMiddleware(handler *Handler, conf handlingConfig) Middleware {
+	return func(c Chain, rw *ResponseWriter, req *Request) error {
+		if handler == nil {
+			return ErrNotFound().WithMessagef("Invalid route: %s", req.RawPath())
+		}
+		if req.Method() == TRACE && !conf.AllowTraceRequests {
+			return ErrMethodNotAllowed(handler.allowed...)
+		}
+		err := handler.handle(rw, req)
+		if !conf.StrictClientAcceptance || err != nil {
+			return err
+		}
+		if !req.AcceptsContentType(rw.ct) {
+			return ErrNotAcceptable()
+		}
+		return nil
+	}
+}

@@ -24,22 +24,22 @@ type Chain interface {
 
 type middleware struct {
 	mwares []Middleware
-	last   Middleware
 }
 
 // The [realChain] is a real implementation of a middleware chain used in real
 // requests and E2E tests.
 type realChain struct {
-	i uint
-	m *middleware
+	i    uint
+	m    *middleware
+	last Middleware
 }
 
-func newMiddleware(last Middleware) *middleware {
-	return &middleware{last: last, mwares: []Middleware{}}
+func newMiddleware() *middleware {
+	return &middleware{mwares: []Middleware{}}
 }
 
-func (m *middleware) NewChain() *realChain {
-	return &realChain{i: 0, m: m}
+func (m *middleware) NewChain(last Middleware) *realChain {
+	return &realChain{i: 0, m: m, last: last}
 }
 
 // Register new middleware handlers to the middleware. The order of insertion
@@ -58,7 +58,7 @@ func (c *realChain) Proceed(rw *ResponseWriter, req *Request) error {
 	}
 
 	if c.i == length {
-		return c.m.last(c, rw, req)
+		return c.last(c, rw, req)
 	}
 
 	next := c.m.mwares[c.i]

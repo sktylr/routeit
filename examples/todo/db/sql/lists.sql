@@ -6,5 +6,5 @@ CREATE TABLE IF NOT EXISTS lists (
 	name 		VARCHAR(255) NOT NULL,
 	description	VARCHAR(4096) NOT NULL,
 	PRIMARY KEY (`id`),
-	FOREIGN KEY (user_id) REFERENCES users(id)
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

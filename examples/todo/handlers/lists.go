@@ -33,34 +33,22 @@ type NestedListItemResponse struct {
 	Status  string    `json:"status"`
 }
 
-type CreateListRequest struct {
+type CreateListRequest listRequest
+
+type CreateListResponse listResponse
+
+type GetListResponse listResponse
+
+type UpdateListRequest listRequest
+
+type UpdateListResponse listResponse
+
+type listRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
-// TODO: should consolidate these!
-type CreateListResponse struct {
-	Id          string    `json:"id"`
-	Created     time.Time `json:"created"`
-	Updated     time.Time `json:"updated"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-}
-
-type GetListResponse struct {
-	Id          string    `json:"id"`
-	Created     time.Time `json:"created"`
-	Updated     time.Time `json:"updated"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-}
-
-type UpdateListRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type UpdateListResponse struct {
+type listResponse struct {
 	Id          string    `json:"id"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`

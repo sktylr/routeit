@@ -310,7 +310,7 @@ func TestListsIndividualHandler(t *testing.T) {
 			req := routeit.NewTestRequest(t, "/lists/list-123", routeit.GET, routeit.TestRequestOptions{
 				PathParams: map[string]string{"list": "list-123"},
 			})
-			now := time.Now().Truncate(time.Minute)
+			now := time.Date(2025, time.August, 17, 19, 46, 0, 0, time.UTC)
 			req.NewContextValue("list", &dao.TodoList{
 				Meta: dao.Meta{
 					Id:      "list-123",

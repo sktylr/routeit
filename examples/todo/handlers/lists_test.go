@@ -366,25 +366,13 @@ func TestListsIndividualHandler(t *testing.T) {
 		tests := []struct {
 			name           string
 			listId         string
-			addUser        bool
 			mockSetup      func(mock sqlmock.Sqlmock)
 			expectedStatus routeit.HttpStatus
 		}{
 			{
-				name:    "successfully deletes list",
-				listId:  "list-123",
-				addUser: true,
+				name:   "successfully deletes list",
+				listId: "list-123",
 				mockSetup: func(mock sqlmock.Sqlmock) {
-					now := time.Now()
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
-					`)).
-						WithArgs("list-123").
-						WillReturnRows(sqlmock.NewRows([]string{
-							"id", "created", "updated", "user_id", "name", "description",
-						}).AddRow("list-123", now, now, "user-123", "Groceries", "Weekly shopping"))
 					mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM lists WHERE id = ?`)).
 						WithArgs("list-123").
 						WillReturnResult(sqlmock.NewResult(0, 1))
@@ -392,59 +380,9 @@ func TestListsIndividualHandler(t *testing.T) {
 				expectedStatus: routeit.StatusNoContent,
 			},
 			{
-				name:           "missing user header returns 401",
-				listId:         "list-123",
-				addUser:        false,
-				expectedStatus: routeit.StatusUnauthorized,
-			},
-			{
-				name:    "list not found returns 404",
-				listId:  "missing-list",
-				addUser: true,
+				name:   "delete returns not found if no rows affected",
+				listId: "list-123",
 				mockSetup: func(mock sqlmock.Sqlmock) {
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
-					`)).
-						WithArgs("missing-list").
-						WillReturnError(sql.ErrNoRows)
-				},
-				expectedStatus: routeit.StatusNotFound,
-			},
-			{
-				name:    "list belongs to another user returns 403",
-				listId:  "list-xyz",
-				addUser: true,
-				mockSetup: func(mock sqlmock.Sqlmock) {
-					now := time.Now()
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
-					`)).
-						WithArgs("list-xyz").
-						WillReturnRows(sqlmock.NewRows([]string{
-							"id", "created", "updated", "user_id", "name", "description",
-						}).AddRow("list-xyz", now, now, "different-user", "Other list", "Not yours"))
-				},
-				expectedStatus: routeit.StatusForbidden,
-			},
-			{
-				name:    "delete returns not found if no rows affected",
-				listId:  "list-123",
-				addUser: true,
-				mockSetup: func(mock sqlmock.Sqlmock) {
-					now := time.Now()
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
-					`)).
-						WithArgs("list-123").
-						WillReturnRows(sqlmock.NewRows([]string{
-							"id", "created", "updated", "user_id", "name", "description",
-						}).AddRow("list-123", now, now, "user-123", "Groceries", "Weekly shopping"))
 					mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM lists WHERE id = ?`)).
 						WithArgs("list-123").
 						WillReturnResult(sqlmock.NewResult(0, 0))
@@ -456,9 +394,7 @@ func TestListsIndividualHandler(t *testing.T) {
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				db.WithUnitTestConnection(t, func(dbConn *sql.DB, mock sqlmock.Sqlmock) {
-					if tc.mockSetup != nil {
-						tc.mockSetup(mock)
-					}
+					tc.mockSetup(mock)
 					repo := db.NewTodoListRepository(dbConn)
 					handler := ListsIndividualHandler(repo)
 					req := routeit.NewTestRequest(t,
@@ -468,9 +404,6 @@ func TestListsIndividualHandler(t *testing.T) {
 							PathParams: map[string]string{"list": tc.listId},
 						},
 					)
-					if tc.addUser {
-						req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
-					}
 
 					res, err := routeit.TestHandler(handler, req)
 

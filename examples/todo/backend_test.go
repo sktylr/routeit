@@ -299,6 +299,7 @@ func TestAuthRefresh(t *testing.T) {
 		})
 	})
 }
+
 func TestLists(t *testing.T) {
 	register := func(t *testing.T, client routeit.TestClient, email, password string) handlers.RegisterUserResponse {
 		req := handlers.RegisterUserRequest{

@@ -20,6 +20,7 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 	srv.RegisterMiddleware(
 		routeit.CorsMiddleware(routeit.DefaultCors()),
 		middleware.JwtMiddleware(usersRepo),
+		middleware.LoadListMiddleware(listsRepo),
 	)
 	srv.RegisterRoutesUnderNamespace("/auth", routeit.RouteRegistry{
 		"/login":    handlers.LoginHandler(usersRepo),

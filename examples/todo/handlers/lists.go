@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sktylr/routeit"
+	"github.com/sktylr/routeit/examples/todo/dao"
 	"github.com/sktylr/routeit/examples/todo/db"
 )
 
@@ -158,25 +159,7 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 	return routeit.MultiMethod(routeit.MultiMethodHandler{
 		Get: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			userId, hasUser := userIdFromRequest(req)
-			if !hasUser {
-				return routeit.ErrUnauthorized()
-			}
-
-			id, _ := req.PathParam("list")
-			list, err := repo.GetListById(req.Context(), id)
-			if err != nil {
-				var nf db.ErrListNotFound
-				if errors.As(err, &nf) {
-					return routeit.ErrNotFound().WithCause(err)
-				}
-				return routeit.ErrServiceUnavailable().WithCause(err)
-			}
-
-			if list.UserId != userId {
-				return routeit.ErrForbidden()
-			}
-
+			list, _ := routeit.ContextValueAs[*dao.TodoList](req, "list")
 			res := GetListResponse{
 				Id:          list.Id,
 				Created:     list.Created,

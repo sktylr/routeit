@@ -182,33 +182,15 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 			}
 			return nil
 		},
-		// TODO: could move most of this into middleware
 		Put: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			userId, hasUser := userIdFromRequest(req)
-			if !hasUser {
-				return routeit.ErrUnauthorized()
-			}
-
-			id, _ := req.PathParam("list")
-			list, err := repo.GetListById(req.Context(), id)
-			if err != nil {
-				var nf db.ErrListNotFound
-				if errors.As(err, &nf) {
-					return routeit.ErrNotFound().WithCause(err)
-				}
-				return routeit.ErrServiceUnavailable().WithCause(err)
-			}
-
-			if list.UserId != userId {
-				return routeit.ErrForbidden()
-			}
+			list, _ := routeit.ContextValueAs[*dao.TodoList](req, "list")
 
 			var body UpdateListRequest
 			if err := req.BodyFromJson(&body); err != nil {
 				return err
 			}
 
-			updated, err := repo.UpdateList(req.Context(), id, body.Name, body.Description)
+			updated, err := repo.UpdateList(req.Context(), list.Id, body.Name, body.Description)
 			if err != nil {
 				var nf db.ErrListNotFound
 				if errors.As(err, &nf) {
@@ -218,7 +200,7 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 			}
 
 			res := UpdateListResponse{
-				Id:          id,
+				Id:          list.Id,
 				Created:     list.Created,
 				Updated:     updated.Updated,
 				Name:        updated.Name,

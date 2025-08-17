@@ -436,25 +436,15 @@ func TestListsIndividualHandler(t *testing.T) {
 			listId         string
 			addUser        bool
 			body           []byte
-			mockSetup      func(mock sqlmock.Sqlmock, created, updated time.Time)
+			mockSetup      func(mock sqlmock.Sqlmock)
 			expectedStatus routeit.HttpStatus
-			assertBody     func(t *testing.T, res *routeit.TestResponse, created, updated time.Time)
+			assertBody     func(t *testing.T, res *routeit.TestResponse)
 		}{
 			{
-				name:    "successfully updates list",
-				listId:  "list-123",
-				addUser: true,
-				body:    []byte(`{"name":"Updated Groceries","description":"Bi-weekly shopping"}`),
-				mockSetup: func(mock sqlmock.Sqlmock, created, updated time.Time) {
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
-					`)).
-						WithArgs("list-123").
-						WillReturnRows(sqlmock.NewRows([]string{
-							"id", "created", "updated", "user_id", "name", "description",
-						}).AddRow("list-123", created, updated, "user-123", "Groceries", "Weekly shopping"))
+				name:   "successfully updates list",
+				listId: "list-123",
+				body:   []byte(`{"name":"Updated Groceries","description":"Bi-weekly shopping"}`),
+				mockSetup: func(mock sqlmock.Sqlmock) {
 					mock.ExpectExec(regexp.QuoteMeta(`
 						UPDATE lists SET name = ?, description = ?, updated = ? WHERE id = ?
 					`)).
@@ -462,7 +452,7 @@ func TestListsIndividualHandler(t *testing.T) {
 						WillReturnResult(sqlmock.NewResult(0, 1))
 				},
 				expectedStatus: routeit.StatusOK,
-				assertBody: func(t *testing.T, res *routeit.TestResponse, created, updated time.Time) {
+				assertBody: func(t *testing.T, res *routeit.TestResponse) {
 					var body UpdateListResponse
 					res.BodyToJson(t, &body)
 					if body.Name != "Updated Groceries" {
@@ -474,46 +464,21 @@ func TestListsIndividualHandler(t *testing.T) {
 				},
 			},
 			{
-				name:           "missing user header returns 401",
-				listId:         "list-123",
-				addUser:        false,
-				body:           []byte(`{"name":"Foo"}`),
-				expectedStatus: routeit.StatusUnauthorized,
-			},
-			{
-				name:    "list not found returns 404",
-				listId:  "missing-list",
-				addUser: true,
-				body:    []byte(`{"name":"Something","description":"Whatever"}`),
-				mockSetup: func(mock sqlmock.Sqlmock, created, updated time.Time) {
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
+				// This technically shouldn't happen due to the middleware we
+				// have but may happen in a race condition
+				name:   "list not found returns 404",
+				listId: "missing-list",
+				body:   []byte(`{"name":"Something","description":"Whatever"}`),
+				mockSetup: func(mock sqlmock.Sqlmock) {
+					mock.ExpectExec(regexp.QuoteMeta(`
+						UPDATE lists SET name = ?, description = ?, updated = ? WHERE id = ?
 					`)).
-						WithArgs("missing-list").
-						WillReturnError(sql.ErrNoRows)
+						WithArgs("Something", "Whatever", sqlmock.AnyArg(), "list-123").
+						WillReturnResult(sqlmock.NewResult(0, 0))
 				},
 				expectedStatus: routeit.StatusNotFound,
 			},
-			{
-				name:    "list belongs to another user returns 403",
-				listId:  "list-xyz",
-				addUser: true,
-				body:    []byte(`{"name":"Hack attempt"}`),
-				mockSetup: func(mock sqlmock.Sqlmock, created, updated time.Time) {
-					mock.ExpectQuery(regexp.QuoteMeta(`
-						SELECT id, created, updated, user_id, name, description
-						FROM lists
-						WHERE id = ?
-					`)).
-						WithArgs("list-xyz").
-						WillReturnRows(sqlmock.NewRows([]string{
-							"id", "created", "updated", "user_id", "name", "description",
-						}).AddRow("list-xyz", created, updated, "different-user", "Other list", "Not yours"))
-				},
-				expectedStatus: routeit.StatusForbidden,
-			},
+			// TODO: should cover invalid JSON here
 		}
 
 		for _, tc := range tests {
@@ -521,12 +486,9 @@ func TestListsIndividualHandler(t *testing.T) {
 				db.WithUnitTestConnection(t, func(dbConn *sql.DB, mock sqlmock.Sqlmock) {
 					created := time.Now().Add(-time.Hour)
 					updated := created.Add(30 * time.Minute)
-					if tc.mockSetup != nil {
-						tc.mockSetup(mock, created, updated)
-					}
+					tc.mockSetup(mock)
 					repo := db.NewTodoListRepository(dbConn)
 					handler := ListsIndividualHandler(repo)
-
 					req := routeit.NewTestRequest(t,
 						fmt.Sprintf("/lists/%s", tc.listId),
 						routeit.PUT,
@@ -536,10 +498,16 @@ func TestListsIndividualHandler(t *testing.T) {
 							Headers:    []string{"Content-Type", "application/json"},
 						},
 					)
-
-					if tc.addUser {
-						req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
-					}
+					req.NewContextValue("list", &dao.TodoList{
+						Meta: dao.Meta{
+							Id:      "list-123",
+							Created: created,
+							Updated: updated,
+						},
+						UserId:      "user-123",
+						Name:        "Groceries",
+						Description: "Weekly shopping",
+					})
 
 					res, err := routeit.TestHandler(handler, req)
 
@@ -557,9 +525,7 @@ func TestListsIndividualHandler(t *testing.T) {
 						}
 					} else {
 						res.AssertStatusCode(t, tc.expectedStatus)
-						if tc.assertBody != nil {
-							tc.assertBody(t, res, created, updated)
-						}
+						tc.assertBody(t, res)
 					}
 					if err := mock.ExpectationsWereMet(); err != nil {
 						t.Errorf("unmet SQL mock expectations: %v", err)

@@ -488,3 +488,50 @@ func TestAcceptsContentType(t *testing.T) {
 		})
 	}
 }
+
+func TestContextValueAs(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func(req *Request)
+		key      any
+		expected string
+		ok       bool
+	}{
+		{
+			name:  "missing key returns zero and false",
+			setup: func(req *Request) {},
+			key:   "userId",
+		},
+		{
+			name: "existing key correct type",
+			setup: func(req *Request) {
+				req.NewContextValue("userId", "abc123")
+			},
+			key:      "userId",
+			expected: "abc123",
+			ok:       true,
+		},
+		{
+			name: "existing key wrong type",
+			setup: func(req *Request) {
+				req.NewContextValue("count", 42)
+			},
+			key: "count",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &Request{ctx: t.Context()}
+			tc.setup(req)
+
+			got, ok := ContextValueAs[string](req, tc.key)
+			if ok != tc.ok {
+				t.Errorf("expected ok=%v, got %v", tc.ok, ok)
+			}
+			if got != tc.expected {
+				t.Errorf("expected %v, got %v", tc.expected, got)
+			}
+		})
+	}
+}

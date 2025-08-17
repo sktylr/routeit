@@ -308,6 +308,21 @@ func (req *Request) ContextValue(key any) (any, bool) {
 	return val, val != nil
 }
 
+// [ContextValueAs] is a shorthand to casting and using [Request.ContextValue]
+// It will return a value and true whenever the request context has a key that
+// matches the generic type, and will return false if either the context does
+// not have a matching key, or the value stored under that key does not match
+// the generic type.
+func ContextValueAs[T any](req *Request, key any) (T, bool) {
+	val := req.ctx.Value(key)
+	if val == nil {
+		var z T
+		return z, false
+	}
+	casted, ok := val.(T)
+	return casted, ok
+}
+
 // Store a value on the request's context. This is particularly useful for
 // middleware, which can set particular values the can be read in later
 // middleware or the handler itself.

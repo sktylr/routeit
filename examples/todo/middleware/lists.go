@@ -22,8 +22,7 @@ func LoadListMiddleware(repo *db.TodoListRepository) routeit.Middleware {
 		id, _ := req.PathParam("list")
 		list, err := repo.GetListById(req.Context(), id)
 		if err != nil {
-			var nf db.ErrListNotFound
-			if errors.As(err, &nf) {
+			if errors.Is(err, db.ErrListNotFound) {
 				return routeit.ErrNotFound().WithCause(err)
 			}
 			return routeit.ErrServiceUnavailable().WithCause(err)

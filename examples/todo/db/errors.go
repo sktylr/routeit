@@ -2,29 +2,16 @@ package db
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/mattn/go-sqlite3"
 )
 
-var ErrDuplicateKey = errors.New("duplicate key")
-
-type ErrItemNotFound struct {
-	itemId string
-}
-
-type ErrListNotFound struct {
-	listId string
-}
-
-func (e ErrItemNotFound) Error() string {
-	return fmt.Sprintf("todo item with ID %q not found", e.itemId)
-}
-
-func (e ErrListNotFound) Error() string {
-	return fmt.Sprintf("todo list with ID %s not found", e.listId)
-}
+var (
+	ErrDuplicateKey = errors.New("duplicate key")
+	ErrItemNotFound = errors.New("item not found")
+	ErrListNotFound = errors.New("list not found")
+)
 
 func isDuplicateKeyErr(err error) bool {
 	var mySqlErr *mysql.MySQLError

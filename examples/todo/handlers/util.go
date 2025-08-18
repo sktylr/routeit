@@ -27,8 +27,7 @@ func extractPagination(q *routeit.QueryParams) (*pagination, error) {
 }
 
 func userIdFromRequest(req *routeit.Request) string {
-	rawUser, _ := req.ContextValue("user")
-	user, ok := rawUser.(*dao.User)
+	user, ok := routeit.ContextValueAs[*dao.User](req, "user")
 	if !ok {
 		// Due to the middleware we have in place, this should never happen. To
 		// comply with the type signature, we return an empty string, though it

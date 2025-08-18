@@ -17,11 +17,11 @@ import (
 
 func TestLoginHandler(t *testing.T) {
 	tests := []struct {
-		name           string
-		request        LoginRequest
-		mockSetup      func(mock sqlmock.Sqlmock)
-		expectedStatus routeit.HttpStatus
-		assertBody     func(t *testing.T, res *routeit.TestResponse)
+		name       string
+		request    LoginRequest
+		mockSetup  func(mock sqlmock.Sqlmock)
+		wantErr    error
+		assertBody func(t *testing.T, res *routeit.TestResponse)
 	}{
 		{
 			name: "valid login returns tokens",
@@ -36,7 +36,6 @@ func TestLoginHandler(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "created", "updated"}).
 						AddRow("user-123", "Valid User", "valid@example.com", hashedPw, time.Now(), time.Now()))
 			},
-			expectedStatus: routeit.StatusCreated,
 			assertBody: func(t *testing.T, res *routeit.TestResponse) {
 				var body LoginResponse
 				res.BodyToJson(t, &body)
@@ -51,7 +50,7 @@ func TestLoginHandler(t *testing.T) {
 				Email:    "",
 				Password: "pass",
 			},
-			expectedStatus: routeit.StatusUnprocessableContent,
+			wantErr: routeit.ErrUnprocessableContent(),
 		},
 		{
 			name: "missing password returns 422",
@@ -59,7 +58,7 @@ func TestLoginHandler(t *testing.T) {
 				Email:    "user@example.com",
 				Password: "",
 			},
-			expectedStatus: routeit.StatusUnprocessableContent,
+			wantErr: routeit.ErrUnprocessableContent(),
 		},
 		{
 			name: "user not found returns 404",
@@ -72,7 +71,7 @@ func TestLoginHandler(t *testing.T) {
 					WithArgs("ghost@example.com").
 					WillReturnRows(sqlmock.NewRows([]string{}))
 			},
-			expectedStatus: routeit.StatusNotFound,
+			wantErr: routeit.ErrNotFound(),
 		},
 		{
 			name: "password mismatch returns 400",
@@ -87,10 +86,10 @@ func TestLoginHandler(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "created", "updated"}).
 						AddRow("bob-123", "Bob", "bob@example.com", hashed, time.Now(), time.Now()))
 			},
-			expectedStatus: routeit.StatusBadRequest,
+			wantErr: routeit.ErrBadRequest(),
 		},
 		{
-			name: "internal db error returns 503",
+			name: "internal db error is propagated",
 			request: LoginRequest{
 				Email:    "fail@example.com",
 				Password: "pass",
@@ -100,7 +99,7 @@ func TestLoginHandler(t *testing.T) {
 					WithArgs("fail@example.com").
 					WillReturnError(errors.New("db connection lost"))
 			},
-			expectedStatus: routeit.StatusServiceUnavailable,
+			wantErr: db.ErrDatabaseIssue,
 		},
 	}
 
@@ -123,23 +122,18 @@ func TestLoginHandler(t *testing.T) {
 						"Content-Length", fmt.Sprintf("%d", len(bodyBytes)),
 					},
 				})
-				wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 
 				res, err := routeit.TestHandler(handler, req)
 
 				if err != nil {
-					if !wantErr {
+					if tc.wantErr == nil {
 						t.Fatalf("unexpected error returned: %v", err)
 					}
-					httpErr, ok := err.(*routeit.HttpError)
-					if !ok {
-						t.Fatalf("expected HttpError, got %T", err)
-					}
-					if httpErr.Status() != tc.expectedStatus {
-						t.Errorf(`status = %+v, wanted %+v`, httpErr.Status(), tc.expectedStatus)
+					if !errors.Is(err, tc.wantErr) {
+						t.Fatalf(`error = %v, wanted %v`, err, tc.wantErr)
 					}
 				} else {
-					res.AssertStatusCode(t, tc.expectedStatus)
+					res.AssertStatusCode(t, routeit.StatusCreated)
 					tc.assertBody(t, res)
 				}
 			})

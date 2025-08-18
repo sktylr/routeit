@@ -30,7 +30,7 @@ func LoginHandler(repo *db.UsersRepository) routeit.Handler {
 			return routeit.ErrNotFound()
 		}
 		if err != nil {
-			return routeit.ErrServiceUnavailable().WithCause(err)
+			return err
 		}
 
 		if !auth.ComparePassword(user.Password, input.Password) {

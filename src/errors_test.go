@@ -1,6 +1,9 @@
 package routeit
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestRegisterHandler(t *testing.T) {
 	t.Run("panics", func(t *testing.T) {
@@ -94,6 +97,75 @@ func TestRegisterHandler(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestIs(t *testing.T) {
+	tests := []struct {
+		name string
+		in   error
+		cmp  error
+		want bool
+	}{
+		{
+			name: "same status code",
+			in:   ErrUnauthorized(),
+			cmp:  ErrUnauthorized(),
+			want: true,
+		},
+		{
+			name: "same status code with different message",
+			in:   ErrUnauthorized().WithMessage("foobar"),
+			cmp:  ErrUnauthorized(),
+			want: true,
+		},
+		{
+			name: "same status code with different cause",
+			in:   ErrUnauthorized().WithCause(errors.New("bad error")),
+			cmp:  ErrUnauthorized(),
+			want: true,
+		},
+		{
+			name: "first nil",
+			cmp:  ErrBadRequest(),
+		},
+		{
+			name: "cmp nil",
+			in:   ErrBadRequest(),
+		},
+		{
+			name: "different status code",
+			in:   ErrUnauthorized(),
+			cmp:  ErrNotFound(),
+		},
+		{
+			name: "different status code (manual construction)",
+			in:   ErrUnauthorized(),
+			cmp: func() error {
+				e := ErrUnauthorized()
+				e.status = StatusNotFound
+				return e
+			}(),
+		},
+		{
+			name: "same status code, invalid < 100",
+			in:   &HttpError{status: HttpStatus{code: 99}},
+			cmp:  &HttpError{status: HttpStatus{code: 99}},
+		},
+		{
+			name: "same status code, invalid >= 600",
+			in:   &HttpError{status: HttpStatus{code: 600}},
+			cmp:  &HttpError{status: HttpStatus{code: 600}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := errors.Is(tc.in, tc.cmp)
+			if res != tc.want {
+				t.Errorf(`in = %v, cmp = %v, res = %t, want = %t`, tc.in, tc.cmp, res, tc.want)
+			}
+		})
+	}
 }
 
 func newErrorHandlerNoMapper() *errorHandler {

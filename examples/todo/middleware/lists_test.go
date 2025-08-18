@@ -67,7 +67,7 @@ func TestLoadListMiddleware(t *testing.T) {
 			expect: expect{proceed: false, wantErr: routeit.ErrForbidden()},
 		},
 		{
-			name:   "db error returns 503",
+			name:   "db error propagated",
 			uri:    "/lists/list-err",
 			listId: "list-err",
 			userId: "user-123",

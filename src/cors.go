@@ -146,7 +146,7 @@ func CorsMiddleware(cc CorsConfig) Middleware {
 			// This is a hack to skip to the last piece of middleware, which
 			// will respond with the methods the route supports
 			if rc, ok := c.(*realChain); ok {
-				rc.last(rc, rw, req)
+				rc.last(rw, req)
 			}
 
 			allow, _ := rw.headers.headers.All("Allow")

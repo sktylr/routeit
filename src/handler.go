@@ -209,8 +209,8 @@ func staticLoader(namespace []string) *Handler {
 // handle the request itself, such as method restriction. To simplify the
 // logic, this is done using middleware. We force the last piece of middleware
 // to always be a handler that handles the request and returns the response.
-func handlingMiddleware(handler *Handler, conf handlingConfig) Middleware {
-	return func(c Chain, rw *ResponseWriter, req *Request) error {
+func coreHandler(handler *Handler, conf handlingConfig) HandlerFunc {
+	return func(rw *ResponseWriter, req *Request) error {
 		if handler == nil {
 			return ErrNotFound().WithMessagef("Invalid route: %s", req.RawPath())
 		}

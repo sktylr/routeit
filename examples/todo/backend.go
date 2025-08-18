@@ -5,6 +5,7 @@ import (
 
 	"github.com/sktylr/routeit"
 	"github.com/sktylr/routeit/examples/todo/db"
+	"github.com/sktylr/routeit/examples/todo/errors"
 	"github.com/sktylr/routeit/examples/todo/handlers"
 	"github.com/sktylr/routeit/examples/todo/middleware"
 )
@@ -16,6 +17,7 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 		Debug:                  false,
 		StrictClientAcceptance: true,
 		AllowedHosts:           []string{".localhost"},
+		ErrorMapper:            errors.ErrorMapper,
 	})
 	srv.RegisterMiddleware(
 		routeit.CorsMiddleware(routeit.DefaultCors()),

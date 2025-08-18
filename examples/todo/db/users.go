@@ -23,13 +23,13 @@ func NewUsersRepository(db *sql.DB) *UsersRepository {
 func (r *UsersRepository) CreateUser(ctx context.Context, name, email, password string) (*dao.User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	idS := id.String()
 
 	hashedPw, err := auth.HashPassword(password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	now := time.Now()
@@ -50,7 +50,7 @@ func (r *UsersRepository) CreateUser(ctx context.Context, name, email, password 
 			// UUID's work, it is most likely the email.
 			return nil, fmt.Errorf("%w: %v", ErrDuplicateKey, err)
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	user := dao.User{
@@ -88,7 +88,7 @@ func (r *UsersRepository) getUserByX(ctx context.Context, column, value string) 
 		return nil, false, nil
 	}
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	return &user, true, nil

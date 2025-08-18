@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	_ "embed"
@@ -36,11 +37,11 @@ func Connect(ctx context.Context) (*sql.DB, error) {
 
 	db, err := sql.Open("mysql", conf.FormatDSN())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	if _, err := db.ExecContext(ctx, usersSchema); err != nil {
@@ -48,11 +49,11 @@ func Connect(ctx context.Context) (*sql.DB, error) {
 	}
 
 	if _, err := db.ExecContext(ctx, listsSchema); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	if _, err := db.ExecContext(ctx, itemsSchema); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	return db, nil

@@ -24,7 +24,7 @@ func NewTodoListRepository(db *sql.DB) *TodoListRepository {
 func (r *TodoListRepository) CreateList(ctx context.Context, userId, name, description string) (*dao.TodoList, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate list ID: %w", err)
+		return nil, fmt.Errorf("%w [failed to generate list id]: %v", ErrDatabaseIssue, err)
 	}
 	idS := id.String()
 
@@ -35,7 +35,7 @@ func (r *TodoListRepository) CreateList(ctx context.Context, userId, name, descr
 	`
 	_, err = r.db.ExecContext(ctx, query, idS, now, now, userId, name, description)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create list: %w", err)
+		return nil, fmt.Errorf("%w [failed to create list]: %v", ErrDatabaseIssue, err)
 	}
 
 	list := dao.TodoList{
@@ -60,12 +60,12 @@ func (r *TodoListRepository) UpdateList(ctx context.Context, listId, name, descr
 	`
 	res, err := r.db.ExecContext(ctx, query, name, description, now, listId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update list: %w", err)
+		return nil, fmt.Errorf("%w [failed to update list]: %v", ErrDatabaseIssue, err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return nil, fmt.Errorf("failed to determine rows affected: %w", err)
+		return nil, fmt.Errorf("%w [failed to determine rows affected]: %v", ErrDatabaseIssue, err)
 	}
 	if rowsAffected == 0 {
 		return nil, fmt.Errorf("%w [%s]", ErrListNotFound, listId)
@@ -87,11 +87,11 @@ func (r *TodoListRepository) DeleteList(ctx context.Context, id string) error {
 	query := `DELETE FROM lists WHERE id = ?`
 	res, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	if rows == 0 {
 		return fmt.Errorf("%w [%s]", ErrListNotFound, id)
@@ -120,7 +120,7 @@ func (r *TodoListRepository) GetListById(ctx context.Context, id string) (*dao.T
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w [%s]: %v", ErrListNotFound, id, err)
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	return &list, nil
@@ -141,7 +141,7 @@ func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, 
 	`
 	rows, err := r.db.QueryContext(ctx, listQuery, userId, pageSize, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	defer rows.Close()
 
@@ -157,7 +157,7 @@ func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, 
 		lists = append(lists, &l)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	if len(lists) == 0 {
 		return lists, nil
@@ -165,7 +165,7 @@ func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, 
 
 	itemsByList, err := r.getListItems(ctx, listIds)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	for i := range lists {
@@ -185,7 +185,7 @@ func (r *TodoListRepository) getListItems(ctx context.Context, ids []any) (map[s
 	`, placeholder)
 	rows, err := r.db.QueryContext(ctx, query, ids...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	defer rows.Close()
 
@@ -201,14 +201,14 @@ func (r *TodoListRepository) getListItems(ctx context.Context, ids []any) (map[s
 			&item.Name,
 			&item.Status,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 		}
 		if len(itemsByList[item.TodoListId]) < 10 {
 			itemsByList[item.TodoListId] = append(itemsByList[item.TodoListId], item)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	return itemsByList, nil
 }

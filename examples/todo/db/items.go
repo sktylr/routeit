@@ -22,7 +22,7 @@ func NewTodoItemRepository(db *sql.DB) *TodoItemRepository {
 func (r *TodoItemRepository) CreateItem(ctx context.Context, userId, listId, name string) (*dao.TodoItem, error) {
 	uuid, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	id := uuid.String()
 
@@ -33,7 +33,7 @@ func (r *TodoItemRepository) CreateItem(ctx context.Context, userId, listId, nam
 	`
 	_, err = r.db.ExecContext(ctx, query, id, now, now, userId, listId, name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	item := dao.TodoItem{
@@ -73,7 +73,7 @@ func (r *TodoItemRepository) GetById(ctx context.Context, id string) (*dao.TodoI
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w [%s]: %v", ErrItemNotFound, id, err)
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	return &item, nil
@@ -87,12 +87,12 @@ func (r *TodoItemRepository) UpdateName(ctx context.Context, id, newName string)
 	`
 	res, err := r.db.ExecContext(ctx, query, newName, time.Now(), id)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	if rowsAffected == 0 {
 		return fmt.Errorf("%w [%s]", ErrItemNotFound, id)
@@ -116,12 +116,12 @@ func (r *TodoItemRepository) DeleteItem(ctx context.Context, id string) error {
 	`
 	res, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 	if rowsAffected == 0 {
 		return fmt.Errorf("%w [%s]", ErrItemNotFound, id)
@@ -138,5 +138,8 @@ func (r *TodoItemRepository) markAsX(ctx context.Context, id, status string) err
 		WHERE id = ?
 	`, status)
 	_, err := r.db.ExecContext(ctx, query, time.Now(), id)
-	return err
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 }

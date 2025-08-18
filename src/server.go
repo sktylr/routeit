@@ -223,7 +223,7 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 	s.router.RewriteUri(&req.uri)
 	rw = newResponseForMethod(req.mthd)
 	handler, _ := s.router.Route(req)
-	chain := s.middleware.NewChain(handlingMiddleware(handler, s.conf.handlingConfig))
+	chain := s.middleware.NewChain(coreHandler(handler, s.conf.handlingConfig))
 	err = chain.Proceed(rw, req)
 
 	// Error handling is all done in the defer block, so we can proceed here

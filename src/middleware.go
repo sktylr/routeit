@@ -31,14 +31,14 @@ type middleware struct {
 type realChain struct {
 	i    uint
 	m    *middleware
-	last Middleware
+	last HandlerFunc
 }
 
 func newMiddleware() *middleware {
 	return &middleware{mwares: []Middleware{}}
 }
 
-func (m *middleware) NewChain(last Middleware) *realChain {
+func (m *middleware) NewChain(last HandlerFunc) *realChain {
 	return &realChain{i: 0, m: m, last: last}
 }
 
@@ -58,7 +58,7 @@ func (c *realChain) Proceed(rw *ResponseWriter, req *Request) error {
 	}
 
 	if c.i == length {
-		return c.last(c, rw, req)
+		return c.last(rw, req)
 	}
 
 	next := c.m.mwares[c.i]

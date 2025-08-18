@@ -119,6 +119,22 @@ func (r *TodoItemRepository) GetByListAndUser(ctx context.Context, userId, listI
 	return items, nil
 }
 
+func (r *TodoItemRepository) CountByListAndUser(ctx context.Context, userId, listId string) (uint, error) {
+	query := `
+		SELECT COUNT(id)
+		FROM items
+		WHERE user_id = ? AND list_id = ?
+	`
+	row := r.db.QueryRowContext(ctx, query, userId, listId)
+
+	var count uint
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+
+	return count, nil
+}
+
 func (r *TodoItemRepository) UpdateName(ctx context.Context, id, newName string) error {
 	query := `
 		UPDATE items

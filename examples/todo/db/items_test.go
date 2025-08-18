@@ -518,3 +518,74 @@ func TestGetByListAndUser(t *testing.T) {
 		})
 	}
 }
+
+func TestCountByListAndUser(t *testing.T) {
+	tests := []struct {
+		name      string
+		userId    string
+		listId    string
+		mockSetup func(sqlmock.Sqlmock)
+		want      uint
+		wantErr   bool
+	}{
+		{
+			name:   "success",
+			userId: "user-1",
+			listId: "list-1",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT COUNT\(id\) FROM items WHERE user_id = \? AND list_id = \?`).
+					WithArgs("user-1", "list-1").
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(15))
+			},
+			want: 15,
+		},
+		{
+			name:   "db query error",
+			userId: "user-1",
+			listId: "list-1",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT COUNT\(id\) FROM items WHERE user_id = \? AND list_id = \?`).
+					WithArgs("user-1", "list-1").
+					WillReturnError(errors.New("db failure"))
+			},
+			wantErr: true,
+		},
+		{
+			name:   "row scan error",
+			userId: "user-1",
+			listId: "list-1",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT COUNT\(id\) FROM items WHERE user_id = \? AND list_id = \?`).
+					WithArgs("user-1", "list-1").
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow("foobar"))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoItemRepository(sqlDB)
+
+				count, err := repo.CountByListAndUser(t.Context(), tc.userId, tc.listId)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if !tc.wantErr {
+					if count != tc.want {
+						t.Errorf(`count = %d, wanted %d`, count, tc.want)
+					}
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}

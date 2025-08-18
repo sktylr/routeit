@@ -7,13 +7,16 @@ import (
 	"github.com/sktylr/routeit/examples/todo/dao"
 )
 
-func userIdFromRequest(req *routeit.Request) (string, bool) {
+func userIdFromRequest(req *routeit.Request) string {
 	rawUser, _ := req.ContextValue("user")
 	user, ok := rawUser.(*dao.User)
 	if !ok {
-		return "", false
+		// Due to the middleware we have in place, this should never happen. To
+		// comply with the type signature, we return an empty string, though it
+		// could be more accurate to panic as this is highly unexpected.
+		return ""
 	}
-	return user.Id, true
+	return user.Id
 }
 
 func queryParamOrDefault(param string, qs *routeit.QueryParams, def int) (int, error) {

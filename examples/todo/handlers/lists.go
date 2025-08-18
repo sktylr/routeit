@@ -58,11 +58,7 @@ type listResponse struct {
 func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 	return routeit.MultiMethod(routeit.MultiMethodHandler{
 		Get: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			userId, hasUser := userIdFromRequest(req)
-			if !hasUser {
-				// This shouldn't happen, but we add it as a fail safe
-				return routeit.ErrUnauthorized()
-			}
+			userId := userIdFromRequest(req)
 
 			page, err := queryParamOrDefault("page", req.Queries(), 1)
 			if err != nil {
@@ -105,10 +101,7 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 			return rw.Json(ListListsResponse{Lists: res})
 		},
 		Post: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			userId, hasUser := userIdFromRequest(req)
-			if !hasUser {
-				return routeit.ErrUnauthorized()
-			}
+			userId := userIdFromRequest(req)
 
 			var body CreateListRequest
 			if err := req.BodyFromJson(&body); err != nil {

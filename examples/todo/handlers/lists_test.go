@@ -20,14 +20,12 @@ func TestListsMultiHandler(t *testing.T) {
 		tests := []struct {
 			name       string
 			query      string
-			addUser    bool
 			mockSetup  func(sqlmock.Sqlmock)
 			assertBody func(t *testing.T, res *routeit.TestResponse)
 			wantErr    error
 		}{
 			{
-				name:    "defaults page=1, page_size=10 when not provided",
-				addUser: true,
+				name: "defaults page=1, page_size=10 when not provided",
 				mockSetup: func(mock sqlmock.Sqlmock) {
 					created := time.Now().Add(-time.Hour)
 					updated := created.Add(time.Minute)
@@ -72,23 +70,16 @@ func TestListsMultiHandler(t *testing.T) {
 			{
 				name:    "invalid page returns 400",
 				query:   "?page=abc",
-				addUser: true,
 				wantErr: routeit.ErrBadRequest(),
 			},
 			{
 				name:    "invalid page_size returns 400",
 				query:   "?page_size=-5",
-				addUser: true,
 				wantErr: routeit.ErrBadRequest(),
 			},
 			{
-				name:    "missing user header returns 401",
-				wantErr: routeit.ErrUnauthorized(),
-			},
-			{
-				name:    "custom page and size applied",
-				query:   "?page=2&page_size=5",
-				addUser: true,
+				name:  "custom page and size applied",
+				query: "?page=2&page_size=5",
 				mockSetup: func(mock sqlmock.Sqlmock) {
 					created := time.Now()
 					updated := created
@@ -127,9 +118,7 @@ func TestListsMultiHandler(t *testing.T) {
 					repo := db.NewTodoListRepository(dbConn)
 					handler := ListsMultiHandler(repo)
 					req := routeit.NewTestRequest(t, "/lists"+tc.query, routeit.GET, routeit.TestRequestOptions{})
-					if tc.addUser {
-						req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
-					}
+					req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
 
 					res, err := routeit.TestHandler(handler, req)
 
@@ -158,7 +147,6 @@ func TestListsMultiHandler(t *testing.T) {
 		tests := []struct {
 			name       string
 			bodyFn     func(t *testing.T) []byte
-			addUser    bool
 			mockSetup  func(sqlmock.Sqlmock)
 			wantErr    error
 			assertBody func(t *testing.T, res *routeit.TestResponse)
@@ -176,7 +164,6 @@ func TestListsMultiHandler(t *testing.T) {
 					}
 					return bytes
 				},
-				addUser: true,
 				mockSetup: func(mock sqlmock.Sqlmock) {
 					mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO lists (id, created, updated, user_id, name, description) VALUES (?, ?, ?, ?, ?, ?)`)).
 						WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "user-123", "Groceries", "Weekly shopping list").
@@ -191,26 +178,10 @@ func TestListsMultiHandler(t *testing.T) {
 				},
 			},
 			{
-				name: "missing user ID returns unauthorized",
-				bodyFn: func(t *testing.T) []byte {
-					req := CreateListRequest{
-						Name:        "No User",
-						Description: "No auth header",
-					}
-					bytes, err := json.Marshal(req)
-					if err != nil {
-						t.Fatalf("failed to marshal request: %v", err)
-					}
-					return bytes
-				},
-				wantErr: routeit.ErrUnauthorized(),
-			},
-			{
 				name: "invalid JSON body returns 400",
 				bodyFn: func(t *testing.T) []byte {
 					return []byte("{invalid-json}")
 				},
-				addUser: true,
 				wantErr: routeit.ErrBadRequest(),
 			},
 			{
@@ -226,7 +197,6 @@ func TestListsMultiHandler(t *testing.T) {
 					}
 					return bytes
 				},
-				addUser: true,
 				wantErr: routeit.ErrBadRequest(),
 			},
 			{
@@ -242,7 +212,6 @@ func TestListsMultiHandler(t *testing.T) {
 					}
 					return bytes
 				},
-				addUser: true,
 				mockSetup: func(mock sqlmock.Sqlmock) {
 					mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO lists (id, created, updated, user_id, name, description) VALUES (?, ?, ?, ?, ?, ?)`)).
 						WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "user-123", "ErrList", "DB will fail").
@@ -264,9 +233,7 @@ func TestListsMultiHandler(t *testing.T) {
 						Body:    tc.bodyFn(t),
 						Headers: []string{"Content-Type", "application/json"},
 					})
-					if tc.addUser {
-						req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
-					}
+					req.NewContextValue("user", &dao.User{Meta: dao.Meta{Id: "user-123"}})
 
 					res, err := routeit.TestHandler(handler, req)
 

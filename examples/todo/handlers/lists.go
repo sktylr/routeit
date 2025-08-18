@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"strconv"
 	"time"
 
@@ -95,7 +94,7 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 
 			lists, err := repo.GetListsByUser(req.Context(), userId, page, pageSize)
 			if err != nil {
-				return routeit.ErrServiceUnavailable().WithCause(err)
+				return err
 			}
 
 			var res []NestedListResponse
@@ -132,7 +131,7 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 
 			var body CreateListRequest
 			if err := req.BodyFromJson(&body); err != nil {
-				return routeit.ErrBadRequest().WithCause(err)
+				return err
 			}
 
 			if body.Name == "" {
@@ -141,7 +140,7 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 
 			list, err := repo.CreateList(req.Context(), userId, body.Name, body.Description)
 			if err != nil {
-				return routeit.ErrServiceUnavailable().WithCause(err)
+				return err
 			}
 
 			res := CreateListResponse{
@@ -171,15 +170,7 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 		},
 		Delete: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			id, _ := req.PathParam("list")
-			// TODO: in future, this error mapping should be handled at the top level. Unfortunately the tests would all need to be reworked since they depend on the function returning a HttpError.
-			err := repo.DeleteList(req.Context(), id)
-			if err != nil {
-				if errors.Is(err, db.ErrListNotFound) {
-					return routeit.ErrNotFound().WithCause(err)
-				}
-				return routeit.ErrServiceUnavailable().WithCause(err)
-			}
-			return nil
+			return repo.DeleteList(req.Context(), id)
 		},
 		Put: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			list, _ := routeit.ContextValueAs[*dao.TodoList](req, "list")
@@ -191,10 +182,7 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 
 			updated, err := repo.UpdateList(req.Context(), list.Id, body.Name, body.Description)
 			if err != nil {
-				if errors.Is(err, db.ErrListNotFound) {
-					return routeit.ErrNotFound().WithCause(err)
-				}
-				return routeit.ErrServiceUnavailable().WithCause(err)
+				return err
 			}
 
 			res := UpdateListResponse{

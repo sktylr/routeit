@@ -44,26 +44,26 @@ func TestRefreshTokenHandler(t *testing.T) {
 			name            string
 			refreshToken    string
 			mockQuery       func()
-			expectedStatus  routeit.HttpStatus
+			wantErr         error
 			expectSuccess   bool
 			expectTokenData bool
 		}{
 			{
-				name:           "missing token",
-				mockQuery:      func() {},
-				expectedStatus: routeit.StatusUnprocessableContent,
+				name:      "missing token",
+				mockQuery: func() {},
+				wantErr:   routeit.ErrUnprocessableContent(),
 			},
 			{
-				name:           "malformed token",
-				refreshToken:   "invalid.token.here",
-				mockQuery:      func() {},
-				expectedStatus: routeit.StatusUnauthorized,
+				name:         "malformed token",
+				refreshToken: "invalid.token.here",
+				mockQuery:    func() {},
+				wantErr:      routeit.ErrUnauthorized(),
 			},
 			{
-				name:           "expired token",
-				refreshToken:   expiredToken,
-				mockQuery:      func() {},
-				expectedStatus: routeit.StatusUnauthorized,
+				name:         "expired token",
+				refreshToken: expiredToken,
+				mockQuery:    func() {},
+				wantErr:      routeit.ErrUnauthorized(),
 			},
 			{
 				name:         "user not found",
@@ -73,7 +73,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 						WithArgs(validUserID).
 						WillReturnRows(sqlmock.NewRows([]string{}))
 				},
-				expectedStatus: routeit.StatusUnauthorized,
+				wantErr: routeit.ErrUnauthorized(),
 			},
 			{
 				name:         "db error on lookup",
@@ -83,13 +83,13 @@ func TestRefreshTokenHandler(t *testing.T) {
 						WithArgs(validUserID).
 						WillReturnError(errors.New("db failure"))
 				},
-				expectedStatus: routeit.StatusUnauthorized,
+				wantErr: db.ErrDatabaseIssue,
 			},
 			{
-				name:           "using access token instead of refresh",
-				refreshToken:   validTokens.AccessToken,
-				mockQuery:      func() {},
-				expectedStatus: routeit.StatusUnauthorized,
+				name:         "using access token instead of refresh",
+				refreshToken: validTokens.AccessToken,
+				mockQuery:    func() {},
+				wantErr:      routeit.ErrUnauthorized(),
 			},
 			{
 				name:         "success",
@@ -100,7 +100,6 @@ func TestRefreshTokenHandler(t *testing.T) {
 						WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password", "created", "updated"}).
 							AddRow(validUserID, "Alice", "alice@example.com", "somehashedpassword", time.Now(), time.Now()))
 				},
-				expectedStatus:  routeit.StatusCreated,
 				expectSuccess:   true,
 				expectTokenData: true,
 			},
@@ -129,16 +128,12 @@ func TestRefreshTokenHandler(t *testing.T) {
 					if err == nil {
 						t.Error("no error when expected failure")
 					}
-					httpErr, ok := err.(*routeit.HttpError)
-					if !ok {
-						t.Fatalf(`error = %T, wanted routeit.HttpError`, httpErr)
-					}
-					if httpErr.Status() != tc.expectedStatus {
-						t.Errorf(`status = %+v, wanted %+v`, httpErr.Status(), tc.expectedStatus)
+					if !errors.Is(err, tc.wantErr) {
+						t.Fatalf(`err = %v, wanted %v`, err, tc.wantErr)
 					}
 					return
 				}
-				resp.AssertStatusCode(t, tc.expectedStatus)
+				resp.AssertStatusCode(t, routeit.StatusCreated)
 				if tc.expectTokenData {
 					var data RefreshTokenResponse
 					resp.BodyToJson(t, &data)

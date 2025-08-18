@@ -40,20 +40,8 @@ func Connect(ctx context.Context) (*sql.DB, error) {
 		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
-	}
-
-	if _, err := db.ExecContext(ctx, usersSchema); err != nil {
+	if err := initialiseSchema(ctx, db); err != nil {
 		return nil, err
-	}
-
-	if _, err := db.ExecContext(ctx, listsSchema); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
-	}
-
-	if _, err := db.ExecContext(ctx, itemsSchema); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 	}
 
 	return db, nil
@@ -82,17 +70,25 @@ func WithIntegrationTestConnection(tb testing.TB, fn func(*sql.DB)) {
 	}
 	defer dbConn.Close()
 
-	if _, err = dbConn.ExecContext(tb.Context(), usersSchema); err != nil {
-		tb.Fatalf(`failed to initialise db: %v`, err)
-	}
-
-	if _, err = dbConn.ExecContext(tb.Context(), listsSchema); err != nil {
-		tb.Fatalf(`failed to initialise db: %v`, err)
-	}
-
-	if _, err = dbConn.ExecContext(tb.Context(), itemsSchema); err != nil {
+	if err := initialiseSchema(tb.Context(), dbConn); err != nil {
 		tb.Fatalf(`failed to initialise db: %v`, err)
 	}
 
 	fn(dbConn)
+}
+
+func initialiseSchema(ctx context.Context, conn *sql.DB) error {
+	if err := conn.Ping(); err != nil {
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+	if _, err := conn.ExecContext(ctx, usersSchema); err != nil {
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+	if _, err := conn.ExecContext(ctx, listsSchema); err != nil {
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+	if _, err := conn.ExecContext(ctx, itemsSchema); err != nil {
+		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+	return nil
 }

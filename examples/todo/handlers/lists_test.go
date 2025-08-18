@@ -30,28 +30,31 @@ func TestListsMultiHandler(t *testing.T) {
 					created := time.Now().Add(-time.Hour)
 					updated := created.Add(time.Minute)
 					mock.ExpectQuery(regexp.QuoteMeta(`
-					SELECT l.id, l.created, l.updated, l.user_id, l.name, l.description,
-						COUNT(i.id) AS total_items,
-						SUM(CASE WHEN i.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_items
-					FROM lists l
-					LEFT JOIN items i ON l.id = i.list_id
-					WHERE l.user_id = ?
-					GROUP BY l.id
-					ORDER BY l.created DESC
-					LIMIT ? OFFSET ?
-				`)).WithArgs("user-123", 10, 0).WillReturnRows(sqlmock.NewRows([]string{
+						SELECT l.id, l.created, l.updated, l.user_id, l.name, l.description,
+							COUNT(i.id) AS total_items,
+							SUM(CASE WHEN i.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_items
+						FROM lists l
+						LEFT JOIN items i ON l.id = i.list_id
+						WHERE l.user_id = ?
+						GROUP BY l.id
+						ORDER BY l.created DESC
+						LIMIT ? OFFSET ?
+					`)).WithArgs("user-123", 10, 0).WillReturnRows(sqlmock.NewRows([]string{
 						"id", "created", "updated", "l.user_id", "name", "description", "total_items", "completed_items",
 					}).AddRow("list-1", created, updated, "user-123", "Groceries", "Weekly shopping", 3, 1))
 					mock.ExpectQuery(regexp.QuoteMeta(`
-					SELECT id, created, updated, user_id, list_id, name, status
-					FROM items
-					WHERE list_id IN (?)
-					ORDER BY list_id, created ASC
-				`)).WithArgs("list-1").WillReturnRows(sqlmock.NewRows([]string{
+						SELECT id, created, updated, user_id, list_id, name, status
+						FROM items
+						WHERE list_id IN (?)
+						ORDER BY list_id, created ASC
+					`)).WithArgs("list-1").WillReturnRows(sqlmock.NewRows([]string{
 						"id", "created", "updated", "user_id", "list_id", "name", "status",
 					}).AddRow("item-1", created, updated, "user-123", "list-1", "Milk", "COMPLETED").
 						AddRow("item-2", created, updated, "user-123", "list-1", "Bread", "PENDING").
 						AddRow("item-3", created, updated, "user-123", "list-1", "Bananas", "PENDING"))
+					mock.ExpectQuery(`SELECT COUNT\(id\) FROM lists WHERE user_id = \?`).
+						WithArgs("user-123").
+						WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(15))
 				},
 				assertBody: func(t *testing.T, res *routeit.TestResponse) {
 					var body ListListsResponse
@@ -64,6 +67,15 @@ func TestListsMultiHandler(t *testing.T) {
 					}
 					if len(body.Lists[0].Items) != 3 {
 						t.Errorf(`# items = %d, expected 3`, len(body.Lists[0].Items))
+					}
+					if body.Total != 15 {
+						t.Errorf(`total = %d, wanted 15`, body.Total)
+					}
+					if body.Page != 1 {
+						t.Errorf(`page = %d, wanted 1`, body.Page)
+					}
+					if body.PageSize != 10 {
+						t.Errorf(`page_size = %d, wanted 10`, body.PageSize)
 					}
 				},
 			},
@@ -84,27 +96,30 @@ func TestListsMultiHandler(t *testing.T) {
 					created := time.Now()
 					updated := created
 					mock.ExpectQuery(regexp.QuoteMeta(`
-					SELECT l.id, l.created, l.updated, l.user_id, l.name, l.description,
-						COUNT(i.id) AS total_items,
-						SUM(CASE WHEN i.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_items
-					FROM lists l
-					LEFT JOIN items i ON l.id = i.list_id
-					WHERE l.user_id = ?
-					GROUP BY l.id
-					ORDER BY l.created DESC
-					LIMIT ? OFFSET ?
-				`)).WithArgs("user-123", 5, 5).WillReturnRows(sqlmock.NewRows([]string{
+						SELECT l.id, l.created, l.updated, l.user_id, l.name, l.description,
+							COUNT(i.id) AS total_items,
+							SUM(CASE WHEN i.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_items
+						FROM lists l
+						LEFT JOIN items i ON l.id = i.list_id
+						WHERE l.user_id = ?
+						GROUP BY l.id
+						ORDER BY l.created DESC
+						LIMIT ? OFFSET ?
+					`)).WithArgs("user-123", 5, 5).WillReturnRows(sqlmock.NewRows([]string{
 						"id", "created", "updated", "l.user_id", "name", "description", "total_items", "completed_items",
 					}).AddRow("list-2", created, updated, "user-123", "Work", "Tasks", 2, 0))
 					mock.ExpectQuery(regexp.QuoteMeta(`
-					SELECT id, created, updated, user_id, list_id, name, status
-					FROM items
-					WHERE list_id IN (?)
-					ORDER BY list_id, created ASC
-				`)).WithArgs("list-2").WillReturnRows(sqlmock.NewRows([]string{
+						SELECT id, created, updated, user_id, list_id, name, status
+						FROM items
+						WHERE list_id IN (?)
+						ORDER BY list_id, created ASC
+					`)).WithArgs("list-2").WillReturnRows(sqlmock.NewRows([]string{
 						"id", "created", "updated", "user_id", "list_id", "name", "status",
 					}).AddRow("item-1", created, updated, "user-123", "list-1", "Send email", "PENDING").
 						AddRow("item-2", created, updated, "user-123", "list-1", "Plan meeting", "PENDING"))
+					mock.ExpectQuery(`SELECT COUNT\(id\) FROM lists WHERE user_id = \?`).
+						WithArgs("user-123").
+						WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(15))
 				},
 			},
 		}

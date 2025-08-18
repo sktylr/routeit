@@ -8,9 +8,11 @@ import (
 	"github.com/sktylr/routeit/examples/todo/db"
 )
 
-// TODO: could extend this to include metadata about the total number of lists etc.
 type ListListsResponse struct {
-	Lists []NestedListResponse `json:"lists"`
+	Lists    []NestedListResponse `json:"lists"`
+	Page     uint                 `json:"page"`
+	Total    uint                 `json:"total"`
+	PageSize uint                 `json:"page_size"`
 }
 
 type NestedListResponse struct {
@@ -70,6 +72,11 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 				return err
 			}
 
+			count, err := repo.CountByUser(req.Context(), userId)
+			if err != nil {
+				return err
+			}
+
 			var res []NestedListResponse
 			for _, l := range lists {
 				var items []NestedListItemResponse
@@ -94,7 +101,7 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 				})
 			}
 
-			return rw.Json(ListListsResponse{Lists: res})
+			return rw.Json(ListListsResponse{Lists: res, Total: count, Page: uint(pagination.Page), PageSize: uint(pagination.PageSize)})
 		},
 		Post: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			userId := userIdFromRequest(req)

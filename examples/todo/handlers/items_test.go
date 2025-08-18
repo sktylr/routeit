@@ -112,6 +112,9 @@ func TestItemsMultiHandler(t *testing.T) {
 				WithArgs("user-123", "list-123", 10, 0).
 				WillReturnRows(sqlmock.NewRows([]string{"id", "created", "updated", "user_id", "list_id", "name", "status"}).
 					AddRow("item-1", created, updated, "user-123", "list-123", "Milk", "PENDING"))
+			mock.ExpectQuery(`SELECT COUNT\(id\) FROM items WHERE user_id = \? AND list_id = \?`).
+				WithArgs("user-123", "list-123").
+				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(15))
 
 			repo := db.NewTodoItemRepository(dbConn)
 			handler := ItemsMultiHandler(repo)
@@ -129,6 +132,15 @@ func TestItemsMultiHandler(t *testing.T) {
 			res.BodyToJson(t, &body)
 			if len(body.Items) != 1 || body.Items[0].Name != "Milk" {
 				t.Errorf("unexpected body: %+v", body)
+			}
+			if body.Total != 15 {
+				t.Errorf(`total = %d, wanted 15`, body.Total)
+			}
+			if body.Page != 1 {
+				t.Errorf(`page = %d, wanted 1`, body.Page)
+			}
+			if body.PageSize != 10 {
+				t.Errorf(`page_size = %d, wanted 10`, body.PageSize)
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("unmet SQL mock expectations: %v", err)

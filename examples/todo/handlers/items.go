@@ -21,7 +21,10 @@ type CreateItemRequest itemRequest
 type CreateItemResponse itemResponse
 
 type ListItemsResponse struct {
-	Items []itemResponse `json:"items"`
+	Items    []itemResponse `json:"items"`
+	Page     uint           `json:"page"`
+	Total    uint           `json:"total"`
+	PageSize uint           `json:"page_size"`
 }
 
 type itemRequest struct {
@@ -124,7 +127,12 @@ func ItemsMultiHandler(repo *db.TodoItemRepository) routeit.Handler {
 				return err
 			}
 
-			res := ListItemsResponse{}
+			count, err := repo.CountByListAndUser(req.Context(), userId, listId)
+			if err != nil {
+				return err
+			}
+
+			res := ListItemsResponse{Total: count, Page: uint(pagination.Page), PageSize: uint(pagination.PageSize)}
 			for _, item := range items {
 				resItem := itemResponse{
 					Id:      item.Id,

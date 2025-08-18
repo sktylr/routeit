@@ -355,6 +355,15 @@ func TestLists(t *testing.T) {
 			if len(lists.Lists) == 0 {
 				t.Errorf("expected at least one list, got %+v", lists.Lists)
 			}
+			if lists.Total != 1 {
+				t.Errorf(`lists.Total = %d, wanted 1`, lists.Total)
+			}
+			if lists.Page != 1 {
+				t.Errorf(`lists.Page = %d, wanted 1`, lists.Page)
+			}
+			if lists.PageSize != 10 {
+				t.Errorf(`page_size = %d, wanted 10`, lists.PageSize)
+			}
 		})
 	})
 

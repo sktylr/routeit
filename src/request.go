@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -232,7 +233,15 @@ func (req *Request) UnsafeBodyFromJson(to any) error {
 		panic(fmt.Sprintf("BodyFromJson requires a non-nil pointer destination, got %T", to))
 	}
 	req.mustAllowBodyReading()
-	return json.Unmarshal([]byte(req.body), to)
+	err := json.Unmarshal([]byte(req.body), to)
+	if err == nil {
+		return nil
+	}
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return ErrBadRequest().WithCause(err)
+	}
+	return err
 }
 
 // Parses the text/plain content from the request. This method checks that the

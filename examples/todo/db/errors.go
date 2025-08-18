@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	ErrDuplicateKey = errors.New("duplicate key")
-	ErrItemNotFound = errors.New("item not found")
-	ErrListNotFound = errors.New("list not found")
+	ErrDuplicateKey  = errors.New("duplicate key")
+	ErrItemNotFound  = errors.New("item not found")
+	ErrListNotFound  = errors.New("list not found")
+	ErrDatabaseIssue = errors.New("database issue")
 )
 
 func isDuplicateKeyErr(err error) bool {

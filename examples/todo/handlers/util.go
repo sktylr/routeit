@@ -7,6 +7,25 @@ import (
 	"github.com/sktylr/routeit/examples/todo/dao"
 )
 
+type pagination struct {
+	Page     int
+	PageSize int
+}
+
+func extractPagination(q *routeit.QueryParams) (*pagination, error) {
+	page, err := queryParamOrDefault("page", q, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	pageSize, err := queryParamOrDefault("page_size", q, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pagination{Page: page, PageSize: pageSize}, nil
+}
+
 func userIdFromRequest(req *routeit.Request) string {
 	rawUser, _ := req.ContextValue("user")
 	user, ok := rawUser.(*dao.User)

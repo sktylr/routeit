@@ -60,16 +60,12 @@ func ListsMultiHandler(repo *db.TodoListRepository) routeit.Handler {
 		Get: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			userId := userIdFromRequest(req)
 
-			page, err := queryParamOrDefault("page", req.Queries(), 1)
-			if err != nil {
-				return err
-			}
-			pageSize, err := queryParamOrDefault("page_size", req.Queries(), 10)
+			pagination, err := extractPagination(req.Queries())
 			if err != nil {
 				return err
 			}
 
-			lists, err := repo.GetListsByUser(req.Context(), userId, page, pageSize)
+			lists, err := repo.GetListsByUser(req.Context(), userId, pagination.Page, pagination.PageSize)
 			if err != nil {
 				return err
 			}

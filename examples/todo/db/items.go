@@ -71,7 +71,7 @@ func (r *TodoItemRepository) GetById(ctx context.Context, id string) (*dao.TodoI
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrItemNotFound{itemId: id}
+			return nil, fmt.Errorf("%w [%s]: %v", ErrItemNotFound, id, err)
 		}
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (r *TodoItemRepository) UpdateName(ctx context.Context, id, newName string)
 		return err
 	}
 	if rowsAffected == 0 {
-		return ErrItemNotFound{itemId: id}
+		return fmt.Errorf("%w [%s]", ErrItemNotFound, id)
 	}
 
 	return nil
@@ -124,7 +124,7 @@ func (r *TodoItemRepository) DeleteItem(ctx context.Context, id string) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return ErrItemNotFound{itemId: id}
+		return fmt.Errorf("%w [%s]", ErrItemNotFound, id)
 	}
 
 	return nil

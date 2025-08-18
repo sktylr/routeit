@@ -110,8 +110,7 @@ func TestUpdateList(t *testing.T) {
 			},
 			expectErr: true,
 			errCheck: func(err error) bool {
-				var notFound ErrListNotFound
-				return errors.As(err, &notFound) && notFound.listId == "missing-456"
+				return errors.Is(err, ErrListNotFound)
 			},
 		},
 		{

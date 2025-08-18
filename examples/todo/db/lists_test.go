@@ -571,3 +571,69 @@ func TestDeleteList(t *testing.T) {
 		})
 	}
 }
+func TestCountByUser(t *testing.T) {
+	tests := []struct {
+		name      string
+		userId    string
+		mockSetup func(sqlmock.Sqlmock)
+		want      uint
+		wantErr   bool
+	}{
+		{
+			name:   "success",
+			userId: "user-1",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT COUNT\(id\) FROM lists WHERE user_id = \?`).
+					WithArgs("user-1").
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(15))
+			},
+			want: 15,
+		},
+		{
+			name:   "db query error",
+			userId: "user-1",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT COUNT\(id\) FROM lists WHERE user_id = \?`).
+					WithArgs("user-1").
+					WillReturnError(errors.New("db failure"))
+			},
+			wantErr: true,
+		},
+		{
+			name:   "row scan error",
+			userId: "user-1",
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT COUNT\(id\) FROM lists WHERE user_id = \?`).
+					WithArgs("user-1").
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow("foobar"))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoListRepository(sqlDB)
+
+				count, err := repo.CountByUser(t.Context(), tc.userId)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if !tc.wantErr {
+					if count != tc.want {
+						t.Errorf(`count = %d, wanted %d`, count, tc.want)
+					}
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}

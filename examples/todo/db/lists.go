@@ -175,6 +175,22 @@ func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, 
 	return lists, nil
 }
 
+func (r *TodoListRepository) CountByUser(ctx context.Context, userId string) (uint, error) {
+	query := `
+		SELECT COUNT(id)
+		FROM lists
+		WHERE user_id = ?
+	`
+	row := r.db.QueryRowContext(ctx, query, userId)
+
+	var count uint
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+
+	return count, nil
+}
+
 func (r *TodoListRepository) getListItems(ctx context.Context, ids []any) (map[string][]dao.TodoItem, error) {
 	placeholder := strings.Join(slices.Repeat([]string{"?"}, len(ids)), ",")
 	query := fmt.Sprintf(`

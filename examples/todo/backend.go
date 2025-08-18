@@ -13,6 +13,7 @@ import (
 func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 	usersRepo := db.NewUsersRepository(dbConn)
 	listsRepo := db.NewTodoListRepository(dbConn)
+	itemsRepo := db.NewTodoItemRepository(dbConn)
 	srv := routeit.NewServer(routeit.ServerConfig{
 		Debug:                  false,
 		StrictClientAcceptance: true,
@@ -23,6 +24,7 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 		routeit.CorsMiddleware(routeit.DefaultCors()),
 		middleware.JwtMiddleware(usersRepo),
 		middleware.LoadListMiddleware(listsRepo),
+		middleware.LoadItemMiddleware(itemsRepo),
 	)
 	srv.RegisterRoutesUnderNamespace("/auth", routeit.RouteRegistry{
 		"/login":    handlers.LoginHandler(usersRepo),

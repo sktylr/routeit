@@ -174,8 +174,7 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 			// TODO: in future, this error mapping should be handled at the top level. Unfortunately the tests would all need to be reworked since they depend on the function returning a HttpError.
 			err := repo.DeleteList(req.Context(), id)
 			if err != nil {
-				var nf db.ErrListNotFound
-				if errors.As(err, &nf) {
+				if errors.Is(err, db.ErrListNotFound) {
 					return routeit.ErrNotFound().WithCause(err)
 				}
 				return routeit.ErrServiceUnavailable().WithCause(err)
@@ -192,8 +191,7 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 
 			updated, err := repo.UpdateList(req.Context(), list.Id, body.Name, body.Description)
 			if err != nil {
-				var nf db.ErrListNotFound
-				if errors.As(err, &nf) {
+				if errors.Is(err, db.ErrListNotFound) {
 					return routeit.ErrNotFound().WithCause(err)
 				}
 				return routeit.ErrServiceUnavailable().WithCause(err)

@@ -68,7 +68,7 @@ func (r *TodoListRepository) UpdateList(ctx context.Context, listId, name, descr
 		return nil, fmt.Errorf("failed to determine rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return nil, ErrListNotFound{listId: listId}
+		return nil, fmt.Errorf("%w [%s]", ErrListNotFound, listId)
 	}
 
 	list := &dao.TodoList{
@@ -94,7 +94,7 @@ func (r *TodoListRepository) DeleteList(ctx context.Context, id string) error {
 		return err
 	}
 	if rows == 0 {
-		return ErrListNotFound{listId: id}
+		return fmt.Errorf("%w [%s]", ErrListNotFound, id)
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func (r *TodoListRepository) GetListById(ctx context.Context, id string) (*dao.T
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrListNotFound{listId: id}
+			return nil, fmt.Errorf("%w [%s]: %v", ErrListNotFound, id, err)
 		}
 		return nil, err
 	}

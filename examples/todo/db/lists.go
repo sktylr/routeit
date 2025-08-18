@@ -150,7 +150,7 @@ func (r *TodoListRepository) GetListsByUser(ctx context.Context, userId string, 
 	for rows.Next() {
 		var l dao.AggregateTodoList
 		if err := rows.Scan(&l.Id, &l.Created, &l.Updated, &l.UserId, &l.Name, &l.Description, &l.TotalItems, &l.CompletedItems); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
 		}
 		l.Items = []dao.TodoItem{}
 		listIds = append(listIds, l.Id)

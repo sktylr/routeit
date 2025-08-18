@@ -79,6 +79,46 @@ func (r *TodoItemRepository) GetById(ctx context.Context, id string) (*dao.TodoI
 	return &item, nil
 }
 
+func (r *TodoItemRepository) GetByListAndUser(ctx context.Context, userId, listId string, page, pageSize int) ([]*dao.TodoItem, error) {
+	offset := (page - 1) * pageSize
+	query := `
+		SELECT id, created, updated, user_id, list_id, name, status
+		FROM items
+		WHERE user_id = ? AND list_id = ?
+		ORDER BY created DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userId, listId, pageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+	defer rows.Close()
+
+	items := []*dao.TodoItem{}
+	for rows.Next() {
+		var item dao.TodoItem
+		if err := rows.Scan(
+			&item.Id,
+			&item.Created,
+			&item.Updated,
+			&item.UserId,
+			&item.TodoListId,
+			&item.Name,
+			&item.Status,
+		); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+		}
+		items = append(items, &item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
+	}
+
+	return items, nil
+}
+
 func (r *TodoItemRepository) UpdateName(ctx context.Context, id, newName string) error {
 	query := `
 		UPDATE items

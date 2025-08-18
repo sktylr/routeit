@@ -18,12 +18,12 @@ import (
 func TestListsMultiHandler(t *testing.T) {
 	t.Run("GET", func(t *testing.T) {
 		tests := []struct {
-			name           string
-			query          string
-			addUser        bool
-			mockSetup      func(sqlmock.Sqlmock)
-			expectedStatus routeit.HttpStatus
-			assertBody     func(t *testing.T, res *routeit.TestResponse)
+			name       string
+			query      string
+			addUser    bool
+			mockSetup  func(sqlmock.Sqlmock)
+			assertBody func(t *testing.T, res *routeit.TestResponse)
+			wantErr    error
 		}{
 			{
 				name:    "defaults page=1, page_size=10 when not provided",
@@ -55,7 +55,6 @@ func TestListsMultiHandler(t *testing.T) {
 						AddRow("item-2", created, updated, "user-123", "list-1", "Bread", "PENDING").
 						AddRow("item-3", created, updated, "user-123", "list-1", "Bananas", "PENDING"))
 				},
-				expectedStatus: routeit.StatusOK,
 				assertBody: func(t *testing.T, res *routeit.TestResponse) {
 					var body ListListsResponse
 					res.BodyToJson(t, &body)
@@ -71,20 +70,20 @@ func TestListsMultiHandler(t *testing.T) {
 				},
 			},
 			{
-				name:           "invalid page returns 400",
-				query:          "?page=abc",
-				addUser:        true,
-				expectedStatus: routeit.StatusBadRequest,
+				name:    "invalid page returns 400",
+				query:   "?page=abc",
+				addUser: true,
+				wantErr: routeit.ErrBadRequest(),
 			},
 			{
-				name:           "invalid page_size returns 400",
-				query:          "?page_size=-5",
-				addUser:        true,
-				expectedStatus: routeit.StatusBadRequest,
+				name:    "invalid page_size returns 400",
+				query:   "?page_size=-5",
+				addUser: true,
+				wantErr: routeit.ErrBadRequest(),
 			},
 			{
-				name:           "missing user header returns 401",
-				expectedStatus: routeit.StatusUnauthorized,
+				name:    "missing user header returns 401",
+				wantErr: routeit.ErrUnauthorized(),
 			},
 			{
 				name:    "custom page and size applied",
@@ -116,7 +115,6 @@ func TestListsMultiHandler(t *testing.T) {
 					}).AddRow("item-1", created, updated, "user-123", "list-1", "Send email", "PENDING").
 						AddRow("item-2", created, updated, "user-123", "list-1", "Plan meeting", "PENDING"))
 				},
-				expectedStatus: routeit.StatusOK,
 			},
 		}
 
@@ -135,20 +133,15 @@ func TestListsMultiHandler(t *testing.T) {
 
 					res, err := routeit.TestHandler(handler, req)
 
-					wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 					if err != nil {
-						if !wantErr {
+						if tc.wantErr == nil {
 							t.Fatalf("unexpected error: %v", err)
 						}
-						httpErr, ok := err.(*routeit.HttpError)
-						if !ok {
-							t.Fatalf("expected HttpError, got %T", err)
-						}
-						if httpErr.Status() != tc.expectedStatus {
-							t.Errorf("status = %v, want %v", httpErr.Status(), tc.expectedStatus)
+						if !errors.Is(err, tc.wantErr) {
+							t.Fatalf(`err = %v, wanted %v`, err, tc.wantErr)
 						}
 					} else {
-						res.AssertStatusCode(t, tc.expectedStatus)
+						res.AssertStatusCode(t, routeit.StatusOK)
 						if tc.assertBody != nil {
 							tc.assertBody(t, res)
 						}
@@ -163,12 +156,12 @@ func TestListsMultiHandler(t *testing.T) {
 
 	t.Run("POST", func(t *testing.T) {
 		tests := []struct {
-			name           string
-			bodyFn         func(t *testing.T) []byte
-			addUser        bool
-			mockSetup      func(sqlmock.Sqlmock)
-			expectedStatus routeit.HttpStatus
-			assertBody     func(t *testing.T, res *routeit.TestResponse)
+			name       string
+			bodyFn     func(t *testing.T) []byte
+			addUser    bool
+			mockSetup  func(sqlmock.Sqlmock)
+			wantErr    error
+			assertBody func(t *testing.T, res *routeit.TestResponse)
 		}{
 			{
 				name: "valid create list returns list response",
@@ -189,7 +182,6 @@ func TestListsMultiHandler(t *testing.T) {
 						WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "user-123", "Groceries", "Weekly shopping list").
 						WillReturnResult(sqlmock.NewResult(1, 1))
 				},
-				expectedStatus: routeit.StatusCreated,
 				assertBody: func(t *testing.T, res *routeit.TestResponse) {
 					var body CreateListResponse
 					res.BodyToJson(t, &body)
@@ -211,15 +203,15 @@ func TestListsMultiHandler(t *testing.T) {
 					}
 					return bytes
 				},
-				expectedStatus: routeit.StatusUnauthorized,
+				wantErr: routeit.ErrUnauthorized(),
 			},
 			{
 				name: "invalid JSON body returns 400",
 				bodyFn: func(t *testing.T) []byte {
 					return []byte("{invalid-json}")
 				},
-				addUser:        true,
-				expectedStatus: routeit.StatusBadRequest,
+				addUser: true,
+				wantErr: routeit.ErrBadRequest(),
 			},
 			{
 				name: "empty name returns 400",
@@ -234,11 +226,11 @@ func TestListsMultiHandler(t *testing.T) {
 					}
 					return bytes
 				},
-				addUser:        true,
-				expectedStatus: routeit.StatusBadRequest,
+				addUser: true,
+				wantErr: routeit.ErrBadRequest(),
 			},
 			{
-				name: "db error returns 503",
+				name: "db error propagated",
 				bodyFn: func(t *testing.T) []byte {
 					req := CreateListRequest{
 						Name:        "ErrList",
@@ -256,7 +248,7 @@ func TestListsMultiHandler(t *testing.T) {
 						WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "user-123", "ErrList", "DB will fail").
 						WillReturnError(errors.New("db insert failed"))
 				},
-				expectedStatus: routeit.StatusServiceUnavailable,
+				wantErr: db.ErrDatabaseIssue,
 			},
 		}
 
@@ -278,20 +270,15 @@ func TestListsMultiHandler(t *testing.T) {
 
 					res, err := routeit.TestHandler(handler, req)
 
-					wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 					if err != nil {
-						if !wantErr {
+						if tc.wantErr == nil {
 							t.Fatalf("unexpected error: %v", err)
 						}
-						httpErr, ok := err.(*routeit.HttpError)
-						if !ok {
-							t.Fatalf("expected HttpError, got %T", err)
-						}
-						if httpErr.Status() != tc.expectedStatus {
-							t.Errorf("status = %v, want %v", httpErr.Status(), tc.expectedStatus)
+						if !errors.Is(err, tc.wantErr) {
+							t.Fatalf(`err = %v, wanted %v`, err, tc.wantErr)
 						}
 					} else {
-						res.AssertStatusCode(t, tc.expectedStatus)
+						res.AssertStatusCode(t, routeit.StatusCreated)
 						tc.assertBody(t, res)
 					}
 					if err := mock.ExpectationsWereMet(); err != nil {
@@ -364,10 +351,10 @@ func TestListsIndividualHandler(t *testing.T) {
 
 	t.Run("DELETE", func(t *testing.T) {
 		tests := []struct {
-			name           string
-			listId         string
-			mockSetup      func(mock sqlmock.Sqlmock)
-			expectedStatus routeit.HttpStatus
+			name      string
+			listId    string
+			mockSetup func(mock sqlmock.Sqlmock)
+			wantErr   error
 		}{
 			{
 				name:   "successfully deletes list",
@@ -377,7 +364,6 @@ func TestListsIndividualHandler(t *testing.T) {
 						WithArgs("list-123").
 						WillReturnResult(sqlmock.NewResult(0, 1))
 				},
-				expectedStatus: routeit.StatusNoContent,
 			},
 			{
 				name:   "delete returns not found if no rows affected",
@@ -387,7 +373,7 @@ func TestListsIndividualHandler(t *testing.T) {
 						WithArgs("list-123").
 						WillReturnResult(sqlmock.NewResult(0, 0))
 				},
-				expectedStatus: routeit.StatusNotFound,
+				wantErr: db.ErrListNotFound,
 			},
 		}
 
@@ -407,20 +393,15 @@ func TestListsIndividualHandler(t *testing.T) {
 
 					res, err := routeit.TestHandler(handler, req)
 
-					wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 					if err != nil {
-						if !wantErr {
+						if tc.wantErr == nil {
 							t.Fatalf("unexpected error: %v", err)
 						}
-						httpErr, ok := err.(*routeit.HttpError)
-						if !ok {
-							t.Fatalf("expected HttpError, got %T", err)
-						}
-						if httpErr.Status() != tc.expectedStatus {
-							t.Errorf("status = %v, want %v", httpErr.Status(), tc.expectedStatus)
+						if !errors.Is(err, tc.wantErr) {
+							t.Fatalf(`err = %v, wanted %v`, err, tc.wantErr)
 						}
 					} else {
-						res.AssertStatusCode(t, tc.expectedStatus)
+						res.AssertStatusCode(t, routeit.StatusNoContent)
 					}
 					if err := mock.ExpectationsWereMet(); err != nil {
 						t.Errorf("unmet SQL mock expectations: %v", err)
@@ -432,13 +413,13 @@ func TestListsIndividualHandler(t *testing.T) {
 
 	t.Run("PUT", func(t *testing.T) {
 		tests := []struct {
-			name           string
-			listId         string
-			addUser        bool
-			body           []byte
-			mockSetup      func(mock sqlmock.Sqlmock)
-			expectedStatus routeit.HttpStatus
-			assertBody     func(t *testing.T, res *routeit.TestResponse)
+			name       string
+			listId     string
+			addUser    bool
+			body       []byte
+			mockSetup  func(mock sqlmock.Sqlmock)
+			wantErr    error
+			assertBody func(t *testing.T, res *routeit.TestResponse)
 		}{
 			{
 				name:   "successfully updates list",
@@ -451,7 +432,6 @@ func TestListsIndividualHandler(t *testing.T) {
 						WithArgs("Updated Groceries", "Bi-weekly shopping", sqlmock.AnyArg(), "list-123").
 						WillReturnResult(sqlmock.NewResult(0, 1))
 				},
-				expectedStatus: routeit.StatusOK,
 				assertBody: func(t *testing.T, res *routeit.TestResponse) {
 					var body UpdateListResponse
 					res.BodyToJson(t, &body)
@@ -476,9 +456,15 @@ func TestListsIndividualHandler(t *testing.T) {
 						WithArgs("Something", "Whatever", sqlmock.AnyArg(), "list-123").
 						WillReturnResult(sqlmock.NewResult(0, 0))
 				},
-				expectedStatus: routeit.StatusNotFound,
+				wantErr: db.ErrListNotFound,
 			},
-			// TODO: should cover invalid JSON here
+			{
+				name:      "invalid JSON",
+				listId:    "list-123",
+				body:      []byte(`{"invalid-json"}`),
+				mockSetup: func(mock sqlmock.Sqlmock) {},
+				wantErr:   routeit.ErrBadRequest(),
+			},
 		}
 
 		for _, tc := range tests {
@@ -511,20 +497,15 @@ func TestListsIndividualHandler(t *testing.T) {
 
 					res, err := routeit.TestHandler(handler, req)
 
-					wantErr := tc.expectedStatus.Is4xx() || tc.expectedStatus.Is5xx()
 					if err != nil {
-						if !wantErr {
+						if tc.wantErr == nil {
 							t.Fatalf("unexpected error: %v", err)
 						}
-						httpErr, ok := err.(*routeit.HttpError)
-						if !ok {
-							t.Fatalf("expected HttpError, got %T", err)
-						}
-						if httpErr.Status() != tc.expectedStatus {
-							t.Errorf("status = %v, want %v", httpErr.Status(), tc.expectedStatus)
+						if !errors.Is(err, tc.wantErr) {
+							t.Fatalf(`err = %v, wanted %v`, err, tc.wantErr)
 						}
 					} else {
-						res.AssertStatusCode(t, tc.expectedStatus)
+						res.AssertStatusCode(t, routeit.StatusOK)
 						tc.assertBody(t, res)
 					}
 					if err := mock.ExpectationsWereMet(); err != nil {

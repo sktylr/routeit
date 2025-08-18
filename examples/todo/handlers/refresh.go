@@ -38,11 +38,11 @@ func RefreshTokenHandler(repo *db.UsersRepository) routeit.Handler {
 
 		// As a sanity check, make sure the refresh token is for a valid user.
 		user, found, err := repo.GetUserById(req.Context(), claims.Subject)
-		if !found {
+		if !found && err == nil {
 			return routeit.ErrUnauthorized()
 		}
 		if err != nil {
-			return routeit.ErrUnauthorized().WithCause(err)
+			return err
 		}
 
 		// A stronger implementation would also invalidate the current refresh

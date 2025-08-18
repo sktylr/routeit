@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-	"fmt"
 	"regexp"
 
 	"github.com/sktylr/routeit"
@@ -45,15 +43,7 @@ func RegisterUserHandler(repo *db.UsersRepository) routeit.Handler {
 
 		user, err := repo.CreateUser(req.Context(), input.Name, input.Email, input.Password)
 		if err != nil {
-			fmt.Println(err)
-			if errors.Is(err, db.ErrDuplicateKey) {
-				// For now, we don't report this specifically back to the user,
-				// since it's generally not a good idea to indicate that a user
-				// already exists with the given email address as this could be
-				// a security risk (if the request is coming from a bad actor).
-				return routeit.ErrBadRequest()
-			}
-			return routeit.ErrServiceUnavailable().WithCause(err)
+			return err
 		}
 
 		tokens, err := auth.GenerateTokens(user.Id)

@@ -14,10 +14,10 @@ import (
 
 func TestLoadListMiddleware(t *testing.T) {
 	type expect struct {
-		proceed   bool
-		errStatus routeit.HttpStatus
-		listId    string
-		saveList  bool
+		proceed  bool
+		wantErr  error
+		listId   string
+		saveList bool
 	}
 	now := time.Now().UTC()
 	cases := []struct {
@@ -51,7 +51,7 @@ func TestLoadListMiddleware(t *testing.T) {
 					WithArgs("list-404").
 					WillReturnError(sql.ErrNoRows)
 			},
-			expect: expect{proceed: false, errStatus: routeit.StatusNotFound},
+			expect: expect{proceed: false, wantErr: db.ErrListNotFound},
 		},
 		{
 			name:   "list belongs to another user returns 403",
@@ -64,7 +64,7 @@ func TestLoadListMiddleware(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "created", "updated", "user_id", "name", "description"}).
 						AddRow("list-123", now, now, "other-user", "Groceries", "Buy stuff"))
 			},
-			expect: expect{proceed: false, errStatus: routeit.StatusForbidden},
+			expect: expect{proceed: false, wantErr: routeit.ErrForbidden()},
 		},
 		{
 			name:   "db error returns 503",
@@ -76,7 +76,7 @@ func TestLoadListMiddleware(t *testing.T) {
 					WithArgs("list-err").
 					WillReturnError(errors.New("db down"))
 			},
-			expect: expect{proceed: false, errStatus: routeit.StatusServiceUnavailable},
+			expect: expect{proceed: false, wantErr: db.ErrDatabaseIssue},
 		},
 		{
 			name:       "path not for lists",
@@ -105,8 +105,7 @@ func TestLoadListMiddleware(t *testing.T) {
 
 				_, proceed, err := routeit.TestMiddleware(mw, req)
 
-				wantErr := tc.expect.errStatus.Is4xx() || tc.expect.errStatus.Is5xx()
-				if !wantErr {
+				if tc.expect.wantErr == nil {
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
@@ -123,11 +122,10 @@ func TestLoadListMiddleware(t *testing.T) {
 					}
 				} else {
 					if err == nil {
-						t.Fatalf("expected error status %+v, got none", tc.expect.errStatus)
+						t.Fatal("expected error, got none")
 					}
-					httpErr, ok := err.(*routeit.HttpError)
-					if !ok || httpErr.Status() != tc.expect.errStatus {
-						t.Errorf("expected status %+v, got %v", tc.expect.errStatus, err)
+					if !errors.Is(err, tc.expect.wantErr) {
+						t.Fatalf(`error = %v, wanted %v`, err, tc.expect.wantErr)
 					}
 				}
 			})

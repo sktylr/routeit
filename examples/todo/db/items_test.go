@@ -33,7 +33,6 @@ func TestUpdateStatus(t *testing.T) {
 					WithArgs(sqlmock.AnyArg(), "123").
 					WillReturnResult(sqlmock.NewResult(0, 1))
 			},
-			wantErr: false,
 		},
 		{
 			name:      "MarkAsPending - success",
@@ -46,7 +45,6 @@ func TestUpdateStatus(t *testing.T) {
 					WithArgs(sqlmock.AnyArg(), "456").
 					WillReturnResult(sqlmock.NewResult(0, 1))
 			},
-			wantErr: false,
 		},
 		{
 			name:      "MarkAsCompleted - db error",
@@ -72,7 +70,6 @@ func TestUpdateStatus(t *testing.T) {
 					WithArgs(sqlmock.AnyArg(), "no-match").
 					WillReturnResult(sqlmock.NewResult(0, 0))
 			},
-			wantErr: false,
 		},
 	}
 
@@ -122,7 +119,6 @@ func TestGetById(t *testing.T) {
 				Name:       "Test Item",
 				Status:     "PENDING",
 			},
-			wantErr: false,
 		},
 		{
 			name: "not found",
@@ -211,7 +207,6 @@ func TestCreateItem(t *testing.T) {
 					).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
-			wantErr: false,
 		},
 		{
 			name: "db error",
@@ -281,7 +276,6 @@ func TestUpdateName(t *testing.T) {
 					WithArgs("Updated name", sqlmock.AnyArg(), "item-123").
 					WillReturnResult(sqlmock.NewResult(0, 1))
 			},
-			wantErr: false,
 		},
 		{
 			name:    "db error",
@@ -344,7 +338,6 @@ func TestDeleteItem(t *testing.T) {
 					WithArgs("item-123").
 					WillReturnResult(sqlmock.NewResult(0, 1))
 			},
-			wantErr: false,
 		},
 		{
 			name: "db error",
@@ -381,6 +374,142 @@ func TestDeleteItem(t *testing.T) {
 				}
 				if !tc.wantErr && err != nil {
 					t.Errorf("did not expect error, got %v", err)
+				}
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("unmet sqlmock expectations: %v", err)
+				}
+			})
+		})
+	}
+}
+
+func TestGetByListAndUser(t *testing.T) {
+	tests := []struct {
+		name      string
+		userId    string
+		listId    string
+		page      int
+		pageSize  int
+		mockSetup func(sqlmock.Sqlmock)
+		wantItems []*dao.TodoItem
+		wantErr   bool
+	}{
+		{
+			name:     "page 1, pageSize 2 - success",
+			userId:   "user-1",
+			listId:   "list-1",
+			page:     1,
+			pageSize: 2,
+			mockSetup: func(m sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{
+					"id", "created", "updated", "user_id", "list_id", "name", "status",
+				}).
+					AddRow("item-1", time.Now(), time.Now(), "user-1", "list-1", "Task 1", "PENDING").
+					AddRow("item-2", time.Now(), time.Now(), "user-1", "list-1", "Task 2", "COMPLETED")
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items`).
+					WithArgs("user-1", "list-1", 2, 0).
+					WillReturnRows(rows)
+			},
+			wantItems: []*dao.TodoItem{
+				{Meta: dao.Meta{Id: "item-1"}, UserId: "user-1", TodoListId: "list-1", Name: "Task 1", Status: "PENDING"},
+				{Meta: dao.Meta{Id: "item-2"}, UserId: "user-1", TodoListId: "list-1", Name: "Task 2", Status: "COMPLETED"},
+			},
+		},
+		{
+			name:     "page 2, pageSize 3 - success with offset",
+			userId:   "user-2",
+			listId:   "list-2",
+			page:     2,
+			pageSize: 3,
+			mockSetup: func(m sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{
+					"id", "created", "updated", "user_id", "list_id", "name", "status",
+				}).
+					AddRow("item-10", time.Now(), time.Now(), "user-2", "list-2", "Other task", "PENDING")
+
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items`).
+					WithArgs("user-2", "list-2", 3, 3).
+					WillReturnRows(rows)
+			},
+			wantItems: []*dao.TodoItem{
+				{Meta: dao.Meta{Id: "item-10"}, UserId: "user-2", TodoListId: "list-2", Name: "Other task", Status: "PENDING"},
+			},
+		},
+		{
+			name:     "no items found",
+			userId:   "user-3",
+			listId:   "list-3",
+			page:     1,
+			pageSize: 5,
+			mockSetup: func(m sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{
+					"id", "created", "updated", "user_id", "list_id", "name", "status",
+				})
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items`).
+					WithArgs("user-3", "list-3", 5, 0).
+					WillReturnRows(rows)
+			},
+			wantItems: []*dao.TodoItem{},
+		},
+		{
+			name:     "db query error",
+			userId:   "user-err",
+			listId:   "list-err",
+			page:     1,
+			pageSize: 1,
+			mockSetup: func(m sqlmock.Sqlmock) {
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items`).
+					WithArgs("user-err", "list-err", 1, 0).
+					WillReturnError(errors.New("db failure"))
+			},
+			wantErr: true,
+		},
+		{
+			name:     "row scan error",
+			userId:   "user-4",
+			listId:   "list-4",
+			page:     1,
+			pageSize: 1,
+			mockSetup: func(m sqlmock.Sqlmock) {
+				rows := sqlmock.NewRows([]string{
+					"id", "created", "updated", "user_id", "list_id", "name", "status",
+				}).
+					AddRow(nil, time.Now(), time.Now(), "user-4", "list-4", "Bad Row", "PENDING")
+				m.ExpectQuery(`SELECT id, created, updated, user_id, list_id, name, status FROM items`).
+					WithArgs("user-4", "list-4", 1, 0).
+					WillReturnRows(rows)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			WithUnitTestConnection(t, func(sqlDB *sql.DB, mock sqlmock.Sqlmock) {
+				tc.mockSetup(mock)
+				repo := NewTodoItemRepository(sqlDB)
+
+				items, err := repo.GetByListAndUser(t.Context(), tc.userId, tc.listId, tc.page, tc.pageSize)
+
+				if tc.wantErr && err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				if !tc.wantErr && err != nil {
+					t.Errorf("did not expect error, got %v", err)
+				}
+				if !tc.wantErr {
+					if len(items) != len(tc.wantItems) {
+						t.Fatalf("got %d items, want %d", len(items), len(tc.wantItems))
+					}
+					for i := range items {
+						if items[i].Id != tc.wantItems[i].Id ||
+							items[i].UserId != tc.wantItems[i].UserId ||
+							items[i].TodoListId != tc.wantItems[i].TodoListId ||
+							items[i].Name != tc.wantItems[i].Name ||
+							items[i].Status != tc.wantItems[i].Status {
+							t.Errorf("unexpected item at index %d: %+v, want %+v", i, items[i], tc.wantItems[i])
+						}
+					}
 				}
 				if err := mock.ExpectationsWereMet(); err != nil {
 					t.Errorf("unmet sqlmock expectations: %v", err)

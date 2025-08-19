@@ -15,6 +15,15 @@ export async function getLists(page = 1, pageSize = 10) {
 }
 
 /**
+ * Fetches a list by id
+ * @param {string} id the list's id
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function getList(id) {
+	return authorizedRequest(`/lists/${id}`, { method: 'GET' })
+}
+
+/**
  * Shared helper for authenticated API requests.
  * Handles attaching JWT, retrying once on 401 with refresh, and redirecting to login if needed.
  *

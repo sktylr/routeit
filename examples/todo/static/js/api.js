@@ -68,6 +68,25 @@ export async function createItemForList(listId, name) {
 }
 
 /**
+ * Deletes a list.
+ * @param {string} id
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function deleteList(id) {
+  return authorizedRequest(`/lists/${id}`, { method: 'DELETE '})
+}
+
+/**
+ * Deletes an item from a list.
+ * @param {string} listId
+ * @param {string} itemId
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function deleteItem(listId, itemId) {
+  return authorizedRequest(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' })
+}
+
+/**
  * Shared helper for authenticated API requests.
  * Handles attaching JWT, retrying once on 401 with refresh, and redirecting to login if needed.
  *

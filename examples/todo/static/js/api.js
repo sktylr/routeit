@@ -9,18 +9,31 @@ export const API_BASE = 'http://localhost:8080';
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function getLists(page = 1, pageSize = 10) {
-  return authorizedRequest(`/lists?page=${page}&pageSize=${pageSize}`, {
+  return authorizedRequest(`/lists?page=${page}&page_size=${pageSize}`, {
     method: 'GET'
   });
 }
 
 /**
- * Fetches a list by id
+ * Fetches a list by id.
  * @param {string} id the list's id
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function getList(id) {
-	return authorizedRequest(`/lists/${id}`, { method: 'GET' })
+	return authorizedRequest(`/lists/${id}`, { method: 'GET' });
+}
+
+/**
+ * Fetches paginated items for a list.
+ * @param {string} id the list's id
+ * @param {number} page the page of results to query
+ * @param {number} pageSize the page size to query
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function getItemsForList(id, page = 1, pageSize = 10) {
+	return authorizedRequest(`/lists/${id}/items?page=${page}&page_size=${pageSize}`, {
+		method: 'GET'
+	});
 }
 
 /**

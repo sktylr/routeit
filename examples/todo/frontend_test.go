@@ -51,15 +51,16 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/auth.js", "/static/js/auth.js"},
 			wantCT:       "text/javascript; charset=utf-8",
-			wantCLen:     2594,
+			wantCLen:     2681,
 			wantStart:    `import { API_BASE } from "./api.js";`,
 			wantContains: []string{"export async function login(email, password) {"},
 		},
 		{
-			endpoints: []string{"/api.js", "/static/js/api.js"},
-			wantCT:    "text/javascript; charset=utf-8",
-			wantCLen:  49,
-			wantStart: "export const API_BASE = 'http://localhost:8080';",
+			endpoints:    []string{"/api.js", "/static/js/api.js"},
+			wantCT:       "text/javascript; charset=utf-8",
+			wantCLen:     4992,
+			wantStart:    `import { refreshToken } from "./auth.js"`,
+			wantContains: []string{"export async function getLists("},
 		},
 	}
 	client := routeit.NewTestClient(GetFrontendServer())

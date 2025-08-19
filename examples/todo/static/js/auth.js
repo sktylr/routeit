@@ -38,6 +38,9 @@ export async function refreshToken() {
     return '';
   }
 
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('access_token')
+
   return makeRequest(
     "/refresh",
     { refresh_token: storedRefresh },

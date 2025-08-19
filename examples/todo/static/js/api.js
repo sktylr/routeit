@@ -51,6 +51,7 @@ export async function createList(name, description = "") {
 		body,
 	});
 }
+
 /**
  * Create a new item for a list
  * @param {string} listId
@@ -63,6 +64,40 @@ export async function createItemForList(listId, name) {
 	}
 	return authorizedRequest(`/lists/${listId}/items`, {
 		method: 'POST',
+		body,
+	});
+}
+
+/**
+ * Update a list
+ * @param {string} id
+ * @param {string} name
+ * @param {string} description
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function updateList(id, name, description) {
+	const body = {
+		name, description
+	}
+	return authorizedRequest(`/lists/${id}`, {
+		method: 'PUT',
+		body,
+	});
+}
+
+/**
+ * Update an item for a list
+ * @param {string} listId
+ * @param {string} itemId
+ * @param {string} name
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function updateItem(listId, itemId, name) {
+	const body = {
+		name
+	}
+	return authorizedRequest(`/lists/${listId}/items/${itemId}`, {
+		method: 'PUT',
 		body,
 	});
 }

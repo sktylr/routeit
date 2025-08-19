@@ -435,3 +435,169 @@ func TestLists(t *testing.T) {
 		})
 	})
 }
+
+func TestItems(t *testing.T) {
+	register := func(t *testing.T, client routeit.TestClient, email, password string) handlers.RegisterUserResponse {
+		req := handlers.RegisterUserRequest{
+			Name:            "Test User",
+			Email:           email,
+			Password:        password,
+			ConfirmPassword: password,
+		}
+		res := client.PostJson("/auth/register", req)
+		res.AssertStatusCode(t, routeit.StatusCreated)
+		var tokens handlers.RegisterUserResponse
+		res.BodyToJson(t, &tokens)
+		return tokens
+	}
+
+	createList := func(t *testing.T, client routeit.TestClient, token, name string) handlers.CreateListResponse {
+		req := handlers.CreateListRequest{Name: name, Description: "desc"}
+		res := client.PostJson("/lists", req, "Authorization", "Bearer "+token)
+		res.AssertStatusCode(t, routeit.StatusCreated)
+		var created handlers.CreateListResponse
+		res.BodyToJson(t, &created)
+		return created
+	}
+
+	createItem := func(t *testing.T, client routeit.TestClient, token, listId, name string) handlers.CreateItemResponse {
+		req := handlers.CreateItemRequest{Name: name}
+		res := client.PostJson("/lists/"+listId+"/items", req, "Authorization", "Bearer "+token)
+		res.AssertStatusCode(t, routeit.StatusCreated)
+		var created handlers.CreateItemResponse
+		res.BodyToJson(t, &created)
+		return created
+	}
+
+	// --- Happy paths ---
+
+	t.Run("POST creates item", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-create@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Groceries")
+			item := createItem(t, client, tokens.AccessToken, list.Id, "Milk")
+			if item.Name != "Milk" {
+				t.Errorf("expected item name Milk, got %+v", item.Name)
+			}
+		})
+	})
+
+	t.Run("GET retrieves item by ID", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-get@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Chores")
+			item := createItem(t, client, tokens.AccessToken, list.Id, "Vacuum")
+
+			res := client.Get("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+tokens.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusOK)
+
+			var fetched handlers.GetItemResponse
+			res.BodyToJson(t, &fetched)
+			if fetched.Id != item.Id || fetched.Name != item.Name {
+				t.Errorf("fetched mismatch: got %+v", fetched)
+			}
+		})
+	})
+
+	t.Run("GET lists items under a list", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-list@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Work")
+			_ = createItem(t, client, tokens.AccessToken, list.Id, "Task A")
+			_ = createItem(t, client, tokens.AccessToken, list.Id, "Task B")
+
+			res := client.Get("/lists/"+list.Id+"/items", "Authorization", "Bearer "+tokens.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusOK)
+
+			var got handlers.ListItemsResponse
+			res.BodyToJson(t, &got)
+			if got.Total != 2 {
+				t.Errorf("expected 2 items, got %+v", got.Total)
+			}
+		})
+	})
+
+	t.Run("PUT updates item name", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-update-name@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Errands")
+			item := createItem(t, client, tokens.AccessToken, list.Id, "OldName")
+
+			req := handlers.UpdateItemNameRequest{Name: "NewName"}
+			res := client.PutJson("/lists/"+list.Id+"/items/"+item.Id, req, "Authorization", "Bearer "+tokens.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusOK)
+
+			var updated handlers.UpdateItemNameRequest
+			res.BodyToJson(t, &updated)
+			if updated.Name != "NewName" {
+				t.Errorf("expected name NewName, got %+v", updated)
+			}
+		})
+	})
+
+	t.Run("PATCH updates item status", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-patch-status@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Study")
+			item := createItem(t, client, tokens.AccessToken, list.Id, "Read")
+
+			req := handlers.UpdateItemStatusRequest{Status: "COMPLETED"}
+			res := client.PatchJson("/lists/"+list.Id+"/items/"+item.Id, req, "Authorization", "Bearer "+tokens.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusOK)
+		})
+	})
+
+	t.Run("DELETE removes item", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-delete@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Temp")
+			item := createItem(t, client, tokens.AccessToken, list.Id, "Disposable")
+
+			del := client.Delete("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+tokens.AccessToken)
+			del.AssertStatusCode(t, routeit.StatusNoContent)
+
+			get := client.Get("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+tokens.AccessToken)
+			get.AssertStatusCode(t, routeit.StatusNotFound)
+		})
+	})
+
+	// --- Sad paths ---
+
+	t.Run("cannot access another user's item (403)", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			user1 := register(t, client, "owner@example.com", "Secret123!")
+			user2 := register(t, client, "intruder@example.com", "Secret123!")
+			list := createList(t, client, user1.AccessToken, "Private")
+			item := createItem(t, client, user1.AccessToken, list.Id, "Secret Task")
+
+			res := client.Get("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+user2.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusForbidden)
+		})
+	})
+
+	t.Run("GET non-existent item returns 404", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-404@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "Empty")
+
+			res := client.Get("/lists/"+list.Id+"/items/non-existent", "Authorization", "Bearer "+tokens.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusNotFound)
+		})
+	})
+
+	t.Run("unauthorized (401) if no token", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			res := client.Get("/lists/some-list/items/some-item")
+			res.AssertStatusCode(t, routeit.StatusUnauthorized)
+		})
+	})
+}

@@ -21,6 +21,11 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 		ErrorMapper:            errors.ErrorMapper,
 	})
 	srv.RegisterMiddleware(
+		routeit.CorsMiddleware(routeit.CorsConfig{
+			AllowedOrigins: []string{"http://localhost:3000"},
+			AllowedMethods: []routeit.HttpMethod{routeit.PUT, routeit.DELETE, routeit.PATCH},
+			AllowedHeaders: []string{"Authorization"},
+		}),
 		routeit.CorsMiddleware(routeit.DefaultCors()),
 		middleware.JwtMiddleware(usersRepo),
 		middleware.LoadListMiddleware(listsRepo),

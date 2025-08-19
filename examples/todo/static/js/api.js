@@ -37,6 +37,22 @@ export async function getItemsForList(id, page = 1, pageSize = 10) {
 }
 
 /**
+ * Create a new list
+ * @param {string} name
+ * @param {string} description
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function createList(name, description = "") {
+	const body = {
+		name, description
+	}
+	return authorizedRequest("/lists", {
+		method: 'POST',
+		body,
+	});
+}
+
+/**
  * Shared helper for authenticated API requests.
  * Handles attaching JWT, retrying once on 401 with refresh, and redirecting to login if needed.
  *

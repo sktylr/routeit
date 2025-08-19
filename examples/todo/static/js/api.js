@@ -51,6 +51,21 @@ export async function createList(name, description = "") {
 		body,
 	});
 }
+/**
+ * Create a new item for a list
+ * @param {string} listId
+ * @param {string} name
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function createItemForList(listId, name) {
+	const body = {
+		name
+	}
+	return authorizedRequest(`/lists/${listId}/items`, {
+		method: 'POST',
+		body,
+	});
+}
 
 /**
  * Shared helper for authenticated API requests.

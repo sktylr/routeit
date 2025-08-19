@@ -103,6 +103,38 @@ export async function updateItem(listId, itemId, name) {
 }
 
 /**
+ * Mark an item as completed
+ * @param {string} listId
+ * @param {string} itemId
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function markItemCompleted(listId, itemId) {
+  const body = {
+    status: 'COMPLETED'
+  }
+	return authorizedRequest(`/lists/${listId}/items/${itemId}`, {
+		method: 'PATCH',
+		body,
+	});
+}
+
+/**
+ * Mark an item as pending (incomplete)
+ * @param {string} listId
+ * @param {string} itemId
+ * @returns {Promise<{ status: number, data: any }>}
+ */
+export async function markItemPending(listId, itemId) {
+  const body = {
+    status: 'PENDING'
+  }
+	return authorizedRequest(`/lists/${listId}/items/${itemId}`, {
+		method: 'PATCH',
+		body,
+	});
+}
+
+/**
  * Deletes a list.
  * @param {string} id
  * @returns {Promise<{ status: number, data: any }>}

@@ -301,29 +301,6 @@ func TestAuthRefresh(t *testing.T) {
 }
 
 func TestLists(t *testing.T) {
-	register := func(t *testing.T, client routeit.TestClient, email, password string) handlers.RegisterUserResponse {
-		req := handlers.RegisterUserRequest{
-			Name:            "Test User",
-			Email:           email,
-			Password:        password,
-			ConfirmPassword: password,
-		}
-		res := client.PostJson("/auth/register", req)
-		res.AssertStatusCode(t, routeit.StatusCreated)
-		var tokens handlers.RegisterUserResponse
-		res.BodyToJson(t, &tokens)
-		return tokens
-	}
-
-	createList := func(t *testing.T, client routeit.TestClient, token, name, desc string) handlers.CreateListResponse {
-		req := handlers.CreateListRequest{Name: name, Description: desc}
-		res := client.PostJson("/lists", req, "Authorization", "Bearer "+token)
-		res.AssertStatusCode(t, routeit.StatusCreated)
-		var created handlers.CreateListResponse
-		res.BodyToJson(t, &created)
-		return created
-	}
-
 	t.Run("GET - lookup", func(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
@@ -437,29 +414,6 @@ func TestLists(t *testing.T) {
 }
 
 func TestItems(t *testing.T) {
-	register := func(t *testing.T, client routeit.TestClient, email, password string) handlers.RegisterUserResponse {
-		req := handlers.RegisterUserRequest{
-			Name:            "Test User",
-			Email:           email,
-			Password:        password,
-			ConfirmPassword: password,
-		}
-		res := client.PostJson("/auth/register", req)
-		res.AssertStatusCode(t, routeit.StatusCreated)
-		var tokens handlers.RegisterUserResponse
-		res.BodyToJson(t, &tokens)
-		return tokens
-	}
-
-	createList := func(t *testing.T, client routeit.TestClient, token, name string) handlers.CreateListResponse {
-		req := handlers.CreateListRequest{Name: name, Description: "desc"}
-		res := client.PostJson("/lists", req, "Authorization", "Bearer "+token)
-		res.AssertStatusCode(t, routeit.StatusCreated)
-		var created handlers.CreateListResponse
-		res.BodyToJson(t, &created)
-		return created
-	}
-
 	createItem := func(t *testing.T, client routeit.TestClient, token, listId, name string) handlers.CreateItemResponse {
 		req := handlers.CreateItemRequest{Name: name}
 		res := client.PostJson("/lists/"+listId+"/items", req, "Authorization", "Bearer "+token)
@@ -469,13 +423,11 @@ func TestItems(t *testing.T) {
 		return created
 	}
 
-	// --- Happy paths ---
-
 	t.Run("POST creates item", func(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-create@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Groceries")
+			list := createList(t, client, tokens.AccessToken, "Groceries", "Description")
 			item := createItem(t, client, tokens.AccessToken, list.Id, "Milk")
 			if item.Name != "Milk" {
 				t.Errorf("expected item name Milk, got %+v", item.Name)
@@ -487,7 +439,7 @@ func TestItems(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-get@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Chores")
+			list := createList(t, client, tokens.AccessToken, "Chores", "Description")
 			item := createItem(t, client, tokens.AccessToken, list.Id, "Vacuum")
 
 			res := client.Get("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+tokens.AccessToken)
@@ -505,9 +457,9 @@ func TestItems(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-list@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Work")
-			_ = createItem(t, client, tokens.AccessToken, list.Id, "Task A")
-			_ = createItem(t, client, tokens.AccessToken, list.Id, "Task B")
+			list := createList(t, client, tokens.AccessToken, "Work", "Description")
+			createItem(t, client, tokens.AccessToken, list.Id, "Task A")
+			createItem(t, client, tokens.AccessToken, list.Id, "Task B")
 
 			res := client.Get("/lists/"+list.Id+"/items", "Authorization", "Bearer "+tokens.AccessToken)
 			res.AssertStatusCode(t, routeit.StatusOK)
@@ -524,7 +476,7 @@ func TestItems(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-update-name@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Errands")
+			list := createList(t, client, tokens.AccessToken, "Errands", "Description")
 			item := createItem(t, client, tokens.AccessToken, list.Id, "OldName")
 
 			req := handlers.UpdateItemNameRequest{Name: "NewName"}
@@ -543,7 +495,7 @@ func TestItems(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-patch-status@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Study")
+			list := createList(t, client, tokens.AccessToken, "Study", "Description")
 			item := createItem(t, client, tokens.AccessToken, list.Id, "Read")
 
 			req := handlers.UpdateItemStatusRequest{Status: "COMPLETED"}
@@ -556,7 +508,7 @@ func TestItems(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-delete@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Temp")
+			list := createList(t, client, tokens.AccessToken, "Temp", "Description")
 			item := createItem(t, client, tokens.AccessToken, list.Id, "Disposable")
 
 			del := client.Delete("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+tokens.AccessToken)
@@ -567,14 +519,12 @@ func TestItems(t *testing.T) {
 		})
 	})
 
-	// --- Sad paths ---
-
 	t.Run("cannot access another user's item (403)", func(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			user1 := register(t, client, "owner@example.com", "Secret123!")
 			user2 := register(t, client, "intruder@example.com", "Secret123!")
-			list := createList(t, client, user1.AccessToken, "Private")
+			list := createList(t, client, user1.AccessToken, "Private", "Description")
 			item := createItem(t, client, user1.AccessToken, list.Id, "Secret Task")
 
 			res := client.Get("/lists/"+list.Id+"/items/"+item.Id, "Authorization", "Bearer "+user2.AccessToken)
@@ -586,7 +536,7 @@ func TestItems(t *testing.T) {
 		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
 			client := routeit.NewTestClient(GetBackendServer(d))
 			tokens := register(t, client, "items-404@example.com", "Secret123!")
-			list := createList(t, client, tokens.AccessToken, "Empty")
+			list := createList(t, client, tokens.AccessToken, "Empty", "Description")
 
 			res := client.Get("/lists/"+list.Id+"/items/non-existent", "Authorization", "Bearer "+tokens.AccessToken)
 			res.AssertStatusCode(t, routeit.StatusNotFound)
@@ -600,4 +550,40 @@ func TestItems(t *testing.T) {
 			res.AssertStatusCode(t, routeit.StatusUnauthorized)
 		})
 	})
+
+	t.Run("PATCH with invalid status returns 400", func(t *testing.T) {
+		db.WithIntegrationTestConnection(t, func(d *sql.DB) {
+			client := routeit.NewTestClient(GetBackendServer(d))
+			tokens := register(t, client, "items-badstatus@example.com", "Secret123!")
+			list := createList(t, client, tokens.AccessToken, "ErrList", "Description")
+			item := createItem(t, client, tokens.AccessToken, list.Id, "Milk")
+
+			req := handlers.UpdateItemStatusRequest{Status: "INVALID"}
+			res := client.PatchJson("/lists/"+list.Id+"/items/"+item.Id, req, "Authorization", "Bearer "+tokens.AccessToken)
+			res.AssertStatusCode(t, routeit.StatusBadRequest)
+		})
+	})
+}
+
+func register(t *testing.T, client routeit.TestClient, email, password string) handlers.RegisterUserResponse {
+	req := handlers.RegisterUserRequest{
+		Name:            "Test User",
+		Email:           email,
+		Password:        password,
+		ConfirmPassword: password,
+	}
+	res := client.PostJson("/auth/register", req)
+	res.AssertStatusCode(t, routeit.StatusCreated)
+	var tokens handlers.RegisterUserResponse
+	res.BodyToJson(t, &tokens)
+	return tokens
+}
+
+func createList(t *testing.T, client routeit.TestClient, token, name, desc string) handlers.CreateListResponse {
+	req := handlers.CreateListRequest{Name: name, Description: desc}
+	res := client.PostJson("/lists", req, "Authorization", "Bearer "+token)
+	res.AssertStatusCode(t, routeit.StatusCreated)
+	var created handlers.CreateListResponse
+	res.BodyToJson(t, &created)
+	return created
 }

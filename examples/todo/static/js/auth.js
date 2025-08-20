@@ -39,13 +39,22 @@ export async function refreshToken() {
   }
 
   localStorage.removeItem('refresh_token');
-  localStorage.removeItem('access_token')
+  localStorage.removeItem('access_token');
 
   return makeRequest(
     "/refresh",
     { refresh_token: storedRefresh },
     { redirect: false }
   ).then(res => res.accessToken)
+}
+
+/**
+ * Logs the user out and forgets all auth information.
+ */
+export async function logout() {
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('access_token');
+  window.location.href = '/login';
 }
 
 /**

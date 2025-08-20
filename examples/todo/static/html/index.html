@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My TODO Lists</title>
+  <link rel="stylesheet" href="css/base.css"/>
+  <link rel="stylesheet" href="css/index.css"/>
+</head>
+<body>
+  <main class="container">
+    <h1 class="page-title">My TODO Lists</h1>
+
+    <div id="listsContainer" class="lists-grid"></div>
+
+    <div class="pagination">
+      <button id="prevPage" disabled>Previous</button>
+      <span id="pageInfo"></span>
+      <button id="nextPage">Next</button>
+    </div>
+  </main>
+
+  <script type="module">
+    import { getLists } from "./api.js";
+
+    const listsContainer = document.getElementById("listsContainer");
+    const prevBtn = document.getElementById("prevPage");
+    const nextBtn = document.getElementById("nextPage");
+    const pageInfo = document.getElementById("pageInfo");
+
+    let currentPage = 1;
+    const pageSize = 6;
+
+    async function loadLists(page = 1) {
+      const { status, data } = await getLists(page, pageSize);
+
+      if (status !== 200 || !data) {
+        listsContainer.innerHTML = "<p class='error'>Failed to load lists.</p>";
+        return;
+      }
+
+      const { lists, total, page: current, page_size } = data;
+
+      listsContainer.innerHTML = "";
+      lists.forEach(list => {
+        const card = document.createElement("div");
+        card.className = "list-card";
+
+        let itemsMarkup = "";
+        if (list.items && list.items.length > 0) {
+          let itemsToShow = [...list.items];
+          if (itemsToShow.length === 10) {
+            itemsToShow[itemsToShow.length - 1] = { name: "...", status: "ELLIPSIS" };
+          }
+
+          itemsMarkup = itemsToShow.map(item => {
+            if (item.status === "ELLIPSIS") {
+              return `<li class="ellipsis">...</li>`;
+            }
+            return `
+              <li class="${item.status === 'COMPLETED' ? 'done' : ''}">
+                ${item.name}
+              </li>
+            `;
+          }).join("");
+        } else {
+          itemsMarkup = `<li class="empty">No items yet</li>`;
+        }
+
+        const completionPercent = list.total_items > 0
+          ? Math.round((list.completed_items / list.total_items) * 100)
+          : 0;
+
+        card.innerHTML = `
+          <h2>${list.name}</h2>
+          <p class="description">${list.description}</p>
+          <ul class="items">
+            ${itemsMarkup}
+          </ul>
+          <div class="progress">
+            <div class="progress-bar" style="width:${completionPercent}%"></div>
+          </div>
+          <p class="progress-label">${completionPercent}% completed</p>
+        `;
+
+        listsContainer.appendChild(card);
+      });
+
+      currentPage = current;
+      pageInfo.textContent = `Page ${current} of ${Math.ceil(total / page_size)}`;
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage >= Math.ceil(total / page_size);
+    }
+
+    prevBtn.addEventListener("click", () => loadLists(currentPage - 1));
+    nextBtn.addEventListener("click", () => loadLists(currentPage + 1));
+
+    loadLists();
+  </script>
+</body>
+</html>

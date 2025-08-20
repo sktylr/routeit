@@ -9,6 +9,10 @@
 </head>
 <body>
   <main class="container">
+    <div class="top-bar">
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+
     <h1 class="page-title">My TODO Lists</h1>
 
     <div id="listsContainer" class="lists-grid"></div>
@@ -22,17 +26,23 @@
 
   <script type="module">
     import { getLists } from "./api.js";
+    import { logout } from "./auth.js";
 
     const listsContainer = document.getElementById("listsContainer");
     const prevBtn = document.getElementById("prevPage");
     const nextBtn = document.getElementById("nextPage");
     const pageInfo = document.getElementById("pageInfo");
+    const logoutBtn = document.getElementById("logoutBtn");
 
     let currentPage = 1;
     const pageSize = 6;
 
     async function loadLists(page = 1) {
       const { status, data } = await getLists(page, pageSize);
+
+      if (status === 401) {
+        logout();
+      }
 
       if (status !== 200 || !data) {
         listsContainer.innerHTML = "<p class='error'>Failed to load lists.</p>";
@@ -94,6 +104,8 @@
 
     prevBtn.addEventListener("click", () => loadLists(currentPage - 1));
     nextBtn.addEventListener("click", () => loadLists(currentPage + 1));
+
+    logoutBtn.addEventListener("click", logout);
 
     loadLists();
   </script>

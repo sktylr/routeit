@@ -102,8 +102,17 @@
       nextBtn.disabled = currentPage >= Math.ceil(total / page_size);
     }
 
-    prevBtn.addEventListener("click", () => loadLists(currentPage - 1));
-    nextBtn.addEventListener("click", () => loadLists(currentPage + 1));
+    prevBtn.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage--;
+      }
+      loadLists(currentPage)
+    });
+
+    nextBtn.addEventListener("click", () => {
+      currentPage++;
+      loadLists(currentPage)
+    });
 
     logoutBtn.addEventListener("click", logout);
 

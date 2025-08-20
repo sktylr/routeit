@@ -32,7 +32,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/static/html/index.html", "/"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     3458,
+			wantCLen:     3560,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>My TODO Lists</title>", `<button id="prevPage" disabled>Previous</button>`},
 		},

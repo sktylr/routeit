@@ -30,6 +30,13 @@ func TestFrontend(t *testing.T) {
 			wantContains: []string{"<title>Register</title>", "Already have an account?\n      <a href=\"/login\">Login here</a>"},
 		},
 		{
+			endpoints:    []string{"/static/html/index.html", "/"},
+			wantCT:       "text/html; charset=utf-8",
+			wantCLen:     3151,
+			wantStart:    "<!DOCTYPE html>",
+			wantContains: []string{"<title>My TODO Lists</title>", `<button id="prevPage" disabled>Previous</button>`},
+		},
+		{
 			endpoints: []string{"/static/styles/base.css", "/css/base.css"},
 			wantCT:    "text/css; charset=utf-8",
 			wantCLen:  347,
@@ -46,6 +53,15 @@ func TestFrontend(t *testing.T) {
 			wantStart: "form {\n  background-color: white;",
 			wantContains: []string{
 				"input:focus {\n  border-color: #007bff;\n  outline: none;\n  background: #f0f8ff;\n}",
+			},
+		},
+		{
+			endpoints: []string{"/static/styles/index.css", "/css/index.css"},
+			wantCT:    "text/css; charset=utf-8",
+			wantCLen:  1827,
+			wantStart: ".container {\n  max-width: 1200px;",
+			wantContains: []string{
+				".list-card h2 {\n  margin-bottom: 0.5rem;\n  font-size: 1.25rem;\n}",
 			},
 		},
 		{

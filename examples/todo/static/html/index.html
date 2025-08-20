@@ -42,6 +42,7 @@
 
       if (status === 401) {
         logout();
+        return;
       }
 
       if (status !== 200 || !data) {

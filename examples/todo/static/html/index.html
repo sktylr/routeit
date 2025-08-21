@@ -10,6 +10,7 @@
 <body>
   <main class="container">
     <div class="top-bar">
+      <button id="createListBtn" class="create-btn">Create List</button>
       <button id="logoutBtn" class="logout-btn">Logout</button>
     </div>
 
@@ -24,8 +25,28 @@
     </div>
   </main>
 
+  <div id="createListModal" class="modal hidden">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2>Create a New List</h2>
+      <form id="createListForm">
+        <label for="listName">Name *</label>
+        <input type="text" id="listName" name="listName" required />
+
+        <label for="listDescription">Description</label>
+        <textarea id="listDescription" name="listDescription"></textarea>
+
+        <p id="formError" class="form-error"></p>
+
+        <div class="modal-actions">
+          <button type="submit" class="submit-btn">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
-    import { getLists } from "./api.js";
+    import { getLists, createList } from "./api.js";
     import { logout } from "./auth.js";
 
     const listsContainer = document.getElementById("listsContainer");
@@ -33,6 +54,14 @@
     const nextBtn = document.getElementById("nextPage");
     const pageInfo = document.getElementById("pageInfo");
     const logoutBtn = document.getElementById("logoutBtn");
+    const createBtn = document.getElementById("createListBtn");
+
+    const modal = document.getElementById("createListModal");
+    const closeModal = document.getElementById("closeModal");
+    const form = document.getElementById("createListForm");
+    const formError = document.getElementById("formError");
+    const listNameInput = document.getElementById("listName");
+    const listDescInput = document.getElementById("listDescription");
 
     let currentPage = 1;
     const pageSize = 6;
@@ -116,6 +145,38 @@
     });
 
     logoutBtn.addEventListener("click", logout);
+
+    createBtn.addEventListener("click", () => {
+      modal.classList.remove("hidden");
+      form.reset();
+      formError.textContent = "";
+    });
+
+    closeModal.addEventListener("click", () => {
+      modal.classList.add("hidden");
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      formError.textContent = "";
+
+      const name = listNameInput.value.trim();
+      const description = listDescInput.value.trim();
+
+      if (!name) {
+        formError.textContent = "Name is required.";
+        return;
+      }
+
+      const { status } = await createList(name, description);
+
+      if (status >= 200 && status < 300) {
+        modal.classList.add("hidden");
+        await loadLists(currentPage);
+      } else {
+        formError.textContent = "Failed to create list. Please try again.";
+      }
+    });
 
     loadLists();
   </script>

@@ -32,7 +32,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/static/html/index.html", "/"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     5607,
+			wantCLen:     5721,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>My TODO Lists</title>", `<button id="prevPage" disabled>Previous</button>`},
 		},
@@ -65,7 +65,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints: []string{"/static/styles/index.css", "/css/index.css"},
 			wantCT:    "text/css; charset=utf-8",
-			wantCLen:  3140,
+			wantCLen:  3314,
 			wantStart: ".container {\n  max-width: 1200px;",
 			wantContains: []string{
 				".list-card h2 {\n  margin-bottom: 0.5rem;\n  font-size: 1.25rem;\n}",

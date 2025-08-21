@@ -39,6 +39,13 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.list-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
 }
 
 .list-card h2 {

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TODO List</title>
+  <link rel="stylesheet" href="/css/base.css"/>
+  <link rel="stylesheet" href="/css/list.css"/>
+</head>
+<body>
+  <main class="container">
+    <div class="top-bar">
+      <button id="backBtn" class="back-btn">← Back</button>
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+
+    <div id="listDetails" class="list-details"></div>
+
+    <div id="itemsContainer" class="items-grid"></div>
+
+    <div class="pagination">
+      <button id="prevPage" disabled>Previous</button>
+      <span id="pageInfo"></span>
+      <button id="nextPage">Next</button>
+    </div>
+  </main>
+
+  <script type="module">
+    import { getList, getItemsForList } from "/api.js";
+    import { logout } from "/auth.js";
+
+    const pathParts = window.location.pathname.split("/");
+    const id = pathParts.length >= 3 ? pathParts[2] : null;
+
+    if (!id) {
+      window.location.href = "/";
+    }
+
+    const listDetails = document.getElementById("listDetails");
+    const itemsContainer = document.getElementById("itemsContainer");
+    const prevBtn = document.getElementById("prevPage");
+    const nextBtn = document.getElementById("nextPage");
+    const pageInfo = document.getElementById("pageInfo");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const backBtn = document.getElementById("backBtn");
+
+    let currentPage = 1;
+    const pageSize = 10;
+
+    async function loadData(page = 1) {
+      const [listRes, itemsRes] = await Promise.all([
+        getList(id),
+        getItemsForList(id, page, pageSize)
+      ]);
+
+      if (listRes.status === 401 || itemsRes.status === 401) {
+        logout();
+        return;
+      }
+
+      if (listRes.status !== 200 || !listRes.data) {
+        listDetails.innerHTML = "<p class='error'>Failed to load list.</p>";
+        return;
+      }
+
+      const list = listRes.data;
+      listDetails.innerHTML = `
+        <h1>${list.name}</h1>
+        <p class="description">${list.description || ""}</p>
+        <p class="meta">Created: ${new Date(list.created).toLocaleString()}</p>
+      `;
+
+      if (itemsRes.status !== 200 || !itemsRes.data) {
+        itemsContainer.innerHTML = "<p class='error'>Failed to load items.</p>";
+        return;
+      }
+
+      const { items, total, page: current, page_size } = itemsRes.data;
+      itemsContainer.innerHTML = "";
+
+      if (!items || items.length === 0) {
+        itemsContainer.innerHTML = "<p class='empty'>No items in this list yet.</p>";
+      } else {
+        items.forEach(item => {
+          const el = document.createElement("div");
+          el.className = `item-card ${item.status === "COMPLETED" ? "done" : ""}`;
+          el.innerHTML = `
+            <h3>${item.name}</h3>
+            <p class="meta">Created: ${new Date(item.created).toLocaleString()}</p>
+          `;
+          itemsContainer.appendChild(el);
+        });
+      }
+
+      currentPage = current;
+      pageInfo.textContent = `Page ${current} of ${Math.ceil(total / page_size)}`;
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage >= Math.ceil(total / page_size);
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage--;
+        loadData(currentPage);
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      currentPage++;
+      loadData(currentPage);
+    });
+
+    logoutBtn.addEventListener("click", logout);
+    backBtn.addEventListener("click", () => window.location.href = "/");
+
+    loadData();
+  </script>
+</body>
+</html>

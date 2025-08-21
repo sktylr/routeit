@@ -75,32 +75,6 @@
   padding-top: 0.5rem;
 }
 
-.pagination {
-  margin-top: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.pagination button {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: #007bff;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.pagination button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.pagination button:hover:not(:disabled) {
-  background: #0056b3;
-}
-
 .list-card .items li.empty {
   font-style: italic;
   color: #777;
@@ -132,20 +106,6 @@
   display: flex;
   justify-content: flex-end;
   margin-bottom: 1rem;
-}
-
-.logout-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: #dc3545;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.logout-btn:hover {
-  background: #b52b37;
 }
 
 .create-btn {

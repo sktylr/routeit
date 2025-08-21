@@ -37,9 +37,16 @@ func TestFrontend(t *testing.T) {
 			wantContains: []string{"<title>My TODO Lists</title>", `<button id="prevPage" disabled>Previous</button>`},
 		},
 		{
+			endpoints:    []string{"/static/html/list.html", "/lists/foo"},
+			wantCT:       "text/html; charset=utf-8",
+			wantCLen:     3663,
+			wantStart:    "<!DOCTYPE html>",
+			wantContains: []string{"<title>TODO List</title>", `<button id="prevPage" disabled>Previous</button>`},
+		},
+		{
 			endpoints: []string{"/static/styles/base.css", "/css/base.css"},
 			wantCT:    "text/css; charset=utf-8",
-			wantCLen:  347,
+			wantCLen:  993,
 			wantStart: "* {\n  box-sizing: border-box;",
 			wantContains: []string{
 				`font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;`,
@@ -58,10 +65,19 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints: []string{"/static/styles/index.css", "/css/index.css"},
 			wantCT:    "text/css; charset=utf-8",
-			wantCLen:  3785,
+			wantCLen:  3140,
 			wantStart: ".container {\n  max-width: 1200px;",
 			wantContains: []string{
 				".list-card h2 {\n  margin-bottom: 0.5rem;\n  font-size: 1.25rem;\n}",
+			},
+		},
+		{
+			endpoints: []string{"/static/styles/list.css", "/css/list.css"},
+			wantCT:    "text/css; charset=utf-8",
+			wantCLen:  1077,
+			wantStart: ".list-details {\n  margin-bottom: 2rem;\n  text-align: center;\n}",
+			wantContains: []string{
+				".list-details .meta {\n  font-size: 0.85rem;\n  color: #777;\n}",
 			},
 		},
 		{

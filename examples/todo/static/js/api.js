@@ -43,9 +43,7 @@ export async function getItemsForList(id, page = 1, pageSize = 10) {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function createList(name, description = "") {
-	const body = {
-		name, description
-	}
+	const body = JSON.stringify({ name, description })
 	return authorizedRequest("/lists", {
 		method: 'POST',
 		body,
@@ -59,9 +57,7 @@ export async function createList(name, description = "") {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function createItemForList(listId, name) {
-	const body = {
-		name
-	}
+	const body = JSON.stringify({ name })
 	return authorizedRequest(`/lists/${listId}/items`, {
 		method: 'POST',
 		body,
@@ -76,9 +72,7 @@ export async function createItemForList(listId, name) {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function updateList(id, name, description) {
-	const body = {
-		name, description
-	}
+	const body = JSON.stringify({ name, description })
 	return authorizedRequest(`/lists/${id}`, {
 		method: 'PUT',
 		body,
@@ -93,9 +87,7 @@ export async function updateList(id, name, description) {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function updateItem(listId, itemId, name) {
-	const body = {
-		name
-	}
+	const body = JSON.stringify({ name })
 	return authorizedRequest(`/lists/${listId}/items/${itemId}`, {
 		method: 'PUT',
 		body,
@@ -109,9 +101,7 @@ export async function updateItem(listId, itemId, name) {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function markItemCompleted(listId, itemId) {
-  const body = {
-    status: 'COMPLETED'
-  }
+  const body = JSON.stringify({ status: 'COMPLETED' })
 	return authorizedRequest(`/lists/${listId}/items/${itemId}`, {
 		method: 'PATCH',
 		body,
@@ -125,9 +115,7 @@ export async function markItemCompleted(listId, itemId) {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function markItemPending(listId, itemId) {
-  const body = {
-    status: 'PENDING'
-  }
+  const body = JSON.stringify({ status: 'PENDING' })
 	return authorizedRequest(`/lists/${listId}/items/${itemId}`, {
 		method: 'PATCH',
 		body,

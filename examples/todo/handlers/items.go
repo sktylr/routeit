@@ -58,7 +58,7 @@ func ItemsIndividualHandler(repo *db.TodoItemRepository) routeit.Handler {
 				return err
 			}
 
-			id, _ := req.PathParam("item")
+			id := req.PathParam("item")
 			if err := repo.UpdateName(req.Context(), id, body.Name); err != nil {
 				return err
 			}
@@ -71,7 +71,7 @@ func ItemsIndividualHandler(repo *db.TodoItemRepository) routeit.Handler {
 				return err
 			}
 
-			id, _ := req.PathParam("item")
+			id := req.PathParam("item")
 			switch body.Status {
 			case "COMPLETED":
 				return repo.MarkAsCompleted(req.Context(), id)
@@ -82,7 +82,7 @@ func ItemsIndividualHandler(repo *db.TodoItemRepository) routeit.Handler {
 			}
 		},
 		Delete: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			id, _ := req.PathParam("item")
+			id := req.PathParam("item")
 			return repo.DeleteItem(req.Context(), id)
 		},
 	})
@@ -91,7 +91,7 @@ func ItemsIndividualHandler(repo *db.TodoItemRepository) routeit.Handler {
 func ItemsMultiHandler(repo *db.TodoItemRepository) routeit.Handler {
 	return routeit.MultiMethod(routeit.MultiMethodHandler{
 		Post: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			listId, _ := req.PathParam("list")
+			listId := req.PathParam("list")
 
 			var body CreateItemRequest
 			if err := req.BodyFromJson(&body); err != nil {
@@ -115,7 +115,7 @@ func ItemsMultiHandler(repo *db.TodoItemRepository) routeit.Handler {
 		},
 		Get: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			userId := userIdFromRequest(req)
-			listId, _ := req.PathParam("list")
+			listId := req.PathParam("list")
 
 			pagination, err := extractPagination(req.Queries())
 			if err != nil {

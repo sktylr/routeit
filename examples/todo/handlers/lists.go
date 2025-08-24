@@ -146,7 +146,7 @@ func ListsIndividualHandler(repo *db.TodoListRepository) routeit.Handler {
 			return rw.Json(res)
 		},
 		Delete: func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			id, _ := req.PathParam("list")
+			id := req.PathParam("list")
 			return repo.DeleteList(req.Context(), id)
 		},
 		Put: func(rw *routeit.ResponseWriter, req *routeit.Request) error {

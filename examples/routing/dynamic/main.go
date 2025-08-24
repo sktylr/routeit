@@ -28,14 +28,14 @@ func GetServer() *routeit.Server {
 		// used, we would instead fallback to /hello/:name, since it is more
 		// specific than /:greeting/bob.
 		"/hello/:name": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			name, _ := req.PathParam("name")
+			name := req.PathParam("name")
 			return HelloHandler(rw, req, name, "routeit dynamic route")
 		}),
 		"/hello/bob": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
 			return HelloHandler(rw, req, "bob", "routeit static route")
 		}),
 		"/:greeting/bob": routeit.Post(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-			greeting, _ := req.PathParam("greeting")
+			greeting := req.PathParam("greeting")
 
 			out := OutGreeting{
 				To:      "bob",

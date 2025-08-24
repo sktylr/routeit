@@ -101,8 +101,8 @@ Given an input `"/prefix/bar/my-suffix"`, `foo` would be `"prefix"`, and `bar` w
 
 ```golang
 "/:foo|pre/bar/:baz||suffix": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-	foo, _ := req.PathParam("foo")
-	baz, _ := req.PathParam("baz")
+	foo := req.PathParam("foo")
+	baz := req.PathParam("baz")
 
 	// ...
 	return nil

@@ -33,7 +33,7 @@ func GetServer() *routeit.Server {
 
 func Get(route string) routeit.Handler {
 	return routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-		param, _ := req.PathParam("path")
+		param := req.PathParam("path")
 		out := HelloResponse{
 			IncomingUrl:  req.Path(),
 			HandlerRoute: route,

@@ -17,7 +17,7 @@ func LoadItemMiddleware(repo *db.TodoItemRepository) routeit.Middleware {
 
 		user, userOk := routeit.ContextValueAs[*dao.User](req, "user")
 		list, listOk := routeit.ContextValueAs[*dao.TodoList](req, "list")
-		id, _ := req.PathParam("item")
+		id := req.PathParam("item")
 
 		item, err := repo.GetById(req.Context(), id)
 		if err != nil {

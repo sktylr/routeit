@@ -172,11 +172,12 @@ func (req *Request) RawPath() string {
 // Extract a path parameter from the request path. The name must exactly match
 // the name of the parameter when it was registered to the router. For example,
 // if the route was registered under `/:foO|prefix|suffix`, then this method
-// should be called with `"foO"`. Returns a boolean indicating if the path
-// parameter was extracted successfully.
-func (req *Request) PathParam(param string) (string, bool) {
-	val, found := req.uri.pathParams[param]
-	return val, found
+// should be called with `"foO"`. This will always be a non-empty value
+// corresponding to the named path segment in the request, unless the name does
+// not match any segments, in which case it will be empty.
+func (req *Request) PathParam(param string) string {
+	val, _ := req.uri.pathParams[param]
+	return val
 }
 
 // Access the headers of the request.

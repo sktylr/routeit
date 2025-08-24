@@ -240,7 +240,7 @@ func (req *Request) UnsafeBodyFromJson(to any) error {
 	}
 	var syntaxErr *json.SyntaxError
 	if errors.As(err, &syntaxErr) {
-		return ErrBadRequest().WithCause(err)
+		return ErrBadRequest().WithCause(err).WithMessage("Failed to parse JSON request body.")
 	}
 	return err
 }

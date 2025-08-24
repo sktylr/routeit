@@ -96,7 +96,7 @@ More information on the underlying trie can be found in [`docs/trie.md`](/docs/t
 
 Routing supports static and dynamic matching, with additional control over required prefixes and suffixes in the dynamic path components.
 Dynamic components are denoted with a leading `:`, followed by the name they should be looked up by and optionally followed by the required prefix and suffix they should match against, separated by `|`.
-Below is an example of a setup of a route that matches against `/pre<anything>/bar/<anything>|suffix`.
+Below is an example of a setup of a route that matches against `/pre<anything>/bar/<anything>suffix`.
 Given an input `"/prefix/bar/my-suffix"`, `foo` would be `"prefix"`, and `bar` would be `"my-suffix"`.
 
 ```golang

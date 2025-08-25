@@ -45,7 +45,8 @@
       getItemsForList,
       markItemCompleted,
       markItemPending,
-      createItemForList
+      createItemForList,
+      deleteItem
     } from "/api.js";
     import { logout } from "/auth.js";
 
@@ -113,30 +114,45 @@
           el.innerHTML = `
             <h3>${item.name}</h3>
             <p class="meta">Created: ${new Date(item.created).toLocaleString()}</p>
-            <button
-              class="status-btn"
-              aria-label="${completed ? 'Mark as pending' :'Mark as completed'}"
-              title="${completed ? 'Mark as pending' :'Mark as completed'}"
-            >
-              ${completed ? "↩️" : "✅"}
-            </button>
+            <div class="actions">
+              <button
+                class="action-btn status-btn"
+                aria-label="${completed ? 'Mark as pending' :'Mark as completed'}"
+                title="${completed ? 'Mark as pending' :'Mark as completed'}"
+              >
+                ${completed ? "↩️" : "✅"}
+              </button>
+              <button class="action-btn delete" aria-label="Delete item">🗑️</button>
+            </div>
           `;
 
-          const btn = el.querySelector(".status-btn");
-          btn.addEventListener("click", async () => {
-            btn.disabled = true;
+          const statusBtn = el.querySelector(".status-btn");
+          statusBtn.addEventListener("click", async () => {
+            statusBtn.disabled = true;
             let res;
             if (completed) {
               res = await markItemPending(id, item.id);
             } else {
               res = await markItemCompleted(id, item.id);
             }
-            btn.disabled = false;
+            statusBtn.disabled = false;
 
             if (res.status >= 200 && res.status < 300) {
               loadData(currentPage);
             } else {
               alert("Failed to update item. Please try again.");
+            }
+          });
+
+          const deleteBtn = el.querySelector(".delete");
+          deleteBtn.addEventListener("click", async () => {
+            if (!confirm("Are you sure you want to delete this item?")) {
+              return;
+            }
+            const res = await deleteItem(id, item.id);
+            if (res.status === 204) {
+              el.remove();
+              loadData(currentPage);
             }
           });
 

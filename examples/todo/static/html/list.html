@@ -11,6 +11,7 @@
   <main class="container">
     <div class="top-bar">
       <button id="backBtn" class="back-btn">← Back</button>
+      <button id="addItemBtn" class="add-btn" aria-label="Add new item">+</button>
       <button id="logoutBtn" class="logout-btn">Logout</button>
     </div>
 
@@ -23,10 +24,29 @@
       <span id="pageInfo"></span>
       <button id="nextPage">Next</button>
     </div>
+
+    <div id="addItemModal" class="modal hidden">
+      <div class="modal-content">
+        <button class="close-btn" id="closeModal">&times;</button>
+        <h2>Add New Item</h2>
+        <form id="addItemForm">
+          <label for="itemName">Name <span class="required">*</span></label>
+          <input type="text" id="itemName" name="itemName" required />
+          <p id="modalError" class="error hidden"></p>
+          <button type="submit">Add</button>
+        </form>
+      </div>
+    </div>
   </main>
 
   <script type="module">
-    import { getList, getItemsForList, markItemCompleted, markItemPending } from "/api.js";
+    import {
+      getList,
+      getItemsForList,
+      markItemCompleted,
+      markItemPending,
+      createItemForList
+    } from "/api.js";
     import { logout } from "/auth.js";
 
     const pathParts = window.location.pathname.split("/");
@@ -43,6 +63,11 @@
     const pageInfo = document.getElementById("pageInfo");
     const logoutBtn = document.getElementById("logoutBtn");
     const backBtn = document.getElementById("backBtn");
+    const addItemBtn = document.getElementById("addItemBtn");
+    const addItemModal = document.getElementById("addItemModal");
+    const closeModal = document.getElementById("closeModal");
+    const addItemForm = document.getElementById("addItemForm");
+    const modalError = document.getElementById("modalError");
 
     let currentPage = 1;
     const pageSize = 10;
@@ -139,6 +164,31 @@
 
     logoutBtn.addEventListener("click", logout);
     backBtn.addEventListener("click", () => window.location.href = "/");
+
+    addItemBtn.addEventListener("click", () => {
+      addItemModal.classList.remove("hidden");
+      modalError.classList.add("hidden");
+      addItemForm.reset();
+    });
+
+    closeModal.addEventListener("click", () => {
+      addItemModal.classList.add("hidden");
+    });
+
+    addItemForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = addItemForm.itemName.value.trim();
+      if (!name) return;
+
+      const res = await createItemForList(id, name);
+      if (res.status >= 200 && res.status < 300) {
+        addItemModal.classList.add("hidden");
+        loadData(currentPage);
+      } else {
+        modalError.textContent = "Failed to add item. Please try again.";
+        modalError.classList.remove("hidden");
+      }
+    });
 
     loadData();
   </script>

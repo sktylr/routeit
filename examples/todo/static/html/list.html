@@ -46,7 +46,8 @@
       markItemCompleted,
       markItemPending,
       createItemForList,
-      deleteItem
+      deleteItem,
+      updateItem
     } from "/api.js";
     import { logout } from "/auth.js";
 
@@ -122,6 +123,7 @@
               >
                 ${completed ? "↩️" : "✅"}
               </button>
+              <button class="action-btn edit" aria-label="Edit item">✏️</button>
               <button class="action-btn delete" aria-label="Delete item">🗑️</button>
             </div>
           `;
@@ -154,6 +156,40 @@
               el.remove();
               loadData(currentPage);
             }
+          });
+
+          const editBtn = el.querySelector(".edit");
+          const titleEl = el.querySelector("h3");
+          editBtn.addEventListener("click", () => {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = item.name;
+            input.className = "edit-input";
+
+            titleEl.replaceWith(input);
+            input.focus();
+
+            const save = async () => {
+              const newName = input.value.trim();
+              if (newName && newName !== item.name) {
+                const res = await updateItem(id, item.id, newName);
+                if (res.status >= 200 && res.status < 300) {
+                  loadData(currentPage);
+                  return;
+                }
+              }
+              loadData(currentPage);
+            };
+
+            input.addEventListener("blur", save);
+            input.addEventListener("keydown", e => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                save();
+              } else if (e.key === "Escape") {
+                loadData(currentPage);
+              }
+            });
           });
 
           itemsContainer.appendChild(el);

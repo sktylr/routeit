@@ -26,7 +26,7 @@
   </main>
 
   <script type="module">
-    import { getList, getItemsForList } from "/api.js";
+    import { getList, getItemsForList, markItemCompleted, markItemPending } from "/api.js";
     import { logout } from "/auth.js";
 
     const pathParts = window.location.pathname.split("/");
@@ -82,12 +82,39 @@
         itemsContainer.innerHTML = "<p class='empty'>No items in this list yet.</p>";
       } else {
         items.forEach(item => {
+          const completed = item.status === 'COMPLETED';
           const el = document.createElement("div");
-          el.className = `item-card ${item.status === "COMPLETED" ? "done" : ""}`;
+          el.className = `item-card ${completed ? "done" : ""}`;
           el.innerHTML = `
             <h3>${item.name}</h3>
             <p class="meta">Created: ${new Date(item.created).toLocaleString()}</p>
+            <button
+              class="status-btn"
+              aria-label="${completed ? 'Mark as pending' :'Mark as completed'}"
+              title="${completed ? 'Mark as pending' :'Mark as completed'}"
+            >
+              ${completed ? "↩️" : "✅"}
+            </button>
           `;
+
+          const btn = el.querySelector(".status-btn");
+          btn.addEventListener("click", async () => {
+            btn.disabled = true;
+            let res;
+            if (completed) {
+              res = await markItemPending(id, item.id);
+            } else {
+              res = await markItemCompleted(id, item.id);
+            }
+            btn.disabled = false;
+
+            if (res.status >= 200 && res.status < 300) {
+              loadData(currentPage);
+            } else {
+              alert("Failed to update item. Please try again.");
+            }
+          });
+
           itemsContainer.appendChild(el);
         });
       }

@@ -72,26 +72,6 @@
   background: #565e64;
 }
 
-.status-btn {
-  align-self: flex-start;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0.3rem 0.5rem;
-  font-size: 1rem;
-  line-height: 1;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #e0e0e0;
-  margin-top: 0.5rem;
-  transition: background-color 0.2s ease;
-}
-
-.status-btn:hover {
-  background: #d0d0d0;
-}
-
 .item-card.done .status-btn {
   text-decoration: none;
 }
@@ -203,3 +183,27 @@
 }
 
 .hidden { display: none; }
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.action-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: #e9ecef;
+}
+
+.action-btn.delete:hover {
+  background-color: #f8d7da;
+}

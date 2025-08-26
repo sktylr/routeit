@@ -74,7 +74,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints: []string{"/static/styles/list.css", "/css/list.css"},
 			wantCT:    "text/css; charset=utf-8",
-			wantCLen:  3754,
+			wantCLen:  3801,
 			wantStart: ".list-details {\n  margin-bottom: 2rem;\n  text-align: center;\n}",
 			wantContains: []string{
 				".list-details .meta {\n  font-size: 0.85rem;\n  color: #777;\n}",

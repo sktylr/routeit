@@ -52,8 +52,8 @@
   color: #666;
 }
 
-.item-card.done {
-  background: #f8f9fa;
+.item-card.done h3,
+.item-card.done .meta {
   text-decoration: line-through;
   color: #888;
 }
@@ -72,8 +72,10 @@
   background: #565e64;
 }
 
-.item-card.done .status-btn {
+.item-card.done .actions,
+.item-card.done .action-btn {
   text-decoration: none;
+  color: inherit;
 }
 
 .add-btn {

@@ -215,3 +215,18 @@
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
+.edit-list-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  padding: 0.4rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.edit-list-btn:hover {
+  background-color: #e9ecef;
+}

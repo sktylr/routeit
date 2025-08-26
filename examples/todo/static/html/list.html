@@ -37,6 +37,23 @@
         </form>
       </div>
     </div>
+
+    <div id="editListModal" class="modal hidden">
+      <div class="modal-content">
+        <button class="close-btn" id="closeEditListModal">&times;</button>
+        <h2>Edit List</h2>
+        <form id="editListForm">
+          <label for="editListName">Name <span class="required">*</span></label>
+          <input type="text" id="editListName" name="editListName" required />
+
+          <label for="editListDescription">Description</label>
+          <input type="text" id="editListDescription" name="editListDescription" />
+
+          <p id="editListError" class="error hidden"></p>
+          <button type="submit">Save</button>
+        </form>
+      </div>
+    </div>
   </main>
 
   <script type="module">
@@ -47,7 +64,8 @@
       markItemPending,
       createItemForList,
       deleteItem,
-      updateItem
+      updateItem,
+      updateList
     } from "/api.js";
     import { logout } from "/auth.js";
 
@@ -70,6 +88,10 @@
     const closeModal = document.getElementById("closeModal");
     const addItemForm = document.getElementById("addItemForm");
     const modalError = document.getElementById("modalError");
+    const editListModal = document.getElementById("editListModal");
+    const closeEditListModal = document.getElementById("closeEditListModal");
+    const editListForm = document.getElementById("editListForm");
+    const editListError = document.getElementById("editListError");
 
     let currentPage = 1;
     const pageSize = 10;
@@ -92,10 +114,21 @@
 
       const list = listRes.data;
       listDetails.innerHTML = `
-        <h1>${list.name}</h1>
+        <h1>
+          ${list.name}
+          <button class="edit-list-btn" id="editListBtn" aria-label="Edit list">✏️</button>
+        </h1>
         <p class="description">${list.description || ""}</p>
         <p class="meta">Created: ${new Date(list.created).toLocaleString()}</p>
       `;
+
+      const editListBtn = document.getElementById("editListBtn");
+      editListBtn.addEventListener("click", () => {
+        editListForm.editListName.value = list.name;
+        editListForm.editListDescription.value = list.description || "";
+        editListError.classList.add("hidden");
+        editListModal.classList.remove("hidden");
+      });
 
       if (itemsRes.status !== 200 || !itemsRes.data) {
         itemsContainer.innerHTML = "<p class='error'>Failed to load items.</p>";
@@ -239,6 +272,31 @@
       } else {
         modalError.textContent = "Failed to add item. Please try again.";
         modalError.classList.remove("hidden");
+      }
+    });
+
+    closeEditListModal.addEventListener("click", () => {
+      editListModal.classList.add("hidden");
+    });
+
+    editListForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = editListForm.editListName.value.trim();
+      const description = editListForm.editListDescription.value.trim();
+
+      if (!name) {
+        editListError.textContent = "Name is required.";
+        editListError.classList.remove("hidden");
+        return;
+      }
+
+      const res = await updateList(id, name, description);
+      if (res.status >= 200 && res.status < 300) {
+        editListModal.classList.add("hidden");
+        loadData(currentPage);
+      } else {
+        editListError.textContent = "Failed to update list. Please try again.";
+        editListError.classList.remove("hidden");
       }
     });
 

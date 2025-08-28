@@ -426,21 +426,6 @@ func TestListsIndividualHandler(t *testing.T) {
 				},
 			},
 			{
-				// This technically shouldn't happen due to the middleware we
-				// have but may happen in a race condition
-				name:   "list not found returns 404",
-				listId: "missing-list",
-				body:   []byte(`{"name":"Something","description":"Whatever"}`),
-				mockSetup: func(mock sqlmock.Sqlmock) {
-					mock.ExpectExec(regexp.QuoteMeta(`
-						UPDATE lists SET name = ?, description = ?, updated = ? WHERE id = ?
-					`)).
-						WithArgs("Something", "Whatever", sqlmock.AnyArg(), "list-123").
-						WillReturnResult(sqlmock.NewResult(0, 0))
-				},
-				wantErr: db.ErrListNotFound,
-			},
-			{
 				name:      "invalid JSON",
 				listId:    "list-123",
 				body:      []byte(`{"invalid-json"}`),

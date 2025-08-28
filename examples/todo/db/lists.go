@@ -58,17 +58,9 @@ func (r *TodoListRepository) UpdateList(ctx context.Context, listId, name, descr
 		SET name = ?, description = ?, updated = ?
 		WHERE id = ?
 	`
-	res, err := r.db.ExecContext(ctx, query, name, description, now, listId)
+	_, err := r.db.ExecContext(ctx, query, name, description, now, listId)
 	if err != nil {
 		return nil, fmt.Errorf("%w [failed to update list]: %v", ErrDatabaseIssue, err)
-	}
-
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("%w [failed to determine rows affected]: %v", ErrDatabaseIssue, err)
-	}
-	if rowsAffected == 0 {
-		return nil, fmt.Errorf("%w [%s]", ErrListNotFound, listId)
 	}
 
 	list := &dao.TodoList{

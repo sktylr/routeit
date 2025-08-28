@@ -99,18 +99,14 @@ func TestUpdateList(t *testing.T) {
 			},
 		},
 		{
-			name:    "list not found",
-			listId:  "missing-456",
-			newName: "Doesn't matter",
-			newDesc: "Nope",
+			name:    "no update required",
+			listId:  "list-123",
+			newName: "Same as",
+			newDesc: "before",
 			mockSetup: func(m sqlmock.Sqlmock) {
 				m.ExpectExec(`UPDATE lists`).
-					WithArgs("Doesn't matter", "Nope", sqlmock.AnyArg(), "missing-456").
+					WithArgs("Same as", "before", sqlmock.AnyArg(), "list-123").
 					WillReturnResult(sqlmock.NewResult(0, 0))
-			},
-			expectErr: true,
-			errCheck: func(err error) bool {
-				return errors.Is(err, ErrListNotFound)
 			},
 		},
 		{

@@ -141,17 +141,9 @@ func (r *TodoItemRepository) UpdateName(ctx context.Context, id, newName string)
 		SET name = ?, updated = ?
 		WHERE id = ?
 	`
-	res, err := r.db.ExecContext(ctx, query, newName, time.Now(), id)
+	_, err := r.db.ExecContext(ctx, query, newName, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
-	}
-
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrDatabaseIssue, err)
-	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("%w [%s]", ErrItemNotFound, id)
 	}
 
 	return nil

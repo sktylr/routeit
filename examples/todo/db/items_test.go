@@ -290,14 +290,13 @@ func TestUpdateName(t *testing.T) {
 		},
 		{
 			name:    "no rows affected",
-			id:      "item-missing",
+			id:      "item-123",
 			newName: "No change",
 			mockSetup: func(m sqlmock.Sqlmock) {
 				m.ExpectExec(`UPDATE items`).
-					WithArgs("No change", sqlmock.AnyArg(), "item-missing").
+					WithArgs("No change", sqlmock.AnyArg(), "item-123").
 					WillReturnResult(sqlmock.NewResult(0, 0))
 			},
-			wantErr: true,
 		},
 	}
 

@@ -46,7 +46,7 @@
   </div>
 
   <script type="module">
-    import { getLists, createList } from "./api.js";
+    import { getLists, createList, deleteList } from "./api.js";
     import { logout } from "./auth.js";
 
     const listsContainer = document.getElementById("listsContainer");
@@ -116,7 +116,14 @@
           : 0;
 
         card.innerHTML = `
-          <h2>${list.name}</h2>
+          <div class="card-header">
+            <h2>${list.name}</h2>
+            <button
+              class="delete-list-btn"
+              aria-label="Delete list ${list.name}"
+              title="Delete list"
+            >🗑️</button>
+          </div>
           <p class="description">${list.description}</p>
           <ul class="items">
             ${itemsMarkup}
@@ -126,6 +133,20 @@
           </div>
           <p class="progress-label">${completionPercent}% completed</p>
         `;
+
+        const deleteBtn = card.querySelector(".delete-list-btn");
+        deleteBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const confirmed = confirm(`Are you sure you want to delete "${list.name}"?`);
+          if (!confirmed) return;
+
+          const { status } = await deleteList(list.id);
+          if (status === 204) {
+            await loadLists(currentPage);
+          } else {
+            alert("Failed to delete list. Please try again.");
+          }
+        });
 
         listsContainer.appendChild(card);
       });

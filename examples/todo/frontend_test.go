@@ -32,7 +32,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/static/html/index.html", "/"},
 			wantCT:       "text/html; charset=utf-8",
-			wantCLen:     5721,
+			wantCLen:     6478,
 			wantStart:    "<!DOCTYPE html>",
 			wantContains: []string{"<title>My TODO Lists</title>", `<button id="prevPage" disabled>Previous</button>`},
 		},
@@ -65,7 +65,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints: []string{"/static/styles/index.css", "/css/index.css"},
 			wantCT:    "text/css; charset=utf-8",
-			wantCLen:  3314,
+			wantCLen:  3685,
 			wantStart: ".container {\n  max-width: 1200px;",
 			wantContains: []string{
 				".list-card h2 {\n  margin-bottom: 0.5rem;\n  font-size: 1.25rem;\n}",
@@ -90,7 +90,7 @@ func TestFrontend(t *testing.T) {
 		{
 			endpoints:    []string{"/api.js", "/static/js/api.js"},
 			wantCT:       "text/javascript; charset=utf-8",
-			wantCLen:     5064,
+			wantCLen:     5063,
 			wantStart:    `import { refreshToken } from "./auth.js"`,
 			wantContains: []string{"export async function getLists("},
 		},

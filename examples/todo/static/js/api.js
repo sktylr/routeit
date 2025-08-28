@@ -128,7 +128,7 @@ export async function markItemPending(listId, itemId) {
  * @returns {Promise<{ status: number, data: any }>}
  */
 export async function deleteList(id) {
-  return authorizedRequest(`/lists/${id}`, { method: 'DELETE '})
+  return authorizedRequest(`/lists/${id}`, { method: 'DELETE'})
 }
 
 /**

@@ -213,3 +213,24 @@
   margin-top: 0.75rem;
   font-size: 0.9rem;
 }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.delete-list-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.delete-list-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}

@@ -94,6 +94,12 @@ func TestFrontend(t *testing.T) {
 			wantStart:    `import { refreshToken } from "./auth.js"`,
 			wantContains: []string{"export async function getLists("},
 		},
+		{
+			endpoints: []string{"/favicon.ico", "/static/images/favicon.png"},
+			wantCT:    "image/png",
+			wantCLen:  192131,
+			wantStart: "\x89PNG",
+		},
 	}
 	client := routeit.NewTestClient(GetFrontendServer())
 

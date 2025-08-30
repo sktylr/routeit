@@ -10,3 +10,4 @@ The examples are categorised, with each category potentially having more subcate
 - [`routing`](/examples/routing/) - explorations of `routeit`'s routing system, including static and dynamic URI lookup
 - [`simple`](/examples/simple/) - a simple server that exposes at least 1 endpoint for all the HTTP methods `routeit` supports. This was my base drawing board for implementation and testing
 - [`static`](/examples/static/) - `routeit` supports static file serving and this examples directory showcases how this can be done, and how it can be made easier using other features such as URL rewriting
+- [`todo`](/examples/todo/) - this is the most complex and fully-fledged application. It contains a sample TODO list app and features authentication and database connections as well as full CRUD operations on multiple resources.

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.0.1] - 2025-08-31
+
+### Fixed
+- **Repository structure**: Source code and `go.mod` moved to the repository root.
+  This resolves issues where `go get github.com/sktylr/routeit` would not fetch the actual code.
+
+### Note
+- This is the **first usable release** of the library.
+- `v1.0.0` was published with an invalid layout and should be considered deprecated.
+
+---
+
 ## [v1.0.0] - 2025-08-31
 
 ### Added

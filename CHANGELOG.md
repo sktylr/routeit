@@ -1,0 +1,50 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [v1.0.0] - 2025-08-31
+
+### Added
+
+- **HTTP/1.1 support**
+  Full request parsing and response handling for all standard HTTP/1.1 methods, except `CONNECT`.
+  - `TRACE` is supported but disabled by default (enable with `AllowTraceRequests`).
+  - Proper `405 Method Not Allowed` responses with `Allow` headers.
+
+- **Content type handling**
+  - Automatic JSON request decoding and response encoding.
+  - Native support for `text/plain`.
+  - Support for arbitrary request/response content types via:
+    - `Request.BodyFromRaw`
+    - `ResponseWriter.RawWithContentType`
+
+- **Routing**
+  - Trie-based router with static and dynamic route matching.
+  - Dynamic path parameters with prefix/suffix matching (`:id|prefix|suffix`).
+  - Built-in URL rewriting support for cleaner static asset serving.
+
+- **Error handling**
+  - Automatic conversion of all returned errors and panics into HTTP responses.
+  - Customizable error mapping via `ServerConfig.ErrorMapper`.
+  - Per-status error handler registration (`RegisterErrorHandlers`) for observability and custom responses.
+
+- **Middleware**
+  - Middleware chaining supported.
+  - Ordering is respected and deterministic.
+  - **Experimental:** Middleware can be tested in isolation (`TestMiddleware`).
+
+- **Testing utilities** *(Experimental)*
+  - `TestClient`: runs E2E-like requests without opening TCP sockets.
+  - `TestMiddleware` and `TestHandler`: enable unit testing of individual components.
+  - All testing APIs are considered experimental and may change.
+
+- **Logging**
+  - Built-in request logging with levels:
+    - `INFO` for successful responses.
+    - `WARN` for 4xx responses.
+    - `ERROR` for 5xx responses.

@@ -3,7 +3,7 @@ module github.com/sktylr/routeit/examples/todo
 go 1.24.4
 
 // Required while this is not published
-replace github.com/sktylr/routeit => ../../src
+replace github.com/sktylr/routeit => ../..
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2

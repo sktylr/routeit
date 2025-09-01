@@ -103,10 +103,14 @@ func (r *router) RegisterRoutes(rreg RouteRegistry) {
 func (r *router) RegisterRoutesUnderNamespace(namespace string, rreg RouteRegistry) {
 	namespace = r.trimRouteForInsert(namespace)
 	for path, handler := range rreg {
-		if !strings.HasPrefix(path, "/") {
-			path = "/" + path
+		if path == "" || path == "/" {
+			r.routes.Insert(namespace, &handler)
+		} else {
+			if !strings.HasPrefix(path, "/") {
+				path = "/" + path
+			}
+			r.routes.Insert(namespace+path, &handler)
 		}
-		r.routes.Insert(namespace+path, &handler)
 	}
 }
 

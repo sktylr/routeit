@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sktylr/routeit/cmp"
-	"github.com/sktylr/routeit/trie"
+	"github.com/sktylr/routeit/internal/cmp"
+	"github.com/sktylr/routeit/internal/trie"
 )
 
 type CorsConfig struct {

@@ -1,6 +1,6 @@
 package routeit
 
-import "github.com/sktylr/routeit/trie"
+import "github.com/sktylr/routeit/internal/trie"
 
 // This middleware is the second piece of middleware run on all server
 // instances. It will block requests that illegally contain repeated header

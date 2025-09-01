@@ -1,23 +1,69 @@
-## routeit
+## routeit [![Go Reference](https://pkg.go.dev/badge/github.com/sktylr/routeit.svg)](https://pkg.go.dev/github.com/sktylr/routeit) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/cors/master/LICENSE) [![routeit](https://github.com/sktylr/routeit/actions/workflows/main.yml/badge.svg)](https://github.com/sktylr/routeit/actions/workflows/main.yml) [![examples](https://github.com/sktylr/routeit/actions/workflows/examples.yml/badge.svg)](https://github.com/sktylr/routeit/actions/workflows/examples.yml)
 
-`routeit` is a lightweight web framework built in go.
-It is designed as an introduction to Go to help me learn the language.
-The goal of this is to build a framework similar to the already excellent [`net/http`](https://pkg.go.dev/net/http) package myself, and to avoid using any non-standard libraries.
-The only usages of the `net/http` library in my own framework are to establish the socket connection and consume requests and write responses.
-All parsing and routing logic is handled by my framework.
+`routeit` is a lightweight web framework built in Go that conforms to the [HTTP/1.1](https://www.rfc-editor.org/rfc/rfc9112.html) spec.
+This is meant to be exploratory and educational and is not fit for production purposes.
+`routeit` can be seen as a simpler version of [`net/http`](https://pkg.go.dev/net/http) that allows for building simple servers and has been built from the ground up with no usage of non-standard libraries.
+It includes some features, such as parameterised dynamic routing, built-in error handling and JSON handling that `net/http` does not handle out of the box.
 
-This library is not meant to be production ready :).
+### Getting Started
 
-The source and test code can be found in [`/src`](/src).
-Where possible I have written detailed comments explaining usage of framework's API.
+Before beginning, make sure you have installed Go and setup your [GOPATH](http://golang.org/doc/code.html#GOPATH) correctly.
+Create a `.go` file called `server.go` and add the following code:
 
-"Real-world" examples are also included in the [`/examples`](/examples/) directory.
-I add to these as new features are built or improved upon, to showcase how the interfaces are intended to be used.
-This also helps me understand how I should design my interfaces, as I get hands on experience using them.
+```go
+package main
+
+import "github.com/sktylr/routeit"
+
+type HelloWorld struct {
+	Hello string `json:"hello"`
+}
+
+func main() {
+	srv := routeit.NewServer(routeit.ServerConfig{Debug: true})
+	srv.RegisterRoutes(routeit.RouteRegistry{
+		"/hello": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+			body := HelloWorld{Hello: "World"}
+			return rw.Json(body)
+		}),
+	})
+	srv.StartOrPanic()
+}
+```
+
+Install `routeit` from the command line:
+
+```bash
+$ go get github.com/sktylr/routeit
+```
+
+Run the server:
+
+```bash
+$ go run server.go
+```
+
+The server is now running on `localhost:8080` and will respond to `GET` requests on the `/hello` endpoint.
+
+```bash
+$ curl -D - http://localhost:8080/hello
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Mon, 01 Sep 2025 12:06:32 GMT
+Server: routeit
+Content-Length: 17
+
+{"hello":"World"}
+```
+
+Check out the [`examples/`](/examples/) directory for further examples of using `routeit`'s features.
 
 ### Documentation
 
-Documentation for this package can be generated using [`godoc`](https://pkg.go.dev/golang.org/x/tools/cmd/godoc). Steps for viewing the docs are below
+Documentation for the latest released version can be found on [`pkg.go.dev/github.com/sktylr/routeit`](https://pkg.go.dev/github.com/sktylr/routeit).
+The repository also contains a [`docs/`](/docs/) directory that contains notes and further details regarding the library.
+
+Documentation for the current development version can be generated using [`godoc`](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and requires the repository to be cloned.
 
 ```bash
 # Install the package if not already installed
@@ -31,18 +77,6 @@ $ godoc -http=:3000
 ```
 
 The documentation can now be viewed at [`localhost:3000/pkg/github.com/sktylr/routeit/`](http://localhost:3000/pkg/github.com/sktylr/routeit/).
-
-If your `$GOPATH` is not set, this may fail to run. The `$GOPATH` defaults to `$HOME/go` but go can sometimes have difficulty due to `src` containing a go module. Wherever your go binaries are installed needs to be in your `$PATH`, or you can reference the absolute path when running `godoc -http=:3000`.
-
-```bash
-# Setting GOPATH explicitly
-$ export GOPATH=~/go
-$ export PATH="$PATH:$GOPATH/bin"
-$ godoc -http=:3000
-
-# Using absolute path
-$ /abs/path/to/godoc -http=:3000
-```
 
 ### Features
 
@@ -60,18 +94,91 @@ $ /abs/path/to/godoc -http=:3000
 | TRACE       | ✅         | Baked into the server implementation but is defaulted OFF. Can be turned on using the `AllowTraceRequests` configuration option |
 | PATCH       | ✅         |                                                                                                                                 |
 
-If the server has a valid route for the request, but the route does not respond to the requested method, the server will return a `405: Method Not Allowed` response with the `Allow` header populated to indicate which methods are supported.
-
 | Content Types      | Request supported? | Response supported? | Notes                                                                                                                                                                                                              |
 | ------------------ | ------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `application/json` | ✅                 | ✅                  | Parsing and encoding is handled automatically by `routeit`                                                                                                                                                         |
 | `text/plain`       | ✅                 | ✅                  |                                                                                                                                                                                                                    |
 | ...                | ✅                 | ✅                  | Any request or response type can be supported, but the integrator must handling the parsing and marshalling. The `ResponseWriter.RawWithContentType` and `Request.BodyFromRaw` methods can be used correspondingly |
 
-#### Status codes
+#### Handlers
 
-All status codes in the official HTTP/1.1 spec are supported.
-They are currently all exposed to the integrator, meaning that the application developer can choose to return any of the status types.
+Each resource on the server is served by a `Handler`.
+Handlers can respond to multiple HTTP methods, or just one.
+`routeit` handles method delegation and will respond with a `405: Method Not Allowed` response with the correct `Allow` header if the resource exists but does not respond to the request method.
+
+`Get`, `Post`, `Put`, `Patch` and `Delete` can all be used to construct a handler that responds to a single method, and accept a function of `func(*routeit.ResponseWriter, *routeit.Request) error` signature.
+If an endpoint should respond to multiple HTTP methods, `MultiMethod` can be used, which accepts a struct to allow selection of the methods the handler should respond to.
+The `error` returned from the handler function does not need to be a specific `routeit` error in every situation.
+
+#### Middleware
+
+`routeit` gives the developer the ability to write custom middleware to perform actions such as rate-limiting or authorisation handling.
+Examples can be found in [`examples/middleware`](/examples/middleware).
+Linking is performed through a `Chain` interface which is passed as an argument to the middleware function.
+Multiple middleware functions can be attached to a single server.
+The order of attachment is important, as that is the order used when processing the middleware for each incoming request.
+Middleware can choose to block a request (by not invoking `Chain.Proceed`) but be aware that the server will always attempt to send a response to the client for every incoming request.
+It is more common to block a request by returning a specific error that can be conformed to a HTTP response.
+
+#### Routing
+
+`routeit` supports both static and dynamic routing, as well as allowing for enforcing specific prefixes and/or suffixes to be part of a dynamic match.
+Routes are registered to the server using `Server.RegisterRoutes` and `Server.RegisterRoutesUnderNamespace` using a map from route to handler.
+The server setup allows for namespaces - both global and local.
+These reduce the complexity of the routing setup by avoiding redundant duplication.
+For example, we might set the server's global namespace to `"api"`, meaning that all routes are registered with `/api` as the prefix, without needing to write it out for each route.
+
+Dynamic matches are denoted using colon (`:`) syntax, with the characters after the colon used as the name for the dynamic component.
+A dynamic component can be forced to contain a required prefix and/or suffix using pipe (`|`) notation, as shown in the example below.
+Once matched, the handler (or middleware) can use `Request.PathParam` to extract the name path segment.
+Critically, `Request.PathParam` will always return a non-empty string so long as the provided name does appear in the matched path.
+If prefixes or suffixes are enforced, the path component will be the entire component - including a prefix and/or suffix.
+
+```go
+"/:foo|pre/bar/:baz||suf/:qux/:corge|pre|suf": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
+	// The first path segment - this must be prefixed by "pre" to match
+	foo := req.PathParam("foo")
+	// The third path segment - this must end with "suf" to match
+	baz := req.PathParam("baz")
+	// The fourth path segment
+	qux := req.PathParam("qux")
+	// The fifth path segment - this must start with "pre" and end with "suf",
+	// with at least 1 character between them to match
+	corge := req.PathParam("corge")
+
+	// ...
+	return nil
+})
+```
+
+In the above example, the router would invoke this handler if a URI such as `/prefix/bar/my-suf/anything/prefix-then-suf` was received at the edge.
+In this case, `foo` would be `"prefix"`, `baz` would be `"my-suf"`, `qux` would be `"anything"` and `corge` would be `"prefix-then-suf"`.
+
+Routes can also be rewritten before being routed or processed.
+For example, we might want to rewrite `/` to `/static/index.html`, as `/` is what the browser will request and is a much cleaner URI than the actual URI needed for the resource.
+Rewriting is covered in [`docs/rewrites.md`](/docs/rewrites.md) as well as by example in [`examples/static/rewrites`](/examples/static/rewrites/).
+
+Further details about the structure of routing can be found in [`docs/trie.md`](/docs/trie.md), which also covers key information such as prioritisation of routing if multiple routes can match the incoming URI.
+
+#### Testing
+
+Testing is baked into the `routeit` library and can be used to increase confidence in the server.
+There are two level of tests supported, both of which are currently experimental.
+
+The `TestClient` allows for E2E-like tests and operates on a full server instance.
+To reduce flakiness, TCP connections are not opened, however every other piece of the server is tested - parsing, URI rewriting, routing, middleware, handling, error management and static asset loading.
+Making a request with a `TestClient` instance will return a `TestResponse` which allows assertions to be made on the status code, headers, and response body.
+Usage of `TestClient` is recommended for high-level validation that all moving parts of the server work as expected, without caring about the specific implementation details.
+Each example project in [`examples/`](/examples/) contains E2E tests using `TestClient`.
+
+For finer isolation, middleware and handlers can both be tested independently, using `TestMiddleware` and `TestHandler` respectively.
+Both functions accept a handler or middleware instance, and a `TestRequest`, which can be constructed using `NewTestRequest`.
+They will also return an `error` and `TestResponse` for making assertions.
+In the case of testing middleware, a boolean is also returned to indicate whether the middleware proceeded to the next piece of middleware or not.
+
+A key point to note is that, unlike with `TestClient`, the `error` is not run through any error mapping or handling.
+So if the `error` is returned from `TestHandler` or `TestMiddleware`, it is the exact `error` that the corresponding handler or middleware returned.
+In these cases, `TestResponse` will **not** be `nil`, but most meaningful assertions will not pass, unless the handler or middleware explicitly wrote a header or response body before returning an `error`.
 
 #### Errors
 
@@ -80,74 +187,15 @@ A number of helpful error functions are exposed which allow the application code
 If non-library errors are returned (or the application code panics with an error), we attempt to infer the reason or cause and map that to a HTTP error.
 The integrator can provide a custom mapper using the `ServerConfig.ErrorMapper` which can provide additional custom logic in mapping from an `error` type to an error the server understands.
 If the `ErrorMapper` cannot assign a more appropriate error type, it can return `nil` which will pass off the default inference which maps common errors to sensible defaults.
-For example, if an `ErrNotExist` error is returned, we map that to a 404: Not Found HTTP error.
-We fallback to mapping to a 500: Internal Server Error if we cannot establish a mapping.
+For example, if an `ErrNotExist` error is returned, we map that to a `404: Not Found` HTTP error.
+We fallback to mapping to a `500: Internal Server Error` if we cannot establish a mapping.
 
 Additionally, custom handling can be provided for specific HTTP status codes, if `routeit`'s default response is not sufficient.
+This allows for additional logging, new headers, or transformation of the response body to something more meaningful than `routeit`'s default response, for example.
 Common use cases include for `404: Not Found`, and `500: Internal Server Error`.
 These can be registered using `routeit.Server.RegisterErrorHandlers`.
 
-[`examples/errors`](/examples/errors/) contains examples for how custom error handling can be performed using `routeit`.
-
-#### Routing
-
-Routing is handled using a trie-like structure.
-More information on the underlying trie can be found in [`docs/trie.md`](/docs/trie.md).
-
-Routing supports static and dynamic matching, with additional control over required prefixes and suffixes in the dynamic path components.
-Dynamic components are denoted with a leading `:`, followed by the name they should be looked up by and optionally followed by the required prefix and suffix they should match against, separated by `|`.
-Below is an example of a setup of a route that matches against `/pre<anything>/bar/<anything>suffix`.
-Given an input `"/prefix/bar/my-suffix"`, `foo` would be `"prefix"`, and `bar` would be `"my-suffix"`.
-
-```golang
-"/:foo|pre/bar/:baz||suffix": routeit.Get(func(rw *routeit.ResponseWriter, req *routeit.Request) error {
-	foo := req.PathParam("foo")
-	baz := req.PathParam("baz")
-
-	// ...
-	return nil
-})
-```
-
-Server setup will panic if the routing is misconfigured in some way.
-Examples for routing can be found in [`examples/routing`](/examples/routing/).
-Pay attention to the gotchas mentioned in [`docs/trie.md`](/docs/trie.md) when configuring routes 😉.
-
-#### URL Rewrites
-
-`routeit` allows the integrator to define rewrite rules for incoming URLs.
-This is commonly preferred in servers that serve static content, as the raw URLs for static content is `<static directory>/<file name>.<extension>`, which is quite ugly.
-For example, the convention for HTML servers is to define the home page in `static/index.html`, which means the landing page of the website would be `http://url.com/static.index.html`.
-
-Rewrites allow us to change that to `http://url.com/`, which is much easier.
-Additionally, the links used within the static content (e.g. JavaScript, HTML, stylesheets, images) can use the rewritten URL, meaning it is easier to swap components out.
-If you want to change the `/about` page from `/static/about1.html` to `/static/about2.html`, you can use `/about` as the link referenced in all static content, then just change the URL rewrite rule and the change is made across the entire server.
-
-Rewriting is covered in more depth in [`docs/rewrites.md`](/docs/rewrites.md) and examples of rewriting can be found in [`examples/static/rewrites`](/examples/static/rewrites/).
-
-#### Testing
-
-The framework supports a simple testing paradigm that allows user to perform E2E-like tests on their server.
-A `TestClient` is provided which takes a `Server` structure as an argument and performs nearly all of the server work that a running server would perform.
-To reduce flakiness, the test server does not actually start the server and open TCP connections for each request.
-Instead, the raw request is handed off to the server directly.
-This means that parsing, routing and handling are all still performed under the test, giving a near E2E feel for the tests.
-The response that is returned by the test client features intuitive methods to perform assertions on the response itself, including the status code and body.
-The test client will handle all panics or errors reported by the application, so there is no need to use a defer-recover block to handle expected panics within the code.
-Examples of how to use the testing API can be found in the [`examples`](/examples) directory.
-Each example project in this directory features tests, which give me a place to explore how I would like testing to work, while also providing an indicator if any bugs or regressions are introduced.
-
-#### Middleware
-
-`routeit` gives the developer the ability to write custom middleware to perform actions such as rate-limiting or authorisation handling.
-Examples can be found in [`examples/middleware`](/examples/middleware).
-Linking is performed through a `Chain` struct which is passed as an argument to the middleware function.
-Multiple middleware functions can be attached to a single server.
-The order of attachment is important, as that is the order used when processing the middleware for each incoming request.
-
-Middleware can also be tested in isolation, using a combination of `routeit.NewTestRequest` and `routeit.TestMiddleware`.
-Under isolated test conditions, the middleware does not actually proceed to the next in the chain, but allows you to assert on the response, chain and error returned.
-See [`examples/middleware/simple/main_test.go`](/examples/middleware/simple/main_test.go) and [`examples/middleware/complex/main_test.go`](/examples/middleware/complex/main_test.go) for examples of how to use this interface.
+[`examples/errors`](/examples/errors/) contains examples for how custom error handling and mapping can be performed using `routeit`.
 
 #### Logging
 

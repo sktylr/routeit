@@ -225,6 +225,25 @@ func TestRoute(t *testing.T) {
 				path:           "/foo/bazaqux",
 				wantPathParams: pathParameters{"bar": "bazaqux"},
 			},
+			{
+				name:       "at root (with slash) of local namespace",
+				reg:        RouteRegistry{"/": Get(wantHandler)},
+				path:       "/api",
+				lNamespace: "/api",
+			},
+			{
+				name:       "at root (no slash) of local namespace",
+				reg:        RouteRegistry{"": Get(wantHandler)},
+				path:       "/api",
+				lNamespace: "/api",
+			},
+			{
+				name:           "at root (with dynamic) of local namespace",
+				reg:            RouteRegistry{"/:foo": Get(wantHandler)},
+				path:           "/api/bar",
+				lNamespace:     "/api",
+				wantPathParams: pathParameters{"foo": "bar"},
+			},
 		}
 
 		for _, tc := range tests {

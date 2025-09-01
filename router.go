@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/sktylr/routeit/trie"
+	"github.com/sktylr/routeit/internal/trie"
 )
 
 // Matches against strings of the form "/foo /bar # Comment", where "/foo" can

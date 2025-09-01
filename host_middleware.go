@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sktylr/routeit/cmp"
+	"github.com/sktylr/routeit/internal/cmp"
 )
 
 // Middleware that is always registered as the third piece of middleware for

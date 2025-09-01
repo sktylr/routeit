@@ -44,7 +44,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/sktylr/routeit/cmp"
+	"github.com/sktylr/routeit/internal/cmp"
 )
 
 // This regex matches against a string that stats with a :, followed by at

@@ -1,0 +1,5 @@
+# Migrate library code from src/ to repo root
+aeca4274b64819cbf71a60d0b4b3ef61d9dd5d33
+
+# Migrate internal modules cmp and trie to internal/
+1971473b98a1f89f5bb7bcaa4c0248d84bbfdd23

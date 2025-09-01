@@ -1,5 +1,5 @@
 ---
-name: routeit examples Build and Test
+name: examples
 "on": [push]
 
 jobs:

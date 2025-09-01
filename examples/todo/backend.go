@@ -37,10 +37,12 @@ func GetBackendServer(dbConn *sql.DB) *routeit.Server {
 		"/register": handlers.RegisterUserHandler(usersRepo),
 	})
 	srv.RegisterRoutes(routeit.RouteRegistry{
-		"/lists":                   handlers.ListsMultiHandler(listsRepo),
-		"/lists/:list":             handlers.ListsIndividualHandler(listsRepo),
-		"/lists/:list/items":       handlers.ItemsMultiHandler(itemsRepo),
-		"/lists/:list/items/:item": handlers.ItemsIndividualHandler(itemsRepo),
+		"/lists": handlers.ListsMultiHandler(listsRepo),
+	})
+	srv.RegisterRoutesUnderNamespace("/lists/:list", routeit.RouteRegistry{
+		"/":            handlers.ListsIndividualHandler(listsRepo),
+		"/items":       handlers.ItemsMultiHandler(itemsRepo),
+		"/items/:item": handlers.ItemsIndividualHandler(itemsRepo),
 	})
 	return srv
 }

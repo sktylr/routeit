@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.0.2] - 2025-09-01
+
+### Changed
+- Moved internal implementation packages (`trie`, `cmp`) into the `internal/` directory.
+  - This enforces proper encapsulation and makes it clear which APIs are public and supported.
+  - No changes were made to the public API surface of `routeit`.
+
+### Notes
+- Since no external consumers exist yet, this change is non-breaking.
+- Future consumers should use only the public `routeit` APIs; internals are now properly hidden.
+
+---
+
 ## [v1.0.1] - 2025-08-31
 
 ### Fixed

@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+MODULE_PATH="github.com/sktylr/routeit"
+TARGET_VERSION="${1:-}"
+if [[ -z "$TARGET_VERSION" ]]; then
+  echo "Usage: $0 <version> (e.g. v1.0.1)"
+  exit 1
+fi
+
+EXAMPLES=$(find . -name go.mod -exec dirname {} \;)
+
+BUMPED=()
+IGNORED=()
+FAILED_TESTS=()
+UPDATED_FILES=()
+
+for example in $EXAMPLES; do
+  echo "🔄 Processing example: $example"
+  pushd "$example" > /dev/null
+
+  if ! go get "$MODULE_PATH@$TARGET_VERSION"; then
+    echo "❌ go get failed for $example"
+    IGNORED+=("$example")
+    popd > /dev/null
+    continue
+  fi
+
+  go mod tidy
+
+  if go test ./... -v > test_output.log 2>&1; then
+    echo "✅ Tests passed for $example"
+    UPDATED_FILES+=("$example/go.mod" "$example/go.sum")
+    BUMPED+=("$example")
+  else
+    echo "❌ Tests failed for $example"
+    IGNORED+=("$example")
+    while IFS= read -r line; do
+      case "$line" in
+        "--- FAIL:"*) FAILED_TESTS+=("$example $(echo "$line" | awk '{print $3}')") ;;
+      esac
+    done < test_output.log
+  fi
+
+  rm -f test_output.log
+  popd > /dev/null
+done
+
+COMMIT_MSG="bump examples to $TARGET_VERSION
+
+---
+Bumped:"
+for ex in "${BUMPED[@]}"; do
+  COMMIT_MSG+="
+- $ex"
+done
+
+if [[ ${#IGNORED[@]} -gt 0 ]]; then
+  COMMIT_MSG+="
+
+Ignored:"
+  for ex in "${IGNORED[@]}"; do
+    COMMIT_MSG+="
+- $ex"
+    for fail in "${FAILED_TESTS[@]}"; do
+      if [[ "$fail" == "$ex "* ]]; then
+        testname=$(echo "$fail" | cut -d' ' -f2-)
+        COMMIT_MSG+="
+  - $testname"
+      fi
+    done
+  done
+fi
+
+echo "📋 Summary:"
+echo "-------------------------"
+echo "$COMMIT_MSG"
+echo "-------------------------"
+
+if [[ ${#UPDATED_FILES[@]} -gt 0 ]]; then
+  echo "🔄 Staging updated go.mod/go.sum files..."
+  for f in "${UPDATED_FILES[@]}"; do
+    for attempt in {1..5}; do
+      if git add "$f"; then
+        break
+      fi
+      echo "⚠️ Git index lock detected, retrying ($attempt/5)..."
+      sleep $attempt
+    done
+  done
+
+  echo "✅ Dependency bump complete."
+  echo "Would you like to commit the staged changes? (y/n)"
+  read -r answer
+  if [[ "$answer" == "y" ]]; then
+    git commit -m "$COMMIT_MSG"
+    echo "✅ Changes committed."
+  else
+    echo "❌ Changes staged but not committed."
+  fi
+else
+  echo "ℹ️ No successful bumps — nothing to commit."
+fi

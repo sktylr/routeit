@@ -78,7 +78,7 @@ Interestingly, the regex solution was **always** slower, regardless of the numbe
 On average, the regex solution was over 236 _times_ more expensive than the string solution.
 As a result, I chose to continue to use the string comparison solution.
 
-The benchmarking source code can be found in [`src/cors_test.go`](/src/cors_test.go), and the commits that performed the benchmarking are:
+The benchmarking source code can be found in [`cors_test.go`](/cors_test.go), and the commits that performed the benchmarking are:
 
 - `39ea713c62912dae644af62f0f81235848024519` - introduce benchmarking for strings solution
 - `2edac590edc6359775dcaec3dc1920d79a371554` - benchmark regex solution

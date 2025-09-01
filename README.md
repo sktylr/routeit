@@ -69,9 +69,6 @@ Documentation for the current development version can be generated using [`godoc
 # Install the package if not already installed
 $ go install golang.org/x/tools/cmd/godoc@latest
 
-# Change to the source directory
-$ cd src
-
 # Run the documentation server on port 3000
 $ godoc -http=:3000
 ```

@@ -176,8 +176,7 @@ func (req *Request) RawPath() string {
 // corresponding to the named path segment in the request, unless the name does
 // not match any segments, in which case it will be empty.
 func (req *Request) PathParam(param string) string {
-	val, _ := req.uri.pathParams[param]
-	return val
+	return req.uri.pathParams[param]
 }
 
 // Access the headers of the request.

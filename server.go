@@ -23,7 +23,10 @@ type Server struct {
 }
 
 // Constructs a new server given the config. Defaults are provided for all
-// options to ensure that the server can run with sane values from the get-go.
+// options to provide a base of sane values. When setting up for the first time
+// make sure to set [ServerConfig.Debug] to true, or include valid hosts in
+// [ServerConfig.AllowedHosts], to allow the server to receive requests that it
+// will accept.
 func NewServer(conf ServerConfig) *Server {
 	if len(conf.AllowedHosts) == 0 && conf.Debug {
 		conf.AllowedHosts = []string{".localhost", "127.0.0.1", "[::1]"}

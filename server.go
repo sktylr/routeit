@@ -47,6 +47,9 @@ func NewServer(conf ServerConfig) *Server {
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
 	}
+	if conf.RequestIdProvider != nil {
+		s.RegisterMiddleware(requestIdMiddleware(conf.RequestIdProvider, conf.RequestIdHeader))
+	}
 	return s
 }
 

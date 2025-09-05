@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.1.0] - 2025-09-05
+
+### Added
+
+- **Request ID support**
+  - Each incoming request can now be assigned a unique ID through a middleware.
+  - Enabled by default if `ServerConfig.RequestIdProvider` is non-nil.
+  - Request IDs are automatically included in logging.
+  - Exposed on the request object via `Request.Id()`.
+  - Response header `"X-Request-Id"` is added by default, configurable through the server.
+
+---
+
 ## [v1.0.3] - 2025-09-01
 
 ### Fixed

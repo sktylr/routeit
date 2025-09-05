@@ -5,11 +5,19 @@ name: routeit
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+        matrix:
+            pkg:
+                - "."
+                - requestid
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Get Go version
         id: get_version
+        working-directory: ${{ matrix.pkg }}
         run: echo "go_version=$(grep '^go ' go.mod | awk '{print $2}')" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
@@ -18,7 +26,9 @@ jobs:
           go-version: ${{ steps.get_version.outputs.go_version }}
 
       - name: Build
+        working-directory: ${{ matrix.pkg }}
         run: go build -v ./...
 
       - name: Test
+        working-directory: ${{ matrix.pkg }}
         run: go test -v ./...

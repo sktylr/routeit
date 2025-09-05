@@ -10,7 +10,10 @@ This package provides a convenient implementation using V7 UUIDs.
 ```go
 package main
 
-import "github.com/sktylr/routeit"
+import (
+	"github.com/sktylr/routeit"
+	"github.com/sktylr/routeit/requestid"
+)
 
 type HelloWorld struct {
 	Hello string `json:"hello"`

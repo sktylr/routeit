@@ -102,6 +102,14 @@ type ServerConfig struct {
 	// Use [LogAttrExtractor] to include additional metadata in the default
 	// request line that is dumped for all incoming requests.
 	LogAttrExtractor LogAttrExtractor
+	// Use [RequestIdProvider] to tag each incoming request with an ID. This
+	// will automatically be logged and will be included as the "X-Request-Id"
+	// header in the response.
+	RequestIdProvider RequestIdProvider
+	// The header that each request ID is given in the response. This will
+	// default to "X-Request-Id" if [ServerConfig.RequestIdProvider] is
+	// non-nil. Otherwise, the header value will be ignored.
+	RequestIdHeader string
 }
 
 // The internal server config, which only stores the necessary values

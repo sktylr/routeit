@@ -82,6 +82,7 @@ func (l *logger) attrs(rw *ResponseWriter, req *Request) []slog.Attr {
 		slog.Int("status", int(rw.s.code)),
 		slog.String("user_agent", req.userAgent),
 		slog.String("client_ip", req.ip),
+		slog.String("request_id", req.id),
 	}
 	return append(base, l.extraAttrs(req, rw.s)...)
 }

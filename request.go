@@ -33,6 +33,7 @@ type Request struct {
 	userAgent string
 	ip        string
 	accept    []ContentType
+	id        string
 }
 
 type HttpMethod struct {
@@ -198,6 +199,12 @@ func (req *Request) UserAgent() string {
 // The client's IP address that established connection with the server
 func (req *Request) ClientIP() string {
 	return req.ip
+}
+
+// The ID of the request. This will only be populated if an implementation is
+// provided to [ServerConfig.RequestIdProvider].
+func (req *Request) Id() string {
+	return req.id
 }
 
 // Access the query parameters of the request URI. This will always return a

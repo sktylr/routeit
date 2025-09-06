@@ -104,7 +104,12 @@ type ServerConfig struct {
 	LogAttrExtractor LogAttrExtractor
 	// Use [RequestIdProvider] to tag each incoming request with an ID. This
 	// will automatically be logged and will be included as the "X-Request-Id"
-	// header in the response.
+	// header in the response. Note that the ID returned by this function is
+	// allowed to be empty. In such cases, routeit will proceed the request as
+	// normal, since the lack of request ID is not a strong enough reason to
+	// entirely block a request. If such behaviour is desirable, it is
+	// recommended to introduce custom middleware that blocks requests that
+	// contain empty request ID's.
 	RequestIdProvider RequestIdProvider
 	// The header that each request ID is given in the response. This will
 	// default to "X-Request-Id" if [ServerConfig.RequestIdProvider] is

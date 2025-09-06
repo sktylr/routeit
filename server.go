@@ -41,17 +41,24 @@ func NewServer(conf ServerConfig) *Server {
 		errorHandler: newErrorHandler(conf.ErrorMapper),
 		middleware:   newMiddleware(),
 	}
+	// All requests should have timeout middleware built in
+	s.RegisterMiddleware(s.timeoutMiddleware)
+	if conf.RequestIdProvider != nil {
+		// If the server uses request-ids, this should be the next piece of
+		// middleware. Although the subsequent built-in middlewares don't
+		// directly depend on a request having an ID, invalid requests will be
+		// blocked. This leads to inconsistent behaviour, as we will end up
+		// logging requests that were received at the edge, but haven't been
+		// assigned an ID despite being syntactically valid HTTP/1.1 messages.
+		s.RegisterMiddleware(requestIdMiddleware(conf.RequestIdProvider, conf.RequestIdHeader))
+	}
 	s.RegisterMiddleware(
-		s.timeoutMiddleware,
 		headerValidationMiddleware(conf.StrictSingletonHeaders),
 		hostValidationMiddleware(conf.AllowedHosts),
 	)
 	s.configureRewrites(conf.URLRewritePath)
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
-	}
-	if conf.RequestIdProvider != nil {
-		s.RegisterMiddleware(requestIdMiddleware(conf.RequestIdProvider, conf.RequestIdHeader))
 	}
 	return s
 }

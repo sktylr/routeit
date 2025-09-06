@@ -2,7 +2,8 @@ package routeit
 
 import "github.com/sktylr/routeit/internal/trie"
 
-// This middleware is the second piece of middleware run on all server
+// This middleware is the second (or third, if request ID's are assigned to
+// each incoming request) piece of middleware run on all server
 // instances. It will block requests that illegally contain repeated header
 // values. Some of the headers that are blocked are blocked for security
 // reasons (e.g. multiple "Authorization" headers poses a security risk), while

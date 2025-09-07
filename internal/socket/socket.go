@@ -1,6 +1,11 @@
 package socket
 
-import "net"
+import (
+	"errors"
+	"net"
+)
+
+var ErrSocketNotInUse = errors.New("socket is not in use")
 
 // A [Socket] controls connections over the network.
 type Socket interface {

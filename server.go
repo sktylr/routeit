@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/sktylr/routeit/internal/socket"
 )
 
 type Server struct {
@@ -122,44 +124,38 @@ func (s *Server) StartOrPanic() {
 // The server's config is thread-safe - meaning that if thread A initialised
 // the server, registered routes and started the server, and thread B attempted
 // to register additional routes to the same server, then thread B would panic.
-// The server may also not be stared multiple times from different threads as
+// The server may also not be started multiple times from different threads as
 // this will also cause a panic
 func (s *Server) Start() error {
 	if !s.started.CompareAndSwap(false, true) {
 		return errors.New("server has already been started")
 	}
 	s.log.Info("Starting server, binding to port", "port", s.conf.Port)
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
-	if err != nil {
+	sock := socket.NewTcpSocket(s.conf.Port)
+	if err := sock.Bind(); err != nil {
 		s.log.Error("Failed to establish connection", "port", s.conf.Port, "err", err)
 		return err
 	}
 	s.log.Info("Server started, ready for requests")
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			s.log.Warn("Failed to accept incoming connection", "err", err)
-			continue
-		}
-
-		now := time.Now()
-		rddl := now.Add(s.conf.ReadDeadline)
-		if err = conn.SetReadDeadline(rddl); err != nil {
-			s.log.Warn("Failed to set read deadline for incoming connection", "deadline", s.conf.ReadDeadline, "err", err)
-		}
-		if err = conn.SetWriteDeadline(rddl.Add(s.conf.ReadDeadline)); err != nil {
-			s.log.Warn("Failed to set write deadline for incoming connection", "deadline", s.conf.WriteDeadline, "err", err)
-		}
-
-		go s.handleNewConnection(conn)
-	}
+	sock.Serve(s.handleNewConnection, func(err error) {
+		s.log.Warn("Failed to accept incoming connection", "err", err)
+	})
+	return sock.Close()
 }
 
 // Handles an incoming connection. Extracts the raw request bytes and sends the
 // raw response back to the client. Read and write deadlines are handled using
 // the server config.
 func (s *Server) handleNewConnection(conn net.Conn) {
+	now := time.Now()
+	rddln := now.Add(s.conf.ReadDeadline)
+	if err := conn.SetReadDeadline(rddln); err != nil {
+		s.log.Warn("Failed to set read deadline for incoming connection", "deadline", s.conf.ReadDeadline, "err", err)
+	}
+	if err := conn.SetWriteDeadline(rddln.Add(s.conf.ReadDeadline)); err != nil {
+		s.log.Warn("Failed to set write deadline for incoming connection", "deadline", s.conf.WriteDeadline, "err", err)
+	}
+
 	defer func() {
 		conn.Close()
 	}()

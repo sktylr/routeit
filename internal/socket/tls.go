@@ -4,12 +4,14 @@ import (
 	ctls "crypto/tls"
 	"fmt"
 	"net"
+	"sync/atomic"
 )
 
 type tls struct {
-	port uint16
-	conf *ctls.Config
-	ln   net.Listener
+	port   uint16
+	conf   *ctls.Config
+	ln     net.Listener
+	closed atomic.Bool
 }
 
 // Creates a new socket that uses TLS over TCP with the given config and port.
@@ -23,6 +25,7 @@ func (t *tls) Bind() error {
 		return err
 	}
 	t.ln = ln
+	t.closed.Store(false)
 	return nil
 }
 
@@ -30,6 +33,10 @@ func (t *tls) Serve(onConn onConnection, onErr onError) {
 	defer t.Close()
 
 	for {
+		if t.closed.Load() {
+			return
+		}
+
 		conn, err := t.ln.Accept()
 		if err != nil {
 			go onErr(err)
@@ -43,5 +50,6 @@ func (t *tls) Close() error {
 	if t.ln == nil {
 		return ErrSocketNotInUse
 	}
+	t.closed.Store(true)
 	return t.ln.Close()
 }

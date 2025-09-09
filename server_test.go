@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ func TestNewServer(t *testing.T) {
 		// the global namespace, so it should be empty by default. The trie
 		// structure will handle the routing beyond that.
 		defaultConf := serverConfig{
-			Port:          8080,
+			HttpPort:      8080,
 			RequestSize:   KiB,
 			ReadDeadline:  10 * time.Second,
 			WriteDeadline: 10 * time.Second,
@@ -29,10 +30,47 @@ func TestNewServer(t *testing.T) {
 				want: func(s serverConfig) serverConfig { return s },
 			},
 			{
-				name: "only port",
-				in:   ServerConfig{Port: 3000},
+				name: "only http port",
+				in:   ServerConfig{HttpConfig: HttpConfig{HttpPort: 3000}},
 				want: func(s serverConfig) serverConfig {
-					s.Port = 3000
+					s.HttpPort = 3000
+					return s
+				},
+			},
+			{
+				name: "https port and TLS config",
+				in: ServerConfig{
+					HttpConfig: HttpConfig{
+						HttpsPort: 3000,
+						TlsConfig: &tls.Config{},
+					},
+				},
+				want: func(s serverConfig) serverConfig {
+					s.HttpPort = 0
+					s.HttpsPort = 3000
+					return s
+				},
+			},
+			{
+				name: "TLS config only",
+				in:   ServerConfig{HttpConfig: HttpConfig{TlsConfig: &tls.Config{}}},
+				want: func(s serverConfig) serverConfig {
+					s.HttpPort = 0
+					s.HttpsPort = 443
+					return s
+				},
+			},
+			{
+				name: "TLS config and http port",
+				in: ServerConfig{
+					HttpConfig: HttpConfig{
+						HttpPort:  8080,
+						TlsConfig: &tls.Config{},
+					},
+				},
+				want: func(s serverConfig) serverConfig {
+					s.HttpPort = 8080
+					s.HttpsPort = 443
 					return s
 				},
 			},
@@ -83,8 +121,11 @@ func TestNewServer(t *testing.T) {
 				s := NewServer(tc.in)
 				want := tc.want(defaultConf)
 
-				if s.conf.Port != want.Port {
-					t.Errorf(`default port = %d, want %d`, s.conf.Port, want.Port)
+				if s.conf.HttpPort != want.HttpPort {
+					t.Errorf(`default http port = %d, want %d`, s.conf.HttpPort, want.HttpPort)
+				}
+				if s.conf.HttpsPort != want.HttpsPort {
+					t.Errorf(`default https port = %d, want %d`, s.conf.HttpsPort, want.HttpsPort)
 				}
 				if s.conf.RequestSize != want.RequestSize {
 					t.Errorf(`default request buffer size = %d, want %d`, s.conf.RequestSize, want.RequestSize)
@@ -108,14 +149,32 @@ func TestNewServer(t *testing.T) {
 		}
 	})
 
-	t.Run("panics when URL Rewrite Path not a .conf file", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("expected NewServer to panic, did not")
-			}
-		}()
+	t.Run("panics", func(t *testing.T) {
+		tests := []struct {
+			name string
+			conf ServerConfig
+		}{
+			{
+				name: "URL rewrite path not a .conf file",
+				conf: ServerConfig{URLRewritePath: "foo.bar"},
+			},
+			{
+				name: "https port provided but no TLS config",
+				conf: ServerConfig{HttpConfig: HttpConfig{HttpsPort: 443}},
+			},
+		}
 
-		NewServer(ServerConfig{URLRewritePath: "foo.bar"})
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				defer func() {
+					if r := recover(); r == nil {
+						t.Error("expected NewServer to panic, did not")
+					}
+				}()
+
+				NewServer(tc.conf)
+			})
+		}
 	})
 }
 

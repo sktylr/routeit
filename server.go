@@ -72,6 +72,11 @@ func NewServer(conf ServerConfig) *Server {
 		tlsConf.NextProtos = []string{"http/1.1"}
 		if conf.HttpPort != 0 && conf.HttpsPort != 0 {
 			s.sock = socket.NewCombinedSocket(conf.HttpPort, conf.HttpsPort, tlsConf)
+			if conf.UpgradeToHttps {
+				s.RegisterMiddleware(
+					upgradeToHttpsMiddleware(conf.HttpsPort, conf.UpgradeInstructionMaxAge),
+				)
+			}
 		} else {
 			// By construction, we know the HTTPS port is non-zero and the HTTP
 			// port is 0, so we only want to listen for HTTPS messages.

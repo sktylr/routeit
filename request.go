@@ -3,6 +3,7 @@ package routeit
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ type Request struct {
 	ip        string
 	accept    []ContentType
 	id        string
+	tlsState  *tls.ConnectionState
 }
 
 type HttpMethod struct {
@@ -205,6 +207,14 @@ func (req *Request) ClientIP() string {
 // provided to [ServerConfig.RequestIdProvider].
 func (req *Request) Id() string {
 	return req.id
+}
+
+// The request's TLS connection state. This is nil when the request was
+// received over HTTP and non-nil whenever the request was made using HTTPS.
+// It contains details about the TLS connection, such as the version and cipher
+// suites.
+func (req *Request) Tls() *tls.ConnectionState {
+	return req.tlsState
 }
 
 // Access the query parameters of the request URI. This will always return a

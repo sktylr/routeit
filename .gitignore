@@ -4,3 +4,9 @@
 
 ### OSX
 .DS_Store
+
+### Certs & keys
+*.crt
+*.csr
+*.key
+*.srl

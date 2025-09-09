@@ -12,6 +12,7 @@ jobs:
                 - errors/handling
                 - errors/mapping
                 - https/both
+                - https/https-only
                 - middleware/complex
                 - middleware/cors
                 - middleware/simple

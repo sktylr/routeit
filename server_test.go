@@ -69,7 +69,21 @@ func TestNewServer(t *testing.T) {
 					},
 				},
 				want: func(s serverConfig) serverConfig {
-					s.HttpPort = 8080
+					s.HttpsPort = 443
+					return s
+				},
+			},
+			{
+				name: "TLS config and upgrade http to https, no http port",
+				in: ServerConfig{
+					HttpConfig: HttpConfig{
+						TlsConfig:                &tls.Config{},
+						UpgradeToHttps:           true,
+						UpgradeInstructionMaxAge: time.Hour,
+					},
+				},
+				want: func(s serverConfig) serverConfig {
+					s.HttpPort = 80
 					s.HttpsPort = 443
 					return s
 				},
@@ -161,6 +175,10 @@ func TestNewServer(t *testing.T) {
 			{
 				name: "https port provided but no TLS config",
 				conf: ServerConfig{HttpConfig: HttpConfig{HttpsPort: 443}},
+			},
+			{
+				name: "upgrade to HTTPS but not TLS config",
+				conf: ServerConfig{HttpConfig: HttpConfig{UpgradeToHttps: true}},
 			},
 		}
 

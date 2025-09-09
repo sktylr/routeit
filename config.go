@@ -121,13 +121,17 @@ type ServerConfig struct {
 }
 
 // The [HttpConfig] is used to specify details of the port(s) that the server
-// will listen on. If it is left empty, the server will respond to HTTP
-// requests on port 80. If a [tls.Config] is provided, the server will respond
-// to HTTPS requests, defaulting to listening on port 443. If it is desirable
-// to listen to both HTTP and HTTPS requests, the HTTP port will need to be
-// explicitly configured, commonly to port 80. In such cases, the HTTPS port
-// only needs to be set if listening to HTTPS requests on port 443 is not
-// desired.
+// will listen on. If left empty, the server will respond to HTTP requests on
+// port 8080. If a [tls.Config] is provided, the server will respond to HTTPS
+// requests, defaulting to listening on port 443. If it is desirable to listen
+// to both HTTP and HTTPS requests, the HTTP port will need to be explicitly
+// configured, commonly to port 80. In such cases, the HTTPS port only needs to
+// be set if listening to HTTPS requests on port 443 is not desired. When HTTPS
+// is enabled, the server can also instruct client to upgrade any HTTP
+// communication to HTTPS, controlled using [HttpConfig.UpgradeToHttps] and
+// [HttpConfig.UpgradeInstructionMaxAge]. If a HTTP port is not selected, but
+// UpgradeToHttps is enabled, the server will listen for HTTP messages on port
+// 80.
 type HttpConfig struct {
 	// This is the port that the HTTP listener will listen on. If the entire
 	// [HttpConfig] is left empty, this will default to port 8080. If a
@@ -146,6 +150,17 @@ type HttpConfig struct {
 	// will not expect HTTP messages. Configure the [HttpConfig.HttpPort]
 	// explicitly if it is desirable to listen to both HTTP and HTTPS requests.
 	TlsConfig *tls.Config
+	// Set this flag if you want the server to instruct clients to upgrade
+	// their HTTP messages to HTTPS. Enabling this flag with a valid TLS config
+	// and no HTTP port selected will default to the server listening for plain
+	// HTTP messages on port 80, and HTTPS messages on the chosen port (or
+	// defaulted to 443).
+	UpgradeToHttps bool
+	// Determines how long clients are instructed to remember to use HTTPS for
+	// the server and its host subdomains. Set to 0 if the client should not
+	// choose to remember. Only relevant when [HttpConfig.UpgradeToHttps] is
+	// set, otherwise its value is ignored.
+	UpgradeInstructionMaxAge time.Duration
 }
 
 // The internal server config, which only stores the necessary values
@@ -191,17 +206,29 @@ func (sc ServerConfig) internalise() serverConfig {
 			AllowTraceRequests:     sc.AllowTraceRequests,
 		},
 	}
-	if sc.TlsConfig == nil && sc.HttpsPort != 0 {
-		panic("cannot choose a https port without a tls config")
+	if sc.TlsConfig == nil {
+		if sc.HttpsPort != 0 {
+			panic("cannot choose a https port without a tls config")
+		}
+		if sc.UpgradeToHttps {
+			panic("cannot upgrade to https without a tls config")
+		}
 	}
+
 	if sc.RequestSize == 0 {
 		out.RequestSize = KiB
 	}
 	if sc.TlsConfig != nil {
-		// We are using TLS so require a HTTPS port. If not supplied, we
-		// default to 443
 		if sc.HttpsPort == 0 {
+			// We are using TLS so require a HTTPS port. If not supplied, we
+			// default to 443
 			out.HttpsPort = 443
+		}
+		if sc.UpgradeToHttps && sc.HttpPort == 0 {
+			// Since we are explicitly upgrading HTTP to HTTPS, we need to
+			// listen for HTTP requests. We don't have a port to listen on, so
+			// default to 80
+			out.HttpPort = 80
 		}
 	} else if sc.HttpPort == 0 && sc.HttpsPort == 0 {
 		// No ports have been provided and we are not using TLS, so default to

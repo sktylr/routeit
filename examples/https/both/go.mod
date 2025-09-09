@@ -1,4 +1,4 @@
-module github.com/sktylr/routeit/examples/simple
+module github.com/sktylr/routeit/examples/https/both
 
 go 1.24.4
 

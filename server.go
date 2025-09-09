@@ -3,6 +3,7 @@ package routeit
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -196,7 +197,13 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 		return
 	}
 
-	res := s.handleNewRequest(buf, conn.RemoteAddr())
+	var tlsState *tls.ConnectionState
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		state := tlsConn.ConnectionState()
+		tlsState = &state
+	}
+
+	res := s.handleNewRequest(buf, conn.RemoteAddr(), tlsState)
 	_, err = conn.Write(res.write())
 
 	if err != nil {
@@ -207,7 +214,7 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 // Parses the raw request received from a connection and transforms it into a
 // response. Handles the bulk of the server logic, such as routing, middleware
 // and error handling.
-func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter) {
+func (s *Server) handleNewRequest(raw []byte, addr net.Addr, tls *tls.ConnectionState) (rw *ResponseWriter) {
 	ctx, cancel := context.WithTimeout(context.Background(), s.conf.WriteDeadline)
 	defer cancel()
 
@@ -223,6 +230,7 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr) (rw *ResponseWriter
 	} else {
 		req.ip = addr.String()
 	}
+	req.tlsState = tls
 
 	var err error
 	// This comes after the parsing of the request, since the parsing cannot

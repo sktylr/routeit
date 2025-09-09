@@ -1,6 +1,7 @@
 package routeit
 
 import (
+	"crypto/tls"
 	"fmt"
 	"strings"
 	"testing"
@@ -28,6 +29,10 @@ type TestRequestOptions struct {
 	// through the entire handling flow, meaning requests are not routed
 	// properly so path parameters are not extracted.
 	PathParams map[string]string
+	// The TLS connection state. Use this if the middleware or handler under
+	// test is TLS aware (e.g. middleware that may block clients if they are
+	// not using TLS)
+	TlsConnectionState *tls.ConnectionState
 }
 
 // The [TestRequest] object can be used when unit testing specific components
@@ -63,13 +68,14 @@ func NewTestRequest(t testing.TB, path string, m HttpMethod, opts TestRequestOpt
 
 	headers := &RequestHeaders{constructTestHeaders(opts.Headers...)}
 	req := &Request{
-		ctx:     t.Context(),
-		mthd:    m,
-		uri:     *uri,
-		headers: headers,
-		body:    opts.Body,
-		ip:      opts.Ip,
-		accept:  parseAcceptHeader(headers),
+		ctx:      t.Context(),
+		mthd:     m,
+		uri:      *uri,
+		headers:  headers,
+		body:     opts.Body,
+		ip:       opts.Ip,
+		accept:   parseAcceptHeader(headers),
+		tlsState: opts.TlsConnectionState,
 	}
 
 	if host, hasHost := headers.First("Host"); hasHost {

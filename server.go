@@ -156,14 +156,14 @@ func (s *Server) Start() error {
 		return errors.New("server has already been started")
 	}
 
-	var portsAttr []slog.Attr
+	var portsAttrs []slog.Attr
 	if s.conf.HttpPort != 0 {
-		portsAttr = append(portsAttr, slog.Int("http_port", int(s.conf.HttpPort)))
+		portsAttrs = append(portsAttrs, slog.Int("http_port", int(s.conf.HttpPort)))
 	}
 	if s.conf.HttpsPort != 0 {
-		portsAttr = append(portsAttr, slog.Int("https_port", int(s.conf.HttpsPort)))
+		portsAttrs = append(portsAttrs, slog.Int("https_port", int(s.conf.HttpsPort)))
 	}
-	s.log.Info("Starting server", portsAttr)
+	s.log.LogAttrs(slog.LevelInfo, "Starting server", portsAttrs...)
 
 	if err := s.sock.Bind(); err != nil {
 		s.log.Error("Failed to establish connection", "port", s.conf.Port, "err", err)

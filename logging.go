@@ -53,6 +53,10 @@ func (l *logger) LogRequestAndResponse(rw *ResponseWriter, req *Request) {
 	}
 }
 
+func (l *logger) LogAttrs(lvl slog.Level, msg string, attrs ...slog.Attr) {
+	l.log.LogAttrs(context.Background(), lvl, msg, attrs...)
+}
+
 func (l *logger) Debug(msg string, args ...any) {
 	l.log.Debug(msg, args...)
 }

@@ -5,6 +5,7 @@ This examples directory contains a number of examples for the different combinat
 
 - [`both`](/examples/https/both/) - this server responds to both HTTP and HTTPS connections, and infers which type of connection was used.
 - [`https-only`](/examples/https/https-only/) - this server only responds to HTTPS connections.
+- [`upgrade-http`](/examples/https/upgrade-http/) - this server accepts both HTTP and HTTPS connections, but instructs HTTP clients to upgrade to HTTPS before it will process the requests.
 
 ### Certificates
 

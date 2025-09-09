@@ -166,6 +166,18 @@ type handlingConfig struct {
 	StrictClientAcceptance bool
 }
 
+// This is a convenience method for instantiating a TLS config with a single
+// certificate and key. This will panic if the certificate or key cannot be
+// loaded. [crypto/tls] sets sensible defaults for TLS config, so this is safe
+// to use unless specific fine-grained control is needed.
+func NewTlsConfigForCertAndKey(certPath, keyPath string) *tls.Config {
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		panic(fmt.Errorf(`failed to load X509 key pair: %w`, err))
+	}
+	return &tls.Config{Certificates: []tls.Certificate{cert}}
+}
+
 func (sc ServerConfig) internalise() serverConfig {
 	out := serverConfig{
 		HttpPort:      sc.HttpPort,

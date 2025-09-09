@@ -2,6 +2,7 @@ package routeit
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -10,7 +11,8 @@ import (
 )
 
 type TestClient struct {
-	s *Server
+	s        *Server
+	tlsState *tls.ConnectionState
 }
 
 type TestConfig struct {
@@ -20,7 +22,14 @@ type TestConfig struct {
 // Instantiates a test client that can be used to perform end-to-end tests on
 // the server.
 func NewTestClient(s *Server) TestClient {
-	return TestClient{s}
+	return TestClient{s: s}
+}
+
+// Creates a client that will simulate having a valid TLS connection to the
+// server. Use this method when the handlers or middleware performs TLS
+// dependent actions.
+func NewTestTlsClient(s *Server, tlsState *tls.ConnectionState) TestClient {
+	return TestClient{s: s, tlsState: tlsState}
 }
 
 // Instantiate a new test client with the given overwrite config. These values
@@ -229,7 +238,10 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	rb.WriteString("\r\n")
 	rb.Write(req.body)
 
-	// TODO: need to decide what to do here with HTTP / HTTPS - could maybe include that in the client creation.
-	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000}, nil)
+	rw := tc.s.handleNewRequest(
+		rb.Bytes(),
+		&net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000},
+		tc.tlsState,
+	)
 	return &TestResponse{rw}
 }

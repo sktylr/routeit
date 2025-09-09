@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"path"
@@ -22,6 +23,7 @@ type Server struct {
 	middleware   *middleware
 	started      atomic.Bool
 	errorHandler *errorHandler
+	sock         socket.Socket
 }
 
 // Constructs a new server given the config. Defaults are provided for all
@@ -61,6 +63,21 @@ func NewServer(conf ServerConfig) *Server {
 	s.configureRewrites(conf.URLRewritePath)
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
+	}
+	if conf.TlsConfig != nil {
+		tlsConf := conf.TlsConfig.Clone()
+		// We only support HTTP/1.1 so we override any settings the user has
+		// provided to ensure we can respond to the client properly.
+		tlsConf.NextProtos = []string{"http/1.1"}
+		if conf.HttpPort != 0 && conf.HttpsPort != 0 {
+			s.sock = socket.NewCombinedSocket(conf.HttpPort, conf.HttpsPort, tlsConf)
+		} else {
+			// By construction, we know the HTTPS port is non-zero and the HTTP
+			// port is 0, so we only want to listen for HTTPS messages.
+			s.sock = socket.NewTlsSocket(conf.HttpsPort, tlsConf)
+		}
+	} else {
+		s.sock = socket.NewTcpSocket(conf.HttpPort)
 	}
 	return s
 }
@@ -137,17 +154,25 @@ func (s *Server) Start() error {
 	if !s.started.CompareAndSwap(false, true) {
 		return errors.New("server has already been started")
 	}
-	s.log.Info("Starting server, binding to port", "port", s.conf.Port)
-	sock := socket.NewTcpSocket(s.conf.Port)
-	if err := sock.Bind(); err != nil {
+
+	var portsAttr []slog.Attr
+	if s.conf.HttpPort != 0 {
+		portsAttr = append(portsAttr, slog.Int("http_port", int(s.conf.HttpPort)))
+	}
+	if s.conf.HttpsPort != 0 {
+		portsAttr = append(portsAttr, slog.Int("https_port", int(s.conf.HttpsPort)))
+	}
+	s.log.Info("Starting server", portsAttr)
+
+	if err := s.sock.Bind(); err != nil {
 		s.log.Error("Failed to establish connection", "port", s.conf.Port, "err", err)
 		return err
 	}
 	s.log.Info("Server started, ready for requests")
-	sock.Serve(s.handleNewConnection, func(err error) {
+	s.sock.Serve(s.handleNewConnection, func(err error) {
 		s.log.Warn("Failed to accept incoming connection", "err", err)
 	})
-	return sock.Close()
+	return s.sock.Close()
 }
 
 // Handles an incoming connection. Extracts the raw request bytes and sends the
@@ -162,10 +187,7 @@ func (s *Server) handleNewConnection(conn net.Conn) {
 	if err := conn.SetWriteDeadline(rddln.Add(s.conf.ReadDeadline)); err != nil {
 		s.log.Warn("Failed to set write deadline for incoming connection", "deadline", s.conf.WriteDeadline, "err", err)
 	}
-
-	defer func() {
-		conn.Close()
-	}()
+	defer conn.Close()
 
 	buf := make([]byte, s.conf.RequestSize)
 	_, err := conn.Read(buf)

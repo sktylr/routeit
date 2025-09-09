@@ -11,6 +11,7 @@ jobs:
             example:
                 - errors/handling
                 - errors/mapping
+                - https/both
                 - middleware/complex
                 - middleware/cors
                 - middleware/simple

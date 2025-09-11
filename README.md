@@ -190,7 +190,7 @@ We fallback to mapping to a `500: Internal Server Error` if we cannot establish 
 Additionally, custom handling can be provided for specific HTTP status codes, if `routeit`'s default response is not sufficient.
 This allows for additional logging, new headers, or transformation of the response body to something more meaningful than `routeit`'s default response, for example.
 Common use cases include for `404: Not Found`, and `500: Internal Server Error`.
-These can be registered using `routeit.Server.RegisterErrorHandlers`.
+These can be registered using `Server.RegisterErrorHandlers`.
 
 [`examples/errors`](/examples/errors/) contains examples for how custom error handling and mapping can be performed using `routeit`.
 

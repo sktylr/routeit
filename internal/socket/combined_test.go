@@ -48,9 +48,7 @@ func TestCombinedSocketListenAndServe(t *testing.T) {
 	tcpConn.Close()
 
 	tlsAddr := c.tls.(*tls).ln.Addr().String()
-	clientConf := conf.Clone()
-	clientConf.InsecureSkipVerify = true
-	tlsConn, err := ctls.Dial("tcp", tlsAddr, clientConf)
+	tlsConn, err := ctls.Dial("tcp", tlsAddr, conf)
 	if err != nil {
 		t.Fatalf("failed to dial TLS server: %v", err)
 	}

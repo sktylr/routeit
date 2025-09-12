@@ -40,9 +40,7 @@ func TestTlsSocketListenAndServe(t *testing.T) {
 	)
 
 	addr := s.ln.Addr().String()
-	clientConf := conf.Clone()
-	clientConf.InsecureSkipVerify = true
-	conn, err := ctls.Dial("tcp", addr, clientConf)
+	conn, err := ctls.Dial("tcp", addr, conf)
 	if err != nil {
 		t.Fatalf("failed to dial TLS server: %v", err)
 	}

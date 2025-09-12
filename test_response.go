@@ -77,7 +77,7 @@ func (tr *TestResponse) AssertHeaderMatches(t testing.TB, header string, want []
 	t.Helper()
 	val, found := tr.rw.headers.headers.All(header)
 	if !found {
-		t.Errorf(`expected %#q header to be present`, header)
+		t.Fatalf(`expected %#q header to be present`, header)
 	}
 	if !reflect.DeepEqual(val, want) {
 		t.Errorf(`headers[%#q] = %+v, wanted %+v`, header, val, want)
@@ -91,10 +91,10 @@ func (tr *TestResponse) AssertHeaderMatchesString(t testing.TB, header, want str
 	t.Helper()
 	val, found := tr.rw.headers.headers.All(header)
 	if !found {
-		t.Errorf(`expected %#q header to be present`, header)
+		t.Fatalf(`expected %#q header to be present`, header)
 	}
 	if len(val) != 1 {
-		t.Errorf(`headers[%#q] = %+v with length %d, wanted exactly 1 element`, header, val, len(val))
+		t.Fatalf(`headers[%#q] = %+v with length %d, wanted exactly 1 element`, header, val, len(val))
 	}
 	if val[0] != want {
 		t.Errorf(`headers[%#q] = %#q, wanted %#q`, header, val[0], want)
@@ -108,7 +108,7 @@ func (tr *TestResponse) AssertHeaderContains(t testing.TB, header, want string) 
 	t.Helper()
 	val, found := tr.rw.headers.headers.All(header)
 	if !found {
-		t.Errorf(`expected %#q header to be present`, header)
+		t.Fatalf(`expected %#q header to be present`, header)
 	}
 	if !slices.Contains(val, want) {
 		t.Errorf(`headers[%#q] = %+v, wanted %#q`, header, val, want)

@@ -304,8 +304,8 @@ func (req *Request) UnsafeBodyFromRaw() []byte {
 
 // Access the content type of the request body. Does not return a meaningful
 // value for requests without the Content-Type header, or requests that should
-// not contain a body, such as GET. The ContentType.Equals method can be used
-// to perform equality checks.
+// not contain a body, such as GET. The [ContentType.Matches] method can be
+// used to determine whether two content types are equivalent.
 func (req *Request) ContentType() ContentType {
 	return req.ct
 }

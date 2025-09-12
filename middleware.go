@@ -10,7 +10,7 @@ import "slices"
 // If a middleware chooses to block a request (by returning an error), it will
 // not be propagated through to the rest of the chain, nor the handler defined
 // by the application for the route and method of the request. If headers are
-// set on the response, using [ResponseWriter.Header], the headers will be
+// set on the response, using [ResponseWriter.Headers], the headers will be
 // propagated to the response - even if the handler or intermediary middleware
 // returns an error or panics. The error's headers take precedence and will
 // overwrite any headers of the same name that are already set.

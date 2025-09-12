@@ -264,7 +264,7 @@ func (e *HttpError) Error() string {
 	return sb.String()
 }
 
-// [Is] is used to compare error types. routeit considers two [HttpError]s to
+// Is is used to compare error types. routeit considers two [HttpError]'s to
 // be the same if they share the same status code, so long as the status code
 // is valid (i.e. >= 100, < 600)
 func (e *HttpError) Is(err error) bool {

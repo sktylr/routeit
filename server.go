@@ -128,8 +128,8 @@ func (s *Server) RegisterMiddleware(ms ...Middleware) {
 // the integrator to uniformly respond to certain 4xx or 5xx status codes.
 // Common use cases include for 401 or 404 handling. For example, it may be
 // desired for all 404 responses to return application/json content, which can
-// be done in one place. The [RegisterErrorHandlers] method will panic if
-// handlers are attempted to be registered for non 4xx or 5xx status codes.
+// be done in one place. This method will panic if handlers are attempted to be
+// registered for non 4xx or 5xx status codes.
 func (s *Server) RegisterErrorHandlers(handlers map[HttpStatus]ErrorResponseHandler) {
 	s.panicIfStarted("register error handlers")
 	for st, h := range handlers {

@@ -56,7 +56,7 @@ func (tr *TestResponse) AssertBodyMatchesString(t testing.TB, want string) {
 
 // Assert that a body exactly matches the given string with format options
 // This is the same as formatting the string using fmt.Sprintf and calling
-// AssertBodyMatchesString directly
+// [TestResponse.AssertBodyMatchesString] directly
 func (tr *TestResponse) AssertBodyMatchesStringf(t testing.TB, wantf string, args ...any) {
 	t.Helper()
 	want := fmt.Sprintf(wantf, args...)

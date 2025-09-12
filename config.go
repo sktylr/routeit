@@ -1,6 +1,8 @@
 package routeit
 
 import (
+	"crypto/tls"
+	"fmt"
 	"log/slog"
 	"time"
 )
@@ -17,8 +19,6 @@ const (
 type RequestSize uint32
 
 type ServerConfig struct {
-	// The port the server listens on
-	Port uint16
 	// The maximum request size (headers, request line and body inclusive) that
 	// the server will accept. Anything above this will be rejected.
 	RequestSize RequestSize
@@ -115,10 +115,43 @@ type ServerConfig struct {
 	// default to "X-Request-Id" if [ServerConfig.RequestIdProvider] is
 	// non-nil. Otherwise, the header value will be ignored.
 	RequestIdHeader string
+	// Use [HttpConfig] to control whether the server responds to HTTP
+	// requests, HTTPS requests, or both.
+	HttpConfig
+}
+
+// The [HttpConfig] is used to specify details of the port(s) that the server
+// will listen on. If it is left empty, the server will respond to HTTP
+// requests on port 80. If a [tls.Config] is provided, the server will respond
+// to HTTPS requests, defaulting to listening on port 443. If it is desirable
+// to listen to both HTTP and HTTPS requests, the HTTP port will need to be
+// explicitly configured, commonly to port 80. In such cases, the HTTPS port
+// only needs to be set if listening to HTTPS requests on port 443 is not
+// desired.
+type HttpConfig struct {
+	// This is the port that the HTTP listener will listen on. If the entire
+	// [HttpConfig] is left empty, this will default to port 8080. If a
+	// [tls.Config] is set, this will be left empty (meaning the server will
+	// not respond to plain HTTP messages) unless explicitly configured.
+	HttpPort uint16
+	// The port that HTTPS messages are expected to be sent to. This only has
+	// relevance if [HttpConfig.TlsConfig] is non-nil. If the HTTPS port is set
+	// with no TLS config, server setup will panic. When a TLS config is
+	// provided, the server by default listens on port 443 for HTTPS requests,
+	// which can be changed with this property if required.
+	HttpsPort uint16
+	// The TLS config for the server. This is required if the server wishes to
+	// receive and respond to HTTPS messages. When provided with no ports
+	// configured, the server will listen for HTTPS messages on port 443, and
+	// will not expect HTTP messages. Configure the [HttpConfig.HttpPort]
+	// explicitly if it is desirable to listen to both HTTP and HTTPS requests.
+	TlsConfig *tls.Config
 }
 
 // The internal server config, which only stores the necessary values
 type serverConfig struct {
+	HttpPort      uint16
+	HttpsPort     uint16
 	Port          uint16
 	RequestSize   RequestSize
 	ReadDeadline  time.Duration
@@ -133,9 +166,22 @@ type handlingConfig struct {
 	StrictClientAcceptance bool
 }
 
+// This is a convenience method for instantiating a TLS config with a single
+// certificate and key. This will panic if the certificate or key cannot be
+// loaded. [crypto/tls] sets sensible defaults for TLS config, so this is safe
+// to use unless specific fine-grained control is needed.
+func NewTlsConfigForCertAndKey(certPath, keyPath string) *tls.Config {
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		panic(fmt.Errorf(`failed to load X509 key pair: %w`, err))
+	}
+	return &tls.Config{Certificates: []tls.Certificate{cert}}
+}
+
 func (sc ServerConfig) internalise() serverConfig {
 	out := serverConfig{
-		Port:          sc.Port,
+		HttpPort:      sc.HttpPort,
+		HttpsPort:     sc.HttpsPort,
 		RequestSize:   sc.RequestSize,
 		ReadDeadline:  sc.ReadDeadline,
 		WriteDeadline: sc.WriteDeadline,
@@ -146,11 +192,22 @@ func (sc ServerConfig) internalise() serverConfig {
 			AllowTraceRequests:     sc.AllowTraceRequests,
 		},
 	}
+	if sc.TlsConfig == nil && sc.HttpsPort != 0 {
+		panic("cannot choose a https port without a tls config")
+	}
 	if sc.RequestSize == 0 {
 		out.RequestSize = KiB
 	}
-	if sc.Port == 0 {
-		out.Port = 8080
+	if sc.TlsConfig != nil {
+		// We are using TLS so require a HTTPS port. If not supplied, we
+		// default to 443
+		if sc.HttpsPort == 0 {
+			out.HttpsPort = 443
+		}
+	} else if sc.HttpPort == 0 && sc.HttpsPort == 0 {
+		// No ports have been provided and we are not using TLS, so default to
+		// HTTP over port 8080
+		out.HttpPort = 8080
 	}
 	if sc.ReadDeadline == 0 {
 		out.ReadDeadline = 10 * time.Second

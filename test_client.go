@@ -229,6 +229,7 @@ func (tc TestClient) makeRequest(req testRequest) *TestResponse {
 	rb.WriteString("\r\n")
 	rb.Write(req.body)
 
-	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000})
+	// TODO: need to decide what to do here with HTTP / HTTPS - could maybe include that in the client creation.
+	rw := tc.s.handleNewRequest(rb.Bytes(), &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 3000}, nil)
 	return &TestResponse{rw}
 }

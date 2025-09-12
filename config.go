@@ -152,7 +152,6 @@ type HttpConfig struct {
 type serverConfig struct {
 	HttpPort      uint16
 	HttpsPort     uint16
-	Port          uint16
 	RequestSize   RequestSize
 	ReadDeadline  time.Duration
 	WriteDeadline time.Duration

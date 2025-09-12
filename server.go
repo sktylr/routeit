@@ -166,7 +166,7 @@ func (s *Server) Start() error {
 	s.log.LogAttrs(slog.LevelInfo, "Starting server", portsAttrs...)
 
 	if err := s.sock.Bind(); err != nil {
-		s.log.Error("Failed to establish connection", "port", s.conf.Port, "err", err)
+		s.log.Error("Failed to establish connection", "err", err)
 		return err
 	}
 	s.log.Info("Server started, ready for requests")

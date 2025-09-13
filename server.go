@@ -65,21 +65,7 @@ func NewServer(conf ServerConfig) *Server {
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
 	}
-	if conf.TlsConfig != nil {
-		tlsConf := conf.TlsConfig.Clone()
-		// We only support HTTP/1.1 so we override any settings the user has
-		// provided to ensure we can respond to the client properly.
-		tlsConf.NextProtos = []string{"http/1.1"}
-		if conf.HttpPort != 0 && conf.HttpsPort != 0 {
-			s.sock = socket.NewCombinedSocket(conf.HttpPort, conf.HttpsPort, tlsConf)
-		} else {
-			// By construction, we know the HTTPS port is non-zero and the HTTP
-			// port is 0, so we only want to listen for HTTPS messages.
-			s.sock = socket.NewTlsSocket(conf.HttpsPort, tlsConf)
-		}
-	} else {
-		s.sock = socket.NewTcpSocket(conf.HttpPort)
-	}
+	s.configureSocket(conf)
 	return s
 }
 
@@ -270,6 +256,33 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr, tls *tls.Connection
 	// multiple streams that the error can come from, since we also want to
 	// avoid letting panics halt the whole server.
 	return rw
+}
+
+// Configures the socket that the server will use to listen for and respond to
+// requests.
+func (s *Server) configureSocket(conf ServerConfig) {
+	if conf.TlsConfig == nil {
+		s.sock = socket.NewTcpSocket(conf.HttpPort)
+		return
+	}
+
+	// We only support HTTP/1.1 so we override any settings the user has
+	// provided to ensure we can respond to the client properly.
+	tlsConf := conf.TlsConfig.Clone()
+	tlsConf.NextProtos = []string{"http/1.1"}
+
+	if conf.HttpPort == 0 {
+		// By construction, we know the HTTPS port is non-zero and the HTTP
+		// port is 0, so we only want to listen for HTTPS messages.
+		s.sock = socket.NewTlsSocket(conf.HttpsPort, tlsConf)
+	}
+
+	s.sock = socket.NewCombinedSocket(conf.HttpPort, conf.HttpsPort, tlsConf)
+	if conf.UpgradeToHttps {
+		s.RegisterMiddleware(
+			upgradeToHttpsMiddleware(conf.HttpsPort, conf.UpgradeInstructionMaxAge),
+		)
+	}
 }
 
 // This is the outermost piece of middleware and ensures that the request does

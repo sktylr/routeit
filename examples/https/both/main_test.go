@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"strconv"
 	"testing"
 
@@ -18,6 +19,11 @@ func TestServer(t *testing.T) {
 			name:     "http",
 			client:   routeit.NewTestClient(srv),
 			wantBody: "Hello world!",
+		},
+		{
+			name:     "https",
+			client:   routeit.NewTestTlsClient(srv, &tls.ConnectionState{}),
+			wantBody: "Hello world! Thanks for being secure!",
 		},
 	}
 

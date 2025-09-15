@@ -4,6 +4,7 @@
 This examples directory contains a number of examples for the different combinations of HTTP + HTTPS options a user of `routeit` has.
 
 - [`both`](/examples/https/both/) - this server responds to both HTTP and HTTPS connections, and infers which type of connection was used.
+- [`https-only`](/examples/https/https-only/) - this server only responds to HTTPS connections.
 
 ### Certificates
 

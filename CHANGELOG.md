@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.2.0] - 2025-09-15
+
+### Added
+
+- **HTTPS support**
+
+  - Servers can now be configured to accept HTTPS connections via `ServerConfig.HttpConfig`.
+  - TLS is supported out-of-the-box using Go’s `crypto/tls` configuration.
+  - Multiple modes are supported:
+    - HTTP only (default, port `8080`).
+    - HTTPS only (default port `443`).
+    - Both HTTP and HTTPS simultaneously.
+  - Built-in validation ensures misconfigurations (e.g. enabling HTTPS without TLS config) are caught early.
+
+- **Automatic HTTP -> HTTPS upgrade**
+
+  - New middleware and configuration options (`UpgradeToHttps`, `UpgradeInstructionMaxAge`) allow automatic redirection of HTTP traffic to HTTPS.
+  - Responses can include `Strict-Transport-Security` headers to instruct clients to prefer HTTPS for a configurable period.
+
+- **TLS-aware testing** _(Experimental)_
+
+  - The `TestClient` and related utilities now support injecting TLS state for requests.
+  - Enables unit and E2E testing of TLS-aware handlers and middleware.
+
+### Changed
+
+- **Server configuration**
+
+  - `ServerConfig.Port` has been replaced by the more flexible `HttpConfig` struct.
+  - `HttpConfig` contains ports for HTTP/HTTPS and optional TLS settings, making server setup more explicit.
+  - Default behavior:
+    - If no config provided -> serve HTTP on port `8080`.
+    - If only HTTPS configured -> serve HTTPS on port `443`.
+    - If both provided -> serve both.
+
+### Fixed
+
+- **Documentation**: Corrected several inaccurate docstrings.
+- **Tests**: Fail faster on invalid conditions to avoid hidden panics.
+
+### Notes
+
+- Testing utilities remain experimental and may change in future releases.
+- The replacement of `ServerConfig.Port` with `HttpConfig` is technically a breaking change. However, since there are no external consumers, this is treated as a safe, non-major release.
+- `CONNECT` requests remain unsupported due to a current lack of support for tunnelling.
+
+---
+
 ## [v1.1.0] - 2025-09-05
 
 ### Added

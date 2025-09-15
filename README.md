@@ -86,7 +86,7 @@ The documentation can now be viewed at [`localhost:3000/pkg/github.com/sktylr/ro
 | POST        | ✅         |                                                                                                                                 |
 | PUT         | ✅         |                                                                                                                                 |
 | DELETE      | ✅         |                                                                                                                                 |
-| CONNECT     | ❌         | Will never be implemented since I will not support HTTPS                                                                        |
+| CONNECT     | ❌         | Will never be implemented since I will not support tunnelling                                                                   |
 | OPTIONS     | ✅         | Baked into the server implementation.                                                                                           |
 | TRACE       | ✅         | Baked into the server implementation but is defaulted OFF. Can be turned on using the `AllowTraceRequests` configuration option |
 | PATCH       | ✅         |                                                                                                                                 |
@@ -96,6 +96,18 @@ The documentation can now be viewed at [`localhost:3000/pkg/github.com/sktylr/ro
 | `application/json` | ✅                 | ✅                  | Parsing and encoding is handled automatically by `routeit`                                                                                                                                                         |
 | `text/plain`       | ✅                 | ✅                  |                                                                                                                                                                                                                    |
 | ...                | ✅                 | ✅                  | Any request or response type can be supported, but the integrator must handling the parsing and marshalling. The `ResponseWriter.RawWithContentType` and `Request.BodyFromRaw` methods can be used correspondingly |
+
+#### HTTPS
+
+`routeit` supports both HTTP and HTTPS.
+Unlike with `net/http` and other libraries, a single `routeit` server can support both HTTP and HTTPS without needing to explicitly manage the separate threads and ports.
+The `HttpConfig` allows the HTTP(s) ports to be specified, as well as the TLS config required if a server wants to accept HTTPS communication.
+
+TLS is backed by the [`crypto/tls`](https://pkg.go.dev/crypto/tls) standard library, which is the same used in `net/http`.
+This provides sensible out-of-the-box defaults while allowing high levels of cusomisation if required.
+Once a TLS config is provided to a `routeit` server, the server will **only** listen for HTTPS communication, unless plain HTTP communication is explicitly enabled.
+`routeit` also comes with built-in HTTPS upgrade mechanisms, which will instruct clients to upgrade their connections to HTTPS before they will be accepted, which is controlled through the `HttpConfig.UpgradeToHttps` and `HttpConfig.UpgradeInstructionMaxAge` properties.
+Check out [`examples/https`](/examples/https/) for example setups showcasing each of the 3 configuration options that use HTTPS.
 
 #### Handlers
 

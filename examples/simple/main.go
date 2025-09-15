@@ -27,7 +27,6 @@ type Nested struct {
 
 func GetServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
-		Port:                   8080,
 		AllowedHosts:           []string{".example.com", ".localhost", "[::1]"},
 		StrictClientAcceptance: true,
 		AllowTraceRequests:     true,

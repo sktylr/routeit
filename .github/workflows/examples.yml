@@ -13,6 +13,7 @@ jobs:
                 - errors/mapping
                 - https/both
                 - https/https-only
+                - https/upgrade-http
                 - middleware/complex
                 - middleware/cors
                 - middleware/simple

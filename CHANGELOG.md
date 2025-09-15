@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.2.1] — 2025-09-15
+
+### Fixed
+
+- Regression in `v1.2.0` where HTTP-only servers without an explicitly configured port would bind to a random ephemeral port instead of the default `8080`. HTTPS servers and explicitly configured HTTP ports were unaffected.
+
+---
+
 ## [v1.2.0] - 2025-09-15
 
 ### Added

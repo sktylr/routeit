@@ -7,7 +7,7 @@ import (
 
 func GetFrontendServer() *routeit.Server {
 	srv := routeit.NewServer(routeit.ServerConfig{
-		Port:                   3000,
+		HttpConfig:             routeit.HttpConfig{HttpPort: 3000},
 		StaticDir:              "static",
 		URLRewritePath:         "conf/rewrites.conf",
 		Debug:                  false,

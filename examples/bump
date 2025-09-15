@@ -60,10 +60,10 @@ if [[ ${#IGNORED[@]} -gt 0 ]]; then
   COMMIT_MSG+="
 
 Ignored:"
-  for ex in "${IGNORED[@]}"; do
+  for ex in "${IGNORED[@]:-}"; do
     COMMIT_MSG+="
 - $ex"
-    for fail in "${FAILED_TESTS[@]}"; do
+    for fail in "${FAILED_TESTS[@]:-}"; do
       if [[ "$fail" == "$ex "* ]]; then
         testname=$(echo "$fail" | cut -d' ' -f2-)
         COMMIT_MSG+="

@@ -101,7 +101,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		srv := routeit.NewServer(routeit.ServerConfig{
-			Port:           3000,
+			HttpConfig:     routeit.HttpConfig{HttpPort: 3000},
 			Debug:          true,
 			StaticDir:      "assets",
 			URLRewritePath: "conf/rewrite.conf",

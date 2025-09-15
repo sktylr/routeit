@@ -65,7 +65,11 @@ func NewServer(conf ServerConfig) *Server {
 	if conf.AllowTraceRequests {
 		s.RegisterMiddleware(allowTraceValidationMiddleware())
 	}
-	s.configureSocket(conf)
+	s.configureSocket(httpsConfig{
+		TlsConfig:                conf.TlsConfig,
+		UpgradeToHttps:           conf.UpgradeToHttps,
+		UpgradeInstructionMaxAge: conf.UpgradeInstructionMaxAge,
+	})
 	return s
 }
 
@@ -260,9 +264,9 @@ func (s *Server) handleNewRequest(raw []byte, addr net.Addr, tls *tls.Connection
 
 // Configures the socket that the server will use to listen for and respond to
 // requests.
-func (s *Server) configureSocket(conf ServerConfig) {
+func (s *Server) configureSocket(conf httpsConfig) {
 	if conf.TlsConfig == nil {
-		s.sock = socket.NewTcpSocket(conf.HttpPort)
+		s.sock = socket.NewTcpSocket(s.conf.HttpPort)
 		return
 	}
 
@@ -271,16 +275,16 @@ func (s *Server) configureSocket(conf ServerConfig) {
 	tlsConf := conf.TlsConfig.Clone()
 	tlsConf.NextProtos = []string{"http/1.1"}
 
-	if conf.HttpPort == 0 {
+	if s.conf.HttpPort == 0 {
 		// By construction, we know the HTTPS port is non-zero and the HTTP
 		// port is 0, so we only want to listen for HTTPS messages.
-		s.sock = socket.NewTlsSocket(conf.HttpsPort, tlsConf)
+		s.sock = socket.NewTlsSocket(s.conf.HttpsPort, tlsConf)
 	}
 
-	s.sock = socket.NewCombinedSocket(conf.HttpPort, conf.HttpsPort, tlsConf)
+	s.sock = socket.NewCombinedSocket(s.conf.HttpPort, s.conf.HttpsPort, tlsConf)
 	if conf.UpgradeToHttps {
 		s.RegisterMiddleware(
-			upgradeToHttpsMiddleware(conf.HttpsPort, conf.UpgradeInstructionMaxAge),
+			upgradeToHttpsMiddleware(s.conf.HttpsPort, conf.UpgradeInstructionMaxAge),
 		)
 	}
 }

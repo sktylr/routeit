@@ -180,6 +180,12 @@ type handlingConfig struct {
 	StrictClientAcceptance bool
 }
 
+type httpsConfig struct {
+	TlsConfig                *tls.Config
+	UpgradeToHttps           bool
+	UpgradeInstructionMaxAge time.Duration
+}
+
 // This is a convenience method for instantiating a TLS config with a single
 // certificate and key. This will panic if the certificate or key cannot be
 // loaded. [crypto/tls] sets sensible defaults for TLS config, so this is safe

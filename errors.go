@@ -7,13 +7,15 @@ import (
 	"io/fs"
 	"maps"
 	"strings"
+
+	"github.com/sktylr/routeit/internal/headers"
 )
 
 type HttpError struct {
 	status  HttpStatus
 	cause   error
 	message string
-	headers headers
+	headers headers.Headers
 }
 
 // The [ErrorMapper] can be implemented to provide more granular control over
@@ -68,7 +70,7 @@ func ErrNotFound() *HttpError {
 }
 
 func ErrMethodNotAllowed(allowed ...HttpMethod) *HttpError {
-	headers := headers{}
+	headers := headers.Headers{}
 	for _, m := range allowed {
 		headers.Append("Allow", m.name)
 	}
@@ -112,7 +114,7 @@ func ErrURITooLong() *HttpError {
 }
 
 func ErrUnsupportedMediaType(accepted ...ContentType) *HttpError {
-	headers := headers{}
+	headers := headers.Headers{}
 	if len(accepted) != 0 {
 		var sb strings.Builder
 		sb.WriteString(accepted[0].string())
@@ -226,7 +228,7 @@ func ErrNetworkAuthenticationRequired() *HttpError {
 }
 
 func httpErrorForStatus(s HttpStatus) *HttpError {
-	return &HttpError{status: s, headers: headers{}}
+	return &HttpError{status: s, headers: headers.Headers{}}
 }
 
 func newErrorHandler(em ErrorMapper) *errorHandler {

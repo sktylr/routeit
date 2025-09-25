@@ -3,6 +3,8 @@ package routeit
 import (
 	"fmt"
 	"testing"
+
+	"github.com/sktylr/routeit/internal/headers"
 )
 
 func TestContentTypeString(t *testing.T) {
@@ -219,7 +221,7 @@ func TestParseAcceptHeader(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := headers{}
+			h := headers.Headers{}
 			for k, vals := range tc.in {
 				for _, v := range vals {
 					h.Append(k, v)

@@ -1,6 +1,10 @@
 package routeit
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/sktylr/routeit/internal/headers"
+)
 
 // A middleware function is called for all incoming requests that reach the
 // server. It can choose to block the request, or pass it off to the next
@@ -76,12 +80,12 @@ func allowTraceValidationMiddleware() Middleware {
 	return func(c Chain, rw *ResponseWriter, req *Request) error {
 		err := c.Proceed(rw, req)
 
-		var h headers
+		var h headers.Headers
 		if err != nil {
 			if e, ok := err.(*HttpError); ok {
 				h = e.headers
 			} else {
-				h = headers{}
+				h = headers.Headers{}
 			}
 		} else {
 			h = rw.headers.headers

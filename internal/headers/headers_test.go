@@ -1,4 +1,4 @@
-package routeit
+package headers
 
 import (
 	"reflect"
@@ -133,7 +133,7 @@ func TestHeadersSet(t *testing.T) {
 
 func TestHeadersGet(t *testing.T) {
 	t.Run("case insensitive", func(t *testing.T) {
-		base := newResponseHeaders()
+		base := headers{}
 		base.Set("Key", "val")
 		tests := []string{
 			"key",
@@ -148,7 +148,7 @@ func TestHeadersGet(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc, func(t *testing.T) {
-				verifyPresentAndMatches(t, base.headers, tc, []string{"val"})
+				verifyPresentAndMatches(t, base, tc, []string{"val"})
 			})
 		}
 	})

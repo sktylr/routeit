@@ -17,11 +17,11 @@ type headerVal struct {
 	original string
 }
 
-type headers map[string]headerVal
+type Headers map[string]headerVal
 
 // Writes the headers to the given string builder. Sanitises the keys and
 // values before writing.
-func (h headers) WriteTo(writer io.Writer) (int64, error) {
+func (h Headers) WriteTo(writer io.Writer) (int64, error) {
 	total := int64(0)
 	for _, v := range h {
 		key := strings.Map(sanitiseHeader, strings.TrimSpace(v.original))
@@ -40,7 +40,7 @@ func (h headers) WriteTo(writer io.Writer) (int64, error) {
 // Sets a key-value pair in the headers. This is a case insensitive operation
 // that will create a new entry in the map if needed or update an existing
 // entry if already present.
-func (h headers) Set(key, val string) {
+func (h Headers) Set(key, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)
 	sKeyLower := strings.ToLower(sKey)
@@ -60,7 +60,7 @@ func (h headers) Set(key, val string) {
 // for the presence of the value already within the list. This is preferred to
 // setting the header to a comma separated string, unless the header values
 // need to be strictly reset.
-func (h headers) Append(key, val string) {
+func (h Headers) Append(key, val string) {
 	sKey := strings.Map(sanitiseHeader, key)
 	sVal := strings.Map(sanitiseHeader, val)
 	sKeyLower := strings.ToLower(sKey)
@@ -77,7 +77,7 @@ func (h headers) Append(key, val string) {
 
 }
 
-func (h headers) All(key string) ([]string, bool) {
+func (h Headers) All(key string) ([]string, bool) {
 	val, found := h[strings.ToLower(key)]
 	if found {
 		return val.vals, true
@@ -87,7 +87,7 @@ func (h headers) All(key string) ([]string, bool) {
 
 // Extract the content length field from the header map, defaulting to 0 if not
 // present
-func (h headers) ContentLength() uint {
+func (h Headers) ContentLength() uint {
 	cLenRaw, found := h.All("Content-Length")
 	if !found {
 		return 0

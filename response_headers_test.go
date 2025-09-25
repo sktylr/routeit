@@ -13,11 +13,10 @@ func TestNewResponseHeaders(t *testing.T) {
 	if len(h.headers) != 1 {
 		t.Errorf(`len(h) = %q, want match for %#q`, len(h.headers), 1)
 	}
-	verifyPresentAndMatches(t, h.headers, "Server", []string{"routeit"})
+	verifyHeaderPresentAndMatches(t, h.headers, "Server", []string{"routeit"})
 }
 
-// TODO: need to sort this out!
-func verifyPresentAndMatches(t *testing.T, h headers.Headers, key string, want []string) {
+func verifyHeaderPresentAndMatches(t *testing.T, h headers.Headers, key string, want []string) {
 	t.Helper()
 	got, exists := h.All(key)
 	if !exists {

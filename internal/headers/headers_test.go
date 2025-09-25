@@ -113,7 +113,7 @@ func TestHeadersSet(t *testing.T) {
 
 				h.Set(k, "16")
 
-				verifyPresentAndMatches(t, h, "Content-Length", []string{"16"})
+				verifyHeaderPresentAndMatches(t, h, "Content-Length", []string{"16"})
 				if len(h) != 1 {
 					t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
 				}
@@ -127,7 +127,7 @@ func TestHeadersSet(t *testing.T) {
 		h.Set("Content\r\n-Length", "16\n\n\t")
 		want := []string{"16\t"}
 
-		verifyPresentAndMatches(t, h, "Content-Length", want)
+		verifyHeaderPresentAndMatches(t, h, "Content-Length", want)
 	})
 }
 
@@ -148,7 +148,7 @@ func TestHeadersGet(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc, func(t *testing.T) {
-				verifyPresentAndMatches(t, base, tc, []string{"val"})
+				verifyHeaderPresentAndMatches(t, base, tc, []string{"val"})
 			})
 		}
 	})
@@ -187,7 +187,7 @@ func TestContentLength(t *testing.T) {
 	}
 }
 
-func verifyPresentAndMatches(t *testing.T, h Headers, key string, want []string) {
+func verifyHeaderPresentAndMatches(t *testing.T, h Headers, key string, want []string) {
 	t.Helper()
 	got, exists := h.All(key)
 	if !exists {

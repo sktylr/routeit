@@ -19,6 +19,10 @@ type headerVal struct {
 
 type Headers map[string]headerVal
 
+func NewHeaders() Headers {
+	return make(Headers)
+}
+
 // Writes the headers to the given string builder. Sanitises the keys and
 // values before writing.
 func (h Headers) WriteTo(writer io.Writer) (int64, error) {

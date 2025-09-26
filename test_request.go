@@ -112,7 +112,7 @@ func (tr *TestRequest) ContextValue(key string) (any, bool) {
 func constructTestHeaders(h ...string) headers.Headers {
 	i := 0
 	total := len(h)
-	headers := headers.Headers{}
+	headers := headers.NewHeaders()
 	for i < total-1 {
 		headers.Append(h[i], h[i+1])
 		i += 2

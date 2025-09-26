@@ -10,7 +10,7 @@ type ResponseHeaders struct {
 }
 
 func newResponseHeaders() *ResponseHeaders {
-	h := headers.Headers{}
+	h := headers.NewHeaders()
 	h.Set("Server", "routeit")
 	return &ResponseHeaders{headers: h}
 }

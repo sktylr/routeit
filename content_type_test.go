@@ -221,7 +221,7 @@ func TestParseAcceptHeader(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := headers.Headers{}
+			h := headers.NewHeaders()
 			for k, vals := range tc.in {
 				for _, v := range vals {
 					h.Append(k, v)

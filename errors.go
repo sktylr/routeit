@@ -70,7 +70,7 @@ func ErrNotFound() *HttpError {
 }
 
 func ErrMethodNotAllowed(allowed ...HttpMethod) *HttpError {
-	headers := headers.Headers{}
+	headers := headers.NewHeaders()
 	for _, m := range allowed {
 		headers.Append("Allow", m.name)
 	}
@@ -114,7 +114,7 @@ func ErrURITooLong() *HttpError {
 }
 
 func ErrUnsupportedMediaType(accepted ...ContentType) *HttpError {
-	headers := headers.Headers{}
+	headers := headers.NewHeaders()
 	if len(accepted) != 0 {
 		var sb strings.Builder
 		sb.WriteString(accepted[0].string())
@@ -228,7 +228,7 @@ func ErrNetworkAuthenticationRequired() *HttpError {
 }
 
 func httpErrorForStatus(s HttpStatus) *HttpError {
-	return &HttpError{status: s, headers: headers.Headers{}}
+	return &HttpError{status: s, headers: headers.NewHeaders()}
 }
 
 func newErrorHandler(em ErrorMapper) *errorHandler {

@@ -85,7 +85,7 @@ func allowTraceValidationMiddleware() Middleware {
 			if e, ok := err.(*HttpError); ok {
 				h = e.headers
 			} else {
-				h = headers.Headers{}
+				h = headers.NewHeaders()
 			}
 		} else {
 			h = rw.headers.headers

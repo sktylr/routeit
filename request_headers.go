@@ -21,7 +21,7 @@ type RequestHeaders struct {
 // present, we will return an error since per the RFC-9112 spec, the headers
 // MUST be separated from the body by a blank CRLF line.
 func headersFromRaw(raw [][]byte) (*RequestHeaders, int, *HttpError) {
-	h := headers.Headers{}
+	h := headers.NewHeaders()
 	for i, line := range raw {
 		if len(line) == 0 {
 			// This is an empty line which is interpreted as the signal between

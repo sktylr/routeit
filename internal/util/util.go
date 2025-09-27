@@ -1,6 +1,6 @@
-package routeit
+package util
 
-func stripDuplicates[T comparable](in []T) []T {
+func StripDuplicates[T comparable](in []T) []T {
 	indices := map[T]int{}
 	i := 0
 	for _, v := range in {

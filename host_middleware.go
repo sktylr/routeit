@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sktylr/routeit/internal/cmp"
+	"github.com/sktylr/routeit/internal/util"
 )
 
 // Middleware that is always registered as the third (or fourth, if the server
@@ -21,7 +22,7 @@ func hostValidationMiddleware(allowed []string) Middleware {
 		}
 	}
 
-	allowed = stripDuplicates(allowed)
+	allowed = util.StripDuplicates(allowed)
 	hosts := make([]*cmp.ExactOrWildcard, 0, len(allowed))
 	for _, h := range allowed {
 		if strings.HasPrefix(h, ".") {

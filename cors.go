@@ -9,6 +9,7 @@ import (
 
 	"github.com/sktylr/routeit/internal/cmp"
 	"github.com/sktylr/routeit/internal/trie"
+	"github.com/sktylr/routeit/internal/util"
 )
 
 type CorsConfig struct {
@@ -205,14 +206,14 @@ func (cc CorsConfig) toCors() *cors {
 	// By default we must allow OPTIONS requests, otherwise the server cannot
 	// handle pre-flight requests. We also by default always support the simple
 	// methods
-	allowedMethods := stripDuplicates(
+	allowedMethods := util.StripDuplicates(
 		append([]HttpMethod{OPTIONS, GET, HEAD, POST}, cc.AllowedMethods...),
 	)
 
 	// Despite being a CORS safe header, Content-Type may appear in the
 	// requested headers header due to its value not being a simple
 	// Content-Type value.
-	allowedHeaders := stripDuplicates(append(cc.AllowedHeaders, "content-type"))
+	allowedHeaders := util.StripDuplicates(append(cc.AllowedHeaders, "content-type"))
 
 	trie := trie.NewRuneTrie()
 	for _, h := range allowedHeaders {
@@ -251,7 +252,7 @@ func (cc CorsConfig) generateAllowsOrigin() AllowOriginFunc {
 	} else if cc.AllowAllOrigins {
 		return acceptAll
 	} else {
-		allowedOrigins := stripDuplicates(cc.AllowedOrigins)
+		allowedOrigins := util.StripDuplicates(cc.AllowedOrigins)
 		origins := make([]*cmp.ExactOrWildcard, 0, len(allowedOrigins))
 		for _, o := range allowedOrigins {
 			if o == "*" {

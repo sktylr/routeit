@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/sktylr/routeit/internal/headers"
 )
 
 // The [TestRequestOptions] allow you to specify certain traits the request
@@ -45,7 +47,7 @@ type TestRequest struct {
 
 type testRequest struct {
 	path    string
-	headers headers
+	headers headers.Headers
 	method  HttpMethod
 	body    []byte
 }
@@ -107,10 +109,10 @@ func (tr *TestRequest) ContextValue(key string) (any, bool) {
 	return tr.req.ContextValue(key)
 }
 
-func constructTestHeaders(h ...string) headers {
+func constructTestHeaders(h ...string) headers.Headers {
 	i := 0
 	total := len(h)
-	headers := headers{}
+	headers := headers.NewHeaders()
 	for i < total-1 {
 		headers.Append(h[i], h[i+1])
 		i += 2

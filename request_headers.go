@@ -1,12 +1,16 @@
 package routeit
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sktylr/routeit/internal/headers"
+)
 
 // The [RequestHeaders] type can be used to read the headers on the incoming
 // request. Lookup is case insensitive, and the header may appear multiple
 // times within the request.
 type RequestHeaders struct {
-	headers headers
+	headers headers.Headers
 }
 
 // Parses a slice of byte slices into the headers type.
@@ -17,7 +21,7 @@ type RequestHeaders struct {
 // present, we will return an error since per the RFC-9112 spec, the headers
 // MUST be separated from the body by a blank CRLF line.
 func headersFromRaw(raw [][]byte) (*RequestHeaders, int, *HttpError) {
-	h := headers{}
+	h := headers.NewHeaders()
 	for i, line := range raw {
 		if len(line) == 0 {
 			// This is an empty line which is interpreted as the signal between

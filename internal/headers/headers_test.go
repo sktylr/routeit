@@ -1,4 +1,4 @@
-package routeit
+package headers
 
 import (
 	"reflect"
@@ -59,7 +59,7 @@ func TestHeadersWriteTo(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := headers{}
+			h := Headers{}
 			for k, vals := range tc.in {
 				for _, v := range vals {
 					h.Append(k, v)
@@ -108,12 +108,12 @@ func TestHeadersSet(t *testing.T) {
 
 		for _, k := range keys {
 			t.Run(k, func(t *testing.T) {
-				h := headers{}
+				h := Headers{}
 				h.Set("Content-Length", "15")
 
 				h.Set(k, "16")
 
-				verifyPresentAndMatches(t, h, "Content-Length", []string{"16"})
+				verifyHeaderPresentAndMatches(t, h, "Content-Length", []string{"16"})
 				if len(h) != 1 {
 					t.Errorf(`len(h) = %d, wanted only 1 element`, len(h))
 				}
@@ -122,18 +122,18 @@ func TestHeadersSet(t *testing.T) {
 	})
 
 	t.Run("sanitises", func(t *testing.T) {
-		h := headers{}
+		h := Headers{}
 
 		h.Set("Content\r\n-Length", "16\n\n\t")
 		want := []string{"16\t"}
 
-		verifyPresentAndMatches(t, h, "Content-Length", want)
+		verifyHeaderPresentAndMatches(t, h, "Content-Length", want)
 	})
 }
 
 func TestHeadersGet(t *testing.T) {
 	t.Run("case insensitive", func(t *testing.T) {
-		base := newResponseHeaders()
+		base := Headers{}
 		base.Set("Key", "val")
 		tests := []string{
 			"key",
@@ -148,7 +148,7 @@ func TestHeadersGet(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc, func(t *testing.T) {
-				verifyPresentAndMatches(t, base.headers, tc, []string{"val"})
+				verifyHeaderPresentAndMatches(t, base, tc, []string{"val"})
 			})
 		}
 	})
@@ -157,22 +157,22 @@ func TestHeadersGet(t *testing.T) {
 func TestContentLength(t *testing.T) {
 	tests := []struct {
 		name string
-		in   headers
+		in   Headers
 		want uint
 	}{
 		{
 			"not present",
-			headers{},
+			Headers{},
 			0,
 		},
 		{
 			"not parsable",
-			headers{"content-length": headerVal{[]string{"abc"}, "Content-Length"}},
+			Headers{"content-length": headerVal{[]string{"abc"}, "Content-Length"}},
 			0,
 		},
 		{
 			"valid",
-			headers{"content-length": headerVal{[]string{"85"}, "Content-Length"}},
+			Headers{"content-length": headerVal{[]string{"85"}, "Content-Length"}},
 			85,
 		},
 	}
@@ -187,7 +187,7 @@ func TestContentLength(t *testing.T) {
 	}
 }
 
-func verifyPresentAndMatches(t *testing.T, h headers, key string, want []string) {
+func verifyHeaderPresentAndMatches(t *testing.T, h Headers, key string, want []string) {
 	t.Helper()
 	got, exists := h.All(key)
 	if !exists {

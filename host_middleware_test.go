@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/sktylr/routeit/internal/headers"
 )
 
 // Remember to use -benchtime=0.01s or similar to avoid the benchmarking
@@ -47,7 +49,7 @@ func BenchmarkHostValidationMiddleware(b *testing.B) {
 					b.ResetTimer()
 					for b.Loop() {
 						b.StopTimer()
-						headers := headers{}
+						headers := headers.NewHeaders()
 						headers.Set("Host", tc.testHost)
 						req := &Request{headers: &RequestHeaders{headers}}
 						rw := &ResponseWriter{}

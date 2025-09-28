@@ -1,14 +1,16 @@
 package routeit
 
+import "github.com/sktylr/routeit/internal/headers"
+
 // The [ResponseHeaders] can be used to mutate the headers for a given
 // [ResponseWriter]. It allows writing of header values and uses case-
 // insensitive insertion for the header key.
 type ResponseHeaders struct {
-	headers headers
+	headers headers.Headers
 }
 
 func newResponseHeaders() *ResponseHeaders {
-	h := headers{}
+	h := headers.NewHeaders()
 	h.Set("Server", "routeit")
 	return &ResponseHeaders{headers: h}
 }

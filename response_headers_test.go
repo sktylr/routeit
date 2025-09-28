@@ -1,6 +1,11 @@
 package routeit
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"github.com/sktylr/routeit/internal/headers"
+)
 
 func TestNewResponseHeaders(t *testing.T) {
 	h := newResponseHeaders()
@@ -8,5 +13,16 @@ func TestNewResponseHeaders(t *testing.T) {
 	if len(h.headers) != 1 {
 		t.Errorf(`len(h) = %q, want match for %#q`, len(h.headers), 1)
 	}
-	verifyPresentAndMatches(t, h.headers, "Server", []string{"routeit"})
+	verifyHeaderPresentAndMatches(t, h.headers, "Server", []string{"routeit"})
+}
+
+func verifyHeaderPresentAndMatches(t *testing.T, h headers.Headers, key string, want []string) {
+	t.Helper()
+	got, exists := h.All(key)
+	if !exists {
+		t.Errorf("wanted %q to be present", key)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf(`h[%q] = %v, want %v`, key, got, want)
+	}
 }

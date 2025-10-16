@@ -1,4 +1,4 @@
-package routeit
+package util
 
 import "testing"
 
@@ -77,7 +77,7 @@ func TestStripeDuplicates(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			out := stripDuplicates(tc.in)
+			out := StripDuplicates(tc.in)
 
 			if len(out) != len(tc.want) {
 				t.Fatalf(`length = %d, wanted %d`, len(out), len(tc.want))

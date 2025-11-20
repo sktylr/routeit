@@ -15,5 +15,5 @@ github.com/sktylr/routeit v1.2.1 h1:mmKsH77Q2gTAXzZKPU/1oAuKQnPGY+/cs5vpnk2BYJ0=
 github.com/sktylr/routeit v1.2.1/go.mod h1:EZOD7GOrqszUM3TES5VL8oSmFxa2t6yYQXPVaNxswE0=
 github.com/sktylr/routeit/requestid v0.1.0 h1:rmg0xjEtvTZQxy2fMxCZe+zHpfXOZimblMMhZA7M5sU=
 github.com/sktylr/routeit/requestid v0.1.0/go.mod h1:FB6ywa1IdpWmbcklrFQPFXpJFUoNMEwNhiEx38xJTUU=
-golang.org/x/crypto v0.40.0 h1:r4x+VvoG5Fm+eJcxMaY8CQM7Lb0l1lsmjGBQ6s8BfKM=
-golang.org/x/crypto v0.40.0/go.mod h1:Qr1vMER5WyS2dfPHAlsOj01wgLbsyWtFn/aY+5+ZdxY=
+golang.org/x/crypto v0.45.0 h1:jMBrvKuj23MTlT0bQEOBcAE0mjg8mK9RXFhRH6nyF3Q=
+golang.org/x/crypto v0.45.0/go.mod h1:XTGrrkGJve7CYK7J8PEww4aY7gM3qMCElcJQ8n8JdX4=

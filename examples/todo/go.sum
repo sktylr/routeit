@@ -13,8 +13,6 @@ github.com/mattn/go-sqlite3 v1.14.30 h1:bVreufq3EAIG1Quvws73du3/QgdeZ3myglJlrzSY
 github.com/mattn/go-sqlite3 v1.14.30/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/sktylr/routeit v1.2.2 h1:cUtarRzMxzmhBLx5Wo/Px2jPiZoW3L3bukA+Axu/qdM=
 github.com/sktylr/routeit v1.2.2/go.mod h1:z1OzOXzAwVxD8ZVsefZhXxxthtPq9j6IYp/U0MTxjJI=
-github.com/sktylr/routeit/requestid v0.1.0 h1:rmg0xjEtvTZQxy2fMxCZe+zHpfXOZimblMMhZA7M5sU=
-github.com/sktylr/routeit/requestid v0.1.0/go.mod h1:FB6ywa1IdpWmbcklrFQPFXpJFUoNMEwNhiEx38xJTUU=
 github.com/sktylr/routeit/requestid v0.1.1 h1:Kv5i+TxCaYoMluenDrfhnSnl8ca0CpzKbRzy8HFZOjU=
 github.com/sktylr/routeit/requestid v0.1.1/go.mod h1:sMZHQFdF+chPIT/vtZMs0O4oEJQlHYAWVOnBwSiD0bs=
 golang.org/x/crypto v0.45.0 h1:jMBrvKuj23MTlT0bQEOBcAE0mjg8mK9RXFhRH6nyF3Q=

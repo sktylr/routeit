@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.2.2] — 2025-11-28
+
+### Changed
+
+- Upgraded Go toolchain from `1.24.4` to `1.25.4`.
+
+### Internal
+
+- Migrated `stripDuplicates` to the internal helper library.
+- Migrated header utilities to the internal helper library.
+- Updated examples to reference `v1.2.1`.
+- Bumped `golang.org/x/crypto` from `0.40.0` to `0.45.0` in `examples/todo`.
+
+---
+
 ## [v1.2.1] — 2025-09-15
 
 ### Fixed

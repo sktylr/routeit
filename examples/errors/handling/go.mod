@@ -1,5 +1,5 @@
 module github.com/sktylr/routeit/examples/errors/handling
 
-go 1.24.4
+go 1.25.4
 
-require github.com/sktylr/routeit v1.2.1
+require github.com/sktylr/routeit v1.2.2
